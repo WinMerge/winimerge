@@ -246,7 +246,7 @@ private:
 			wcex.cbWndExtra		= 0;
 			wcex.hInstance		= hInstance;
 			wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-			wcex.hbrBackground	= CreateSolidBrush(RGB(206, 215, 230));
+			wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW + 1);
 			wcex.lpszClassName	= L"WinImgWindowClass";
 		}
 		return RegisterClassExW(&wcex);
@@ -260,6 +260,13 @@ private:
 		{
 			RECT rcImg, rc;
 			GetClientRect(m_hWnd, &rc);
+			HDC hdcMem = CreateCompatibleDC(hdc);
+			HBITMAP hbmMem = CreateCompatibleBitmap(hdc, rc.right - rc.left, rc.bottom - rc.top);
+			HDC hOld = static_cast<HDC>(SelectObject(hdcMem, hbmMem));
+			HBRUSH hOldBrush = static_cast<HBRUSH>(SelectObject(hdcMem, static_cast<HGDIOBJ>(CreateSolidBrush(RGB(206, 215, 230)))));
+
+			PatBlt(hdcMem, 0, 0, rc.right - rc.left, rc.bottom - rc.top, PATCOPY);
+
 			if (rc.right - rc.left > m_fip->getWidth() * m_zoom + MARGIN * 2)
 			{
 				rcImg.left  = static_cast<int>(((rc.right - rc.left) - m_fip->getWidth() * m_zoom) / 2); 
@@ -282,22 +289,29 @@ private:
 			}
 
 			if (m_fip->isValid())
-				m_fip->drawEx(hdc, rcImg, false, m_useBackColor ? &m_backColor : NULL);
+				m_fip->drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
 			
 			if (GetFocus() == m_hWnd)
 			{
-				DrawFocusRect(hdc, &rc);
+				DrawFocusRect(hdcMem, &rc);
 			}
 			else
 			{
 				HPEN hPen = (HPEN)GetStockObject(WHITE_PEN);
 				HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
-				HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-				HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-				Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
-				SelectObject(hdc, hOldPen);
-				SelectObject(hdc, hOldBrush);
+				HPEN hOldPen = (HPEN)SelectObject(hdcMem, hPen);
+				HBRUSH hOldBrush = (HBRUSH)SelectObject(hdcMem, hBrush);
+				Rectangle(hdcMem, rc.left, rc.top, rc.right, rc.bottom);
+				SelectObject(hdcMem, hOldPen);
+				SelectObject(hdcMem, hOldBrush);
 			}
+
+			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
+
+			DeleteObject(SelectObject(hdcMem, hOldBrush));
+			SelectObject(hdcMem, hOld);
+			DeleteObject(hbmMem);
+			DeleteDC(hdcMem);
 		}
 		EndPaint(m_hWnd, &ps);
 	}
