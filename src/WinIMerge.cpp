@@ -452,6 +452,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND);
 			UpdateMenuState(hWnd);
 			break;
+		case ID_VIEW_OVERLAY_ALPHABLEND_ANIM:
+			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND_ANIM);
+			UpdateMenuState(hWnd);
+			break;
 		case ID_VIEW_OVERLAY_XOR:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_XOR);
 			UpdateMenuState(hWnd);
