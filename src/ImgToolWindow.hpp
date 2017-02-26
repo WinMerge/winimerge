@@ -79,10 +79,15 @@ public:
 		GetWindowRect(hwndDiffMap, &rcTmp);
 		POINT pt = { rcTmp.left, rcTmp.top };
 		ScreenToClient(m_hWnd, &pt);
-		int mh = h * (cx - 8) / w;
-		if (mh + pt.y > cy - 8)
-			mh = cy - 8 - pt.y;
-		int mw = mh * w / h;
+		int mw = 0;
+		int mh = 0;
+		if (w > 0 && h > 0)
+		{
+			mh = h * (cx - 8) / w;
+			if (mh + pt.y > cy - 8)
+				mh = cy - 8 - pt.y;
+			mw = mh * w / h;
+		}
 		RECT rcDiffMap = { (cx - mw) / 2, pt.y, (cx + mw) / 2, pt.y + mh };
 		SetWindowPos(hwndDiffMap, NULL, rcDiffMap.left, rcDiffMap.top, 
 			rcDiffMap.right - rcDiffMap.left, rcDiffMap.bottom - rcDiffMap.top, SWP_NOZORDER);
