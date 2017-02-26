@@ -254,13 +254,28 @@ void OnChildPaneEvent(const IImgMergeWindow::Event& evt)
 		HMENU hSubMenu = GetSubMenu(hPopup, 0);
 		TrackPopupMenu(hSubMenu, TPM_LEFTALIGN, evt.x, evt.y, 0, m_hWnd, NULL); 
 	}
-	else if (evt.eventType == IImgMergeWindow::KEYDOWN && GetAsyncKeyState(VK_SHIFT))
+	else if (evt.eventType == IImgMergeWindow::KEYDOWN)
 	{
-		int nActivePane = m_pImgMergeWindow->GetActivePane();
-		int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
-		int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
-		int dy = (-(evt.keycode == VK_UP  ) + (evt.keycode == VK_DOWN )) * m;
-		m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+		switch (evt.keycode)
+		{
+		case VK_PRIOR:
+		case VK_NEXT:
+			SendMessage(m_pImgMergeWindow->GetPaneHWND(evt.pane), WM_VSCROLL, evt.keycode == VK_PRIOR ? SB_PAGEUP : SB_PAGEDOWN, 0);
+			break;
+		case VK_LEFT:
+		case VK_RIGHT:
+		case VK_UP:
+		case VK_DOWN:
+			if (GetAsyncKeyState(VK_SHIFT))
+			{
+				int nActivePane = m_pImgMergeWindow->GetActivePane();
+				int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
+				int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
+				int dy = (-(evt.keycode == VK_UP) + (evt.keycode == VK_DOWN)) * m;
+				m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+			}
+			break;
+		}
 	}
 }
 
