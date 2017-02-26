@@ -128,6 +128,12 @@ BEGIN
             MENUITEM "&Alpha Blend",                ID_VIEW_OVERLAY_ALPHABLEND
             MENUITEM "Alpha &Blend Animation",      ID_VIEW_OVERLAY_ALPHABLEND_ANIM
         END
+        POPUP "Dra&gging Mode"
+        BEGIN
+            MENUITEM "&None",                       ID_VIEW_DRAGGINGMODE_NONE
+            MENUITEM "&Move",                       ID_VIEW_DRAGGINGMODE_MOVE
+            MENUITEM "&Adjust Offset",              ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET
+        END
         MENUITEM "Split &Horizontally",         ID_VIEW_SPLITHORIZONTALLY
         MENUITEM "&Set Background Color",       ID_VIEW_USEBACKCOLOR
     END

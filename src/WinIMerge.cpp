@@ -173,6 +173,8 @@ void UpdateMenuState(HWND hWnd)
 	CheckMenuItem(hMenu, ID_VIEW_SPLITHORIZONTALLY,  m_pImgMergeWindow->GetHorizontalSplit() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuRadioItem(hMenu, ID_VIEW_OVERLAY_NONE, ID_VIEW_OVERLAY_ALPHABLEND,
 		m_pImgMergeWindow->GetOverlayMode() + ID_VIEW_OVERLAY_NONE, MF_BYCOMMAND);
+	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET,
+		m_pImgMergeWindow->GetDraggingMode() + ID_VIEW_DRAGGINGMODE_NONE, MF_BYCOMMAND);
 	int blockSize = m_pImgMergeWindow->GetDiffBlockSize();
 	int id = ID_VIEW_DIFFBLOCKSIZE_1;
 	while (blockSize > 1)
@@ -517,6 +519,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			m_pImgMergeWindow->SetCurrentPageAll(page - 1);
 			break;
 		}
+		case ID_VIEW_DRAGGINGMODE_NONE:
+		case ID_VIEW_DRAGGINGMODE_MOVE:
+		case ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET:
+			m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(wmId - ID_VIEW_DRAGGINGMODE_NONE));
+			break;
 		case ID_VIEW_USEBACKCOLOR:
 		{
 			bool useBackColor = !m_pImgMergeWindow->GetUseBackColor();

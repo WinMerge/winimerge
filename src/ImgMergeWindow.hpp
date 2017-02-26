@@ -61,6 +61,10 @@ public:
 		, m_bHorizontalSplit(false)
 		, m_oldSplitPosX(-4)
 		, m_oldSplitPosY(-4)
+		, m_bDragging(false)
+		, m_ptOrg{ 0, 0 }
+		, m_ptPrev{ 0, 0 }
+		, m_draggingMode(DRAGGING_MODE::MOVE)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_ChildWndProc[i] = NULL;
@@ -704,6 +708,16 @@ public:
 		return m_buffer.GetDiffMapImage(w, h);
 	}
 
+	DRAGGING_MODE GetDraggingMode() const
+	{
+		return m_draggingMode;
+	}
+
+	void SetDraggingMode(DRAGGING_MODE draggingMode)
+	{
+		m_draggingMode = draggingMode;
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -1035,6 +1049,78 @@ private:
 		}
 		switch (iMsg)
 		{
+		case WM_LBUTTONDOWN:
+		{
+			pImgWnd->m_bDragging = true;
+			pImgWnd->m_ptOrg.x = evt.x;
+			pImgWnd->m_ptOrg.y = evt.y;
+			pImgWnd->m_ptPrev.x = INT_MIN;
+			pImgWnd->m_ptPrev.y = INT_MIN;
+			SetCapture(hwnd);
+			break;
+		}
+		case WM_LBUTTONUP:
+			if (pImgWnd->m_bDragging)
+			{
+				pImgWnd->m_bDragging = false;
+				ReleaseCapture();
+				if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
+				{
+					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
+					double zoom = pImgWnd->GetZoom();
+					int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
+					int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
+					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
+					pImgWnd->AddImageOffset(evt.pane, static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom), static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom));
+				}
+			}
+			break;
+		case WM_MOUSEMOVE:
+			if (pImgWnd->m_bDragging)
+			{
+				double zoom = pImgWnd->GetZoom();
+				if (pImgWnd->m_draggingMode == DRAGGING_MODE::MOVE)
+				{
+					SCROLLINFO sih = { sizeof SCROLLINFO };
+					sih.fMask = SIF_RANGE | SIF_PAGE;
+					GetScrollInfo(hwnd, SB_HORZ, &sih);
+					if (sih.nMax > sih.nPage)
+					{
+						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) * zoom);
+						SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
+						pImgWnd->m_ptOrg.x = evt.x;
+					}
+
+					SCROLLINFO siv = { sizeof SCROLLINFO };
+					siv.fMask = SIF_RANGE | SIF_PAGE;
+					GetScrollInfo(hwnd, SB_VERT, &siv);
+					if (siv.nMax > siv.nPage)
+					{
+						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) * zoom);
+						SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
+						pImgWnd->m_ptOrg.y = evt.y;
+					}
+				}
+				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
+				{
+					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
+					if (pImgWnd->m_ptPrev.x != INT_MIN && pImgWnd->m_ptPrev.y != INT_MIN)
+					{
+						int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
+						int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
+						pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
+					}
+					int offsetX = ptOffset.x + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom);
+					int offsetY = ptOffset.y + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom);
+					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
+					pImgWnd->m_ptPrev.x = evt.x;
+					pImgWnd->m_ptPrev.y = evt.y;
+				}
+			}
+			break;
+		}
+		switch (iMsg)
+		{
 		case WM_LBUTTONDBLCLK:
 		{
 			POINT pt = pImgWnd->GetCursorPos(i);
@@ -1068,5 +1154,9 @@ private:
 	bool m_bHorizontalSplit;
 	int m_oldSplitPosX;
 	int m_oldSplitPosY;
+	bool m_bDragging;
+	POINT m_ptOrg;
+	POINT m_ptPrev;
+	DRAGGING_MODE m_draggingMode;
 	CImgMergeBuffer m_buffer;
 };

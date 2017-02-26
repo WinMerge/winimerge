@@ -102,6 +102,25 @@ public:
 		return lp;
 	}
 
+	POINT ConvertLPtoDP(int lx, int ly) const
+	{
+		POINT dp;
+		RECT rc;
+		GetClientRect(m_hWnd, &rc);
+
+		if (rc.right - rc.left > m_fip->getWidth() * m_zoom + MARGIN * 2)
+			dp.x = static_cast<int>(((rc.right - rc.left) - m_fip->getWidth() * m_zoom) / 2);
+		else
+			dp.x = -m_nHScrollPos + MARGIN; 
+		if (rc.bottom - rc.top > m_fip->getHeight() * m_zoom + MARGIN * 2)
+			dp.y = static_cast<int>(((rc.bottom - rc.top) - m_fip->getHeight() * m_zoom) / 2); 
+		else
+			dp.y = -m_nVScrollPos + MARGIN;
+		dp.x += static_cast<int>(lx * m_zoom);
+		dp.y += static_cast<int>(ly * m_zoom);
+		return dp;
+	}
+
 	bool IsFocused() const
 	{
 		return m_hWnd == GetFocus();
@@ -232,6 +251,17 @@ public:
 		CalcScrollBarRange();
 	}
 
+	void DrawFocusRectangle(int left, int top, int width, int height)
+	{
+		HDC hdc = GetDC(m_hWnd);
+		POINT pt = ConvertLPtoDP(left, top);
+		RECT rc = { pt.x, pt.y };
+		rc.right = rc.left + static_cast<int>(width * m_zoom);
+		rc.bottom = rc.top + static_cast<int>(height * m_zoom);
+		::DrawFocusRect(hdc, &rc);
+		ReleaseDC(m_hWnd, hdc);
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -258,7 +288,7 @@ private:
 		HDC hdc = BeginPaint(m_hWnd, &ps);
 		if (m_fip)
 		{
-			RECT rcImg, rc;
+			RECT rc;
 			GetClientRect(m_hWnd, &rc);
 			HDC hdcMem = CreateCompatibleDC(hdc);
 			HBITMAP hbmMem = CreateCompatibleBitmap(hdc, rc.right - rc.left, rc.bottom - rc.top);
@@ -267,26 +297,8 @@ private:
 
 			PatBlt(hdcMem, 0, 0, rc.right - rc.left, rc.bottom - rc.top, PATCOPY);
 
-			if (rc.right - rc.left > m_fip->getWidth() * m_zoom + MARGIN * 2)
-			{
-				rcImg.left  = static_cast<int>(((rc.right - rc.left) - m_fip->getWidth() * m_zoom) / 2); 
-				rcImg.right = static_cast<int>(rcImg.left + m_fip->getWidth() * m_zoom); 
-			}
-			else
-			{
-				rcImg.left = -m_nHScrollPos + MARGIN;
-				rcImg.right = static_cast<int>(m_fip->getWidth() * m_zoom + MARGIN - m_nHScrollPos);
-			}
-			if (rc.bottom - rc.top > m_fip->getHeight() * m_zoom + MARGIN * 2)
-			{
-				rcImg.top    = static_cast<int>(((rc.bottom - rc.top) - m_fip->getHeight() * m_zoom) / 2); 
-				rcImg.bottom = static_cast<int>(rcImg.top + m_fip->getHeight() * m_zoom); 
-			}
-			else
-			{
-				rcImg.top    = -m_nVScrollPos + MARGIN;
-				rcImg.bottom = static_cast<int>(m_fip->getHeight() * m_zoom + MARGIN - m_nVScrollPos);
-			}
+			POINT pt = ConvertLPtoDP(0, 0);
+			RECT rcImg = { pt.x, pt.y, pt.x + static_cast<int>(m_fip->getWidth() * m_zoom), pt.y + static_cast<int>(m_fip->getHeight() * m_zoom) };
 
 			if (m_fip->isValid())
 				m_fip->drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
