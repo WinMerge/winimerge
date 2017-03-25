@@ -173,6 +173,8 @@ void UpdateMenuState(HWND hWnd)
 	CheckMenuItem(hMenu, ID_VIEW_SPLITHORIZONTALLY,  m_pImgMergeWindow->GetHorizontalSplit() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuRadioItem(hMenu, ID_VIEW_OVERLAY_NONE, ID_VIEW_OVERLAY_ALPHABLEND,
 		m_pImgMergeWindow->GetOverlayMode() + ID_VIEW_OVERLAY_NONE, MF_BYCOMMAND);
+	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET,
+		m_pImgMergeWindow->GetDraggingMode() + ID_VIEW_DRAGGINGMODE_NONE, MF_BYCOMMAND);
 	int blockSize = m_pImgMergeWindow->GetDiffBlockSize();
 	int id = ID_VIEW_DIFFBLOCKSIZE_1;
 	while (blockSize > 1)
@@ -254,13 +256,28 @@ void OnChildPaneEvent(const IImgMergeWindow::Event& evt)
 		HMENU hSubMenu = GetSubMenu(hPopup, 0);
 		TrackPopupMenu(hSubMenu, TPM_LEFTALIGN, evt.x, evt.y, 0, m_hWnd, NULL); 
 	}
-	else if (evt.eventType == IImgMergeWindow::KEYDOWN && GetAsyncKeyState(VK_SHIFT))
+	else if (evt.eventType == IImgMergeWindow::KEYDOWN)
 	{
-		int nActivePane = m_pImgMergeWindow->GetActivePane();
-		int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
-		int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
-		int dy = (-(evt.keycode == VK_UP  ) + (evt.keycode == VK_DOWN )) * m;
-		m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+		switch (evt.keycode)
+		{
+		case VK_PRIOR:
+		case VK_NEXT:
+			SendMessage(m_pImgMergeWindow->GetPaneHWND(evt.pane), WM_VSCROLL, evt.keycode == VK_PRIOR ? SB_PAGEUP : SB_PAGEDOWN, 0);
+			break;
+		case VK_LEFT:
+		case VK_RIGHT:
+		case VK_UP:
+		case VK_DOWN:
+			if (GetAsyncKeyState(VK_SHIFT))
+			{
+				int nActivePane = m_pImgMergeWindow->GetActivePane();
+				int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
+				int dx = (-(evt.keycode == VK_LEFT) + (evt.keycode == VK_RIGHT)) * m;
+				int dy = (-(evt.keycode == VK_UP) + (evt.keycode == VK_DOWN)) * m;
+				m_pImgMergeWindow->AddImageOffset(nActivePane, dx, dy);
+			}
+			break;
+		}
 	}
 }
 
@@ -452,6 +469,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND);
 			UpdateMenuState(hWnd);
 			break;
+		case ID_VIEW_OVERLAY_ALPHABLEND_ANIM:
+			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND_ANIM);
+			UpdateMenuState(hWnd);
+			break;
 		case ID_VIEW_OVERLAY_XOR:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_XOR);
 			UpdateMenuState(hWnd);
@@ -498,6 +519,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			m_pImgMergeWindow->SetCurrentPageAll(page - 1);
 			break;
 		}
+		case ID_VIEW_DRAGGINGMODE_NONE:
+		case ID_VIEW_DRAGGINGMODE_MOVE:
+		case ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET:
+			m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(wmId - ID_VIEW_DRAGGINGMODE_NONE));
+			break;
 		case ID_VIEW_USEBACKCOLOR:
 		{
 			bool useBackColor = !m_pImgMergeWindow->GetUseBackColor();
