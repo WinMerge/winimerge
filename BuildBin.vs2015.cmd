@@ -10,11 +10,11 @@ setlocal
 set VisualStudioVersion=14.0
 call "%VS140COMNTOOLS%vsvars32.bat"
 for %%i in ( ^
-  ..\freeimage\Source\FreeImageLib\FreeImageLib.2015.vcxproj ^
-  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.2015.vcxproj ^
-  src\WinIMergeLib.vcxproj ^
-  src\WinIMerge.vcxproj ^
-  src\cidiff.vcxproj ^
+  ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2015.vcxproj ^
+  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2015.vcxproj ^
+  src\WinIMergeLib.vs2015.vcxproj ^
+  src\WinIMerge.vs2015.vcxproj ^
+  src\cidiff.vs2015.vcxproj ^
   ) do (
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v140_xp || pause
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v140_xp || pause
