@@ -10,14 +10,14 @@ setlocal
 set VisualStudioVersion=14.0
 call "%VS140COMNTOOLS%vsvars32.bat"
 for %%i in ( ^
-  ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2015.vcxproj ^
-  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2015.vcxproj ^
-  src\WinIMergeLib.vs2015.vcxproj ^
-  src\WinIMerge.vs2015.vcxproj ^
-  src\cidiff.vs2015.vcxproj ^
+  ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2017.vcxproj ^
+  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2017.vcxproj ^
+  src\WinIMergeLib.vs2017.vcxproj ^
+  src\WinIMerge.vs2017.vcxproj ^
+  src\cidiff.vs2017.vcxproj ^
   ) do (
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v140_xp || pause
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v140_xp || pause
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v141_xp || pause
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v141_xp || pause
 )
 
 if exist "%SIGNBAT_PATH%" (
