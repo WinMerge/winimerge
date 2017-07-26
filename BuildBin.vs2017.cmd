@@ -7,8 +7,8 @@ call SetVersion.cmd
 cscript /nologo ExpandEnvironmenStrings.vbs Version.in > Version.h
 
 setlocal
-set VisualStudioVersion=14.0
-call "%VS140COMNTOOLS%vsvars32.bat"
+set VisualStudioVersion=15.0
+call "%VS141COMNTOOLS%vsvars32.bat"
 for %%i in ( ^
   ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2017.vcxproj ^
   ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2017.vcxproj ^
