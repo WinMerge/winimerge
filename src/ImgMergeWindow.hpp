@@ -85,7 +85,9 @@ public:
 
 	bool Destroy()
 	{
-		BOOL bSucceeded = DestroyWindow(m_hWnd);
+		BOOL bSucceeded = true;
+		if (m_hWnd)
+			bSucceeded = DestroyWindow(m_hWnd);
 		m_hWnd = NULL;
 		return !!bSucceeded;
 	}
@@ -107,7 +109,7 @@ public:
 
 	RECT GetPaneWindowRect(int pane) const
 	{
-		if (pane < 0 || pane >= m_nImages)
+		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 		{
 			RECT rc = {-1, -1, -1, -1};
 			return rc;
@@ -117,6 +119,8 @@ public:
 
 	RECT GetWindowRect() const
 	{
+		if (!m_hWnd)
+			return RECT{0};
 		RECT rc, rcParent;
 		HWND hwndParent = GetParent(m_hWnd);
 		::GetWindowRect(hwndParent, &rcParent);
@@ -130,14 +134,15 @@ public:
 
 	bool SetWindowRect(const RECT& rc)
 	{
-		MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
+		if (m_hWnd)
+			MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
 		return true;
 	}
 
 	POINT GetCursorPos(int pane) const
 	{
 		POINT pt = {-1, -1};
-		if (pane < 0 || pane > m_nImages)
+		if (pane < 0 || pane > m_nImages || !m_hWnd)
 			return pt;
 		POINT dpt;
 		::GetCursorPos(&dpt);
@@ -161,6 +166,8 @@ public:
 
 	int GetActivePane() const
 	{
+		if (!m_hWnd)
+			return -1;
 		for (int i = 0; i < m_nImages; ++i)
 			if (m_imgWindow[i].IsFocused())
 				return i;
@@ -169,7 +176,7 @@ public:
 
 	void SetActivePane(int pane)
 	{
-		if (pane < 0 || pane >= m_nImages)
+		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 			return;
 		m_imgWindow[pane].SetFocus();
 	}
@@ -191,6 +198,8 @@ public:
 
 	void SetHorizontalSplit(bool horizontalSplit)
 	{
+		if (!m_hWnd)
+			return;
 		m_bHorizontalSplit = horizontalSplit;
 		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
 		for (int i = 0; i < m_nImages; ++i)
@@ -232,33 +241,40 @@ public:
 
 	RGBQUAD GetBackColor() const
 	{
-		return m_imgWindow[0].GetBackColor();
+		return m_hWnd ? m_imgWindow[0].GetBackColor() : RGBQUAD{0};
 	}
 
 	void SetBackColor(RGBQUAD backColor)
 	{
-		for (int i = 0; i < 3; ++i)
-			m_imgWindow[i].SetBackColor(backColor);
+		if (m_hWnd)
+		{
+			for (int i = 0; i < 3; ++i)
+				m_imgWindow[i].SetBackColor(backColor);
+		}
 	}
 
 	bool GetUseBackColor() const
 	{
-		return m_imgWindow[0].GetUseBackColor();
+		return m_hWnd ? m_imgWindow[0].GetUseBackColor() : false;
 	}
 
 	void SetUseBackColor(bool useBackColor)
 	{
+		if (!m_hWnd)
+			return;
 		for (int i = 0; i < 3; ++i)
 			m_imgWindow[i].SetUseBackColor(useBackColor);
 	}
 
 	double GetZoom() const
 	{
-		return m_imgWindow[0].GetZoom();
+		return m_hWnd ? m_imgWindow[0].GetZoom() : 1.0;
 	}
 
 	void SetZoom(double zoom)
 	{
+		if (!m_hWnd)
+			return;
 		for (int i = 0; i < 3; ++i)
 			m_imgWindow[i].SetZoom(zoom);
 	}
@@ -528,6 +544,8 @@ public:
 
 	void ScrollToDiff(int diffIndex)
 	{
+		if (!m_hWnd)
+			return;
 		if (diffIndex >= 0 && diffIndex < m_buffer.GetDiffCount())
 		{
 			Rect<int> rc = m_buffer.GetDiffInfo(diffIndex)->rc;
@@ -548,6 +566,8 @@ public:
 
 	void ScrollTo(int x, int y, bool force = false)
 	{
+		if (!m_hWnd)
+			return;
 		for (int i = 0; i < m_nImages; ++i)
 			m_imgWindow[i].ScrollTo(x, y, force);
 		Event evt;
@@ -559,6 +579,8 @@ public:
 
 	void Invalidate(bool erase = false)
 	{
+		if (!m_hWnd)
+			return;
 		if (m_nImages <= 1)
 			return;
 		for (int i = 0; i < m_nImages; ++i)
@@ -574,23 +596,28 @@ public:
 		CloseImages();
 		m_nImages = nImages;
 		bool bSucceeded = m_buffer.OpenImages(nImages, filename);
-		for (int i = 0; i < nImages; ++i)
+		if (m_hWnd)
 		{
-			m_imgWindow[i].Create(m_hInstance, m_hWnd);
-			m_ChildWndProc[i] = (WNDPROC)SetWindowLongPtr(m_imgWindow[i].GetHWND(), GWLP_WNDPROC, (LONG_PTR)&ChildWndProc);
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].Create(m_hInstance, m_hWnd);
+				m_ChildWndProc[i] = (WNDPROC)SetWindowLongPtr(m_imgWindow[i].GetHWND(), GWLP_WNDPROC, (LONG_PTR)&ChildWndProc);
+			}
 		}
 		m_buffer.CompareImages();
-		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
-		for (int i = 0; i < nImages; ++i)
+		if (m_hWnd)
 		{
-			m_imgWindow[i].SetWindowRect(rects[i]);
-			m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].SetWindowRect(rects[i]);
+				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+			}
+
+			Event evt;
+			evt.eventType = OPEN;
+			notify(evt);
 		}
-
-		Event evt;
-		evt.eventType = OPEN;
-		notify(evt);
-
 		return bSucceeded;
 	}
 
@@ -633,8 +660,11 @@ public:
 	bool CloseImages()
 	{
 		m_buffer.CloseImages();
-		for (int i = 0; i < m_nImages; ++i)
-			m_imgWindow[i].Destroy();
+		if (m_hWnd)
+		{
+			for (int i = 0; i < m_nImages; ++i)
+				m_imgWindow[i].Destroy();
+		}
 		return true;
 	}
 
@@ -645,7 +675,7 @@ public:
 
 	HWND GetPaneHWND(int pane) const
 	{
-		if (pane < 0 || pane >= m_nImages)
+		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 			return NULL;
 		return m_imgWindow[pane].GetHWND();
 	}

@@ -149,4 +149,5 @@ extern "C"
 	bool WinIMerge_DestroyWindow(IImgMergeWindow *pImgMergeWindow);
 	IImgToolWindow * WinIMerge_CreateToolWindow(HINSTANCE hInstance, HWND hWndParent, IImgMergeWindow *pImgMergeWindow);
 	bool WinIMerge_DestroyToolWindow(IImgToolWindow *pImgToolWindow);
+	IImgMergeWindow * WinIMerge_CreateWindowless();
 };

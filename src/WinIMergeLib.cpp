@@ -29,6 +29,13 @@ WinIMerge_CreateWindow(HINSTANCE hInstance, HWND hWndParent, int nID)
 	return static_cast<IImgMergeWindow *>(pImgMergeWindow);
 }
 
+extern "C" IImgMergeWindow *
+WinIMerge_CreateWindowless()
+{
+	CImgMergeWindow *pImgMergeWindow = new CImgMergeWindow();
+	return static_cast<IImgMergeWindow *>(pImgMergeWindow);
+}
+
 extern "C" bool
 WinIMerge_DestroyWindow(IImgMergeWindow *pImgMergeWindow)
 {
