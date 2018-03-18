@@ -696,6 +696,20 @@ public:
 		return &m_imgDiff[pane];
 	}
 
+	const Image *GetImage(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return NULL;
+		return &m_imgDiff[pane];
+	}
+
+	const Image *GetOriginalImage(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return NULL;
+		return &m_imgOrig[pane];
+	}
+
 	Image *GetDiffMapImage(unsigned w, unsigned h)
 	{
 		m_imgDiffMap.clear();

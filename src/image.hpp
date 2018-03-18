@@ -21,6 +21,7 @@
 #include "FreeImagePlus.h"
 #include <algorithm>
 #include <string>
+#include <map>
 
 #ifndef _WIN32
 typedef fipImage fipWinImage;
@@ -257,6 +258,39 @@ public:
 			memcpy(palette, image_.getPalette(), image_.getPaletteSize());
 		image_ = other.image_;
 		return image_.convertColorDepth(bpp, palette);
+	}
+	std::map<std::string, std::string> getMetadata() const
+	{
+		std::map<std::string, std::string> metadata;
+		fipTag tag;
+		fipMetadataFind finder;
+		static const struct {
+			FREE_IMAGE_MDMODEL model;
+			char *name;
+		} models[] = {
+			{ FIMD_COMMENTS, "COMMENTS" },
+			{ FIMD_EXIF_MAIN, "EXIF_MAIN" },
+			{ FIMD_EXIF_EXIF, "EXIF_EXIF" },
+			{ FIMD_EXIF_GPS, "EXIF_GPS" },
+			{ FIMD_EXIF_MAKERNOTE, "EXIF_MAKERNOTE" },
+			{ FIMD_EXIF_INTEROP, "EXIF_INTEROP" },
+			{ FIMD_IPTC, "IPTC" },
+			{ FIMD_XMP, "XMP" },
+			{ FIMD_GEOTIFF, "GEOTIFF" },
+			{ FIMD_ANIMATION, "ANIMATION" },
+			{ FIMD_CUSTOM, "CUSTOM" },
+			{ FIMD_EXIF_RAW, "EXIF_RAW" },
+		};
+		for (auto m: models)
+		{
+			if (finder.findFirstMetadata(m.model, const_cast<fipImageEx &>(image_), tag)) {
+				do
+				{
+					metadata.insert_or_assign(std::string(m.name) + "/" + tag.getKey(), tag.toString(m.model));
+				} while (finder.findNextMetadata(tag));
+			}
+		}
+		return metadata;
 	}
 
 	static int valueR(Color color) { return color.rgbRed; }

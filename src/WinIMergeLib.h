@@ -135,6 +135,7 @@ struct IImgMergeWindow
 	virtual void AddEventListener(EventListenerFunc func, void *userdata) = 0;
 	virtual DRAGGING_MODE GetDraggingMode() const = 0;
 	virtual void SetDraggingMode(DRAGGING_MODE draggingMode) = 0;
+	virtual size_t GetMetadata(int pane, char *buf, size_t bufsize) const = 0;
 };
 
 struct IImgToolWindow

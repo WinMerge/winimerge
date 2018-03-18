@@ -19,6 +19,7 @@
 #pragma warning(disable: 4819)
 
 #include <Windows.h>
+#include <cstring>
 #include "FreeImagePlus.h"
 #include "ImgWindow.hpp"
 #include "ImgMergeBuffer.hpp"
@@ -746,6 +747,27 @@ public:
 	void SetDraggingMode(DRAGGING_MODE draggingMode)
 	{
 		m_draggingMode = draggingMode;
+	}
+
+	size_t GetMetadata(int pane, char *buf, size_t bufsize) const
+	{
+		std::map<std::string, std::string> metadata = m_buffer.GetOriginalImage(pane)->getMetadata();
+		std::string metadatastr;
+		for (auto& it : metadata)
+			metadatastr += it.first + ": " + it.second + "\r\n";
+		if (buf)
+		{
+			if (bufsize >= metadatastr.length() + 1)
+			{
+				memcpy(buf, metadatastr.c_str(), metadatastr.length() + 1);
+			}
+			else if (bufsize > 0)
+			{
+				memcpy(buf, metadatastr.c_str(), bufsize - 1);
+				buf[bufsize - 1] = '\0';
+			}
+		}
+		return metadatastr.length() + 1;
 	}
 
 private:
