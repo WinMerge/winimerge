@@ -461,6 +461,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_ZOOM_25:
 			m_pImgMergeWindow->SetZoom(pow(2.0, (wmId - ID_VIEW_ZOOM_100)));
 			break;
+		case ID_VIEW_ZOOMIN:
+			m_pImgMergeWindow->SetZoom(m_pImgMergeWindow->GetZoom() + 0.1);
+			break;
+		case ID_VIEW_ZOOMOUT:
+			m_pImgMergeWindow->SetZoom(m_pImgMergeWindow->GetZoom() - 0.1);
+			break;
 		case ID_VIEW_OVERLAY_NONE:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_NONE);
 			UpdateMenuState(hWnd);

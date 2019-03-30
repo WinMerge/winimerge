@@ -15,7 +15,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// âpåÍ (ïƒçë) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -57,6 +57,7 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_WINIMERGE           ICON                    "WinIMerge.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -119,7 +120,9 @@ BEGIN
             MENUITEM "&200%",                       ID_VIEW_ZOOM_200
             MENUITEM "&100%",                       ID_VIEW_ZOOM_100
             MENUITEM "&50%",                        ID_VIEW_ZOOM_50
-            MENUITEM "&25%",                        ID_VIEW_ZOOM_25
+            MENUITEM SEPARATOR
+            MENUITEM "Zoom &In\tCtrl++",            ID_VIEW_ZOOMIN
+            MENUITEM "Zoom &Out\tCtrl+-",           ID_VIEW_ZOOMOUT
         END
         POPUP "&Overlay Mode"
         BEGIN
@@ -199,6 +202,11 @@ BEGIN
     VK_UP,          ID_MERGE_PREVIOUSCONFLICT, VIRTKEY, SHIFT, ALT, NOINVERT
     VK_UP,          ID_MERGE_PREVIOUSDIFFERENCE, VIRTKEY, ALT, NOINVERT
     "0",            ID_VIEW_ZOOM_100,       VIRTKEY, CONTROL, NOINVERT
+    VK_MULTIPLY,    ID_VIEW_ZOOM_100,       VIRTKEY, CONTROL, NOINVERT
+    VK_ADD,         ID_VIEW_ZOOMIN, VIRTKEY, CONTROL, NOINVERT
+    VK_OEM_PLUS,    ID_VIEW_ZOOMIN, VIRTKEY, CONTROL, NOINVERT
+    VK_SUBTRACT,    ID_VIEW_ZOOMOUT, VIRTKEY, CONTROL, NOINVERT
+    VK_OEM_MINUS,   ID_VIEW_ZOOMOUT, VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -225,11 +233,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "https://bitbucket.org/sdottaka/winimerge"
+            VALUE "CompanyName", "https://bitbucket.org/winmerge/winimerge"
             VALUE "FileDescription", "WinIMerge"
             VALUE "FileVersion", STRFILEVER
             VALUE "InternalName", "WinIMerge.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2014-2017 sdottaka@users.sourceforge.net"
+            VALUE "LegalCopyright", "Copyright (C) 2014-2019 sdottaka@users.sourceforge.net"
             VALUE "OriginalFilename", "WinIMerge.exe"
             VALUE "ProductName", "WinIMerge"
             VALUE "ProductVersion", STRPRODUCTVER
@@ -241,7 +249,7 @@ BEGIN
     END
 END
 
-#endif    // âpåÍ (ïƒçë) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
