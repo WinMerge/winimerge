@@ -303,21 +303,6 @@ private:
 			if (m_fip->isValid())
 				m_fip->drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
 			
-			if (GetFocus() == m_hWnd)
-			{
-				DrawFocusRect(hdcMem, &rc);
-			}
-			else
-			{
-				HPEN hPen = (HPEN)GetStockObject(WHITE_PEN);
-				HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
-				HPEN hOldPen = (HPEN)SelectObject(hdcMem, hPen);
-				HBRUSH hOldBrush = (HBRUSH)SelectObject(hdcMem, hBrush);
-				Rectangle(hdcMem, rc.left, rc.top, rc.right, rc.bottom);
-				SelectObject(hdcMem, hOldPen);
-				SelectObject(hdcMem, hOldBrush);
-			}
-
 			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
 
 			DeleteObject(SelectObject(hdcMem, hOldBrush));
