@@ -278,6 +278,10 @@ public:
 			return;
 		for (int i = 0; i < 3; ++i)
 			m_imgWindow[i].SetZoom(zoom);
+
+		Event evt;
+		evt.eventType = REFRESH;
+		notify(evt);
 	}
 
 	int  GetCurrentPage(int pane) const
