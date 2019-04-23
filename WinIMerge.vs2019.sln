@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 16
-VisualStudioVersion = 15.0.27130.2027
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28407.52
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinIMerge", "src\winimerge.vs2019.vcxproj", "{36365C8C-04A0-4892-9B83-AD6E05D50D67}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -68,7 +68,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Batch Files", "Batch Files", "{A9E83C9D-8AD6-4C87-888D-3F91B5656CD1}"
 	ProjectSection(SolutionItems) = preProject
 		BuildArc.cmd = BuildArc.cmd
-		BuildBin.vs2017.cmd = BuildBin.vs2017.cmd
 		BuildBin.vs2019.cmd = BuildBin.vs2019.cmd
 		SetVersion.cmd = SetVersion.cmd
 	EndProjectSection
