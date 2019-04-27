@@ -379,12 +379,17 @@ public:
 		if (m_imgOrigMultiPage[pane].isValid())
 		{
 			m_imgOrigMultiPage[pane].replacePage(m_currentPage[pane], m_imgOrig[pane]);
-			return m_imgOrigMultiPage[pane].save(filename);
+			if (!m_imgOrigMultiPage[pane].save(filename))
+				return false;
 		}
 		else
 		{
-			return m_imgOrig[pane].save(filename);
+			if (!m_imgOrig[pane].save(filename))
+				return false;
 		}
+		m_undoRecords.save(pane);
+		m_filename[pane] = filename;
+		return true;
 	}
 
 	virtual bool CloseImages()
