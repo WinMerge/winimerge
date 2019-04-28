@@ -4,13 +4,9 @@ clone_folder: c:\projects\winimerge\winimerge
 shallow_clone: true
 install:
 - cmd: >-
-    pushd c:\projects\winimerge\
+    cd c:\projects\winimerge\
 
     hg clone https://bitbucket.org/winmerge/freeimage
-
-    popd
-
-    exit 0
 build_script:
 - cmd: >-
     BuildBin.vs2017.cmd
