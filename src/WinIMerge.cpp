@@ -166,6 +166,35 @@ bool OpenImages(HWND hWnd, int nImages, const std::wstring filename[3])
 	return bSucceeded;
 }
 
+void SaveImageAs(HWND hWnd, int pane)
+{
+	if (!m_pImgMergeWindow || m_pImgMergeWindow->GetPaneCount() < 2)
+		return;
+	wchar_t szFileName[MAX_PATH] = {0}, szFile[MAX_PATH] = {0};
+	OPENFILENAMEW ofn = {0};
+	lstrcpyW(szFileName, m_pImgMergeWindow->GetFileName(pane));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = hWnd;
+	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur\0\0";
+	ofn.lpstrFile = szFileName;
+	ofn.lpstrFileTitle = szFile;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.nMaxFileTitle = sizeof(szFile);
+	ofn.Flags = OFN_HIDEREADONLY;
+	std::wstring filename;
+	wchar_t title[256];
+	wsprintfW(title, L"Save %s As",
+		(pane == 0 ? L"Left" : (pane == m_pImgMergeWindow->GetPaneCount() - 1) ? L"Right" : L"Middle"));
+	ofn.lpstrTitle = title;
+	if (GetSaveFileNameW(&ofn) != 0)
+	{
+		if (!m_pImgMergeWindow->SaveImageAs(pane, ofn.lpstrFile))
+		{
+			MessageBoxW(hWnd, L"Failed to save file", nullptr, MB_OK | MB_ICONERROR);
+		}
+	}
+}
+
 void UpdateMenuState(HWND hWnd)
 {
 	HMENU hMenu = GetMenu(hWnd);
@@ -422,6 +451,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_FILE_SAVE:
 			m_pImgMergeWindow->SaveImages();
 			break;
+		case ID_FILE_SAVE_LEFT_AS:
+			SaveImageAs(hWnd, 0);
+			break;
+		case ID_FILE_SAVE_MIDDLE_AS:
+			if (m_pImgMergeWindow->GetPaneCount() == 3)
+				SaveImageAs(hWnd, 1);
+			break;
+		case ID_FILE_SAVE_RIGHT_AS:
+			SaveImageAs(hWnd, m_pImgMergeWindow->GetPaneCount() - 1);
+			break;
 		case ID_FILE_RELOAD:
 			m_pImgMergeWindow->ReloadImages();
 			break;
@@ -650,7 +689,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_HELP_ABOUT:
 			MessageBoxW(hWnd, 
 				L"WinIMerge\n\n"
-				L"(c) 2014-2015 sdottaka@users.sourceforge.net All rights reserved.\n\n"
+				L"(c) 2014-2019 sdottaka@users.sourceforge.net All rights reserved.\n\n"
 				L"This software uses the FreeImage open source image library. \n"
 				L"See http://freeimage.sourceforge.net for details.\n"
 				L"FreeImage is used under the GNU GPL version.\n", L"WinIMerge", MB_OK | MB_ICONINFORMATION);

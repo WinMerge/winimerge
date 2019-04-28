@@ -68,11 +68,17 @@ IDC_WINIMERGE MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open Images\tCtrl+O",        ID_FILE_OPEN
-        MENUITEM "Open &3 Images\tCtrl+3",      ID_FILE_OPEN3
+        MENUITEM "&Open Images...\tCtrl+O",     ID_FILE_OPEN
+        MENUITEM "Open &3 Images...\tCtrl+3",   ID_FILE_OPEN3
         MENUITEM SEPARATOR
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
-        MENUITEM "&Generate Report",            ID_FILE_GENERATE_REPORT
+        POPUP "Save &As"
+        BEGIN
+            MENUITEM "Save &Left As...",        ID_FILE_SAVE_LEFT_AS
+            MENUITEM "Save &Middle As...",      ID_FILE_SAVE_MIDDLE_AS
+            MENUITEM "Save &Right As...",       ID_FILE_SAVE_RIGHT_AS
+        END
+        MENUITEM "&Generate Report...",         ID_FILE_GENERATE_REPORT
         MENUITEM SEPARATOR
         MENUITEM "Re&load\tCtrl+F5",            ID_FILE_RELOAD
         MENUITEM SEPARATOR
