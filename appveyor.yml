@@ -5,11 +5,14 @@ shallow_clone: true
 install:
 - cmd: >-
     pushd ..
+
     hg clone https://bitbucket.org/winmerge/freeimage
+
     popd
 build_script:
 - cmd: >-
     BuildBin.vs2017.cmd
+
     BuildArc.cmd
 artifacts:
 - path: Dist/winimerge-*-exe.zip
