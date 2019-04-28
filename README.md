@@ -14,11 +14,12 @@ See http://freeimage.sourceforge.net for details.
 
 FreeImage is used under the the GNU GPL version.
 
-## How to build (Visual Studio 2013)
+## How to build (Visual Studio 2019)
 ~~~
-hg clone https://bitbucket.org/sdottaka/winimergebuild
-cd winimergebuild\winimerge
-buildbin.cmd
+hg clone https://bitbucket.org/winmerge/freeimage
+hg clone https://bitbucket.org/winmerge/winimerge
+cd winimerge
+buildbin.vs2019.cmd
 ~~~
 
 ## License
