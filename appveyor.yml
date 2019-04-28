@@ -9,6 +9,8 @@ install:
     hg clone https://bitbucket.org/winmerge/freeimage
 
     popd
+
+    exit 0
 build_script:
 - cmd: >-
     BuildBin.vs2017.cmd
