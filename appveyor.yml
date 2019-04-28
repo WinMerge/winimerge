@@ -7,8 +7,11 @@ install:
     cd c:\projects\winimerge\
 
     hg clone https://bitbucket.org/winmerge/freeimage
+
 build_script:
 - cmd: >-
+    cd c:\projects\winimerge\winimerge
+
     BuildBin.vs2017.cmd
 
     BuildArc.cmd
