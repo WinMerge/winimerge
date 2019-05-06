@@ -250,6 +250,10 @@ public:
 	{
 		return !!image_.pasteSubImage(image.image_, x, y);
 	}
+	bool rotate(double angle)
+	{
+		return !!image_.rotate(angle);
+	}
 	bool pullImageKeepingBPP(const Image& other)
 	{
 		unsigned bpp =  image_.getBitsPerPixel();

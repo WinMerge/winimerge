@@ -20,17 +20,18 @@
 #define IDC_DIFF_BLOCKSIZE_STATIC       1004
 #define IDC_DIFF_BLOCKALPHA_STATIC      1005
 #define IDC_DIFF_CDTHRESHOLD_STATIC     1006
-#define IDC_OVERLAY_MODE                1007
-#define IDC_OVERLAY_ALPHA_SLIDER        1008
-#define IDC_OVERLAY_ALPHA_STATIC        1009
-#define IDC_ZOOM_SLIDER                 1010
-#define IDC_ZOOM_STATIC                 1011
-#define IDC_PAGE_SPIN                   1012
-#define IDC_PAGE_EDIT                   1013
-#define IDC_DIFF_GROUP                  1014
-#define IDC_OVERLAY_GROUP               1015
-#define IDC_VIEW_GROUP                  1016
-#define IDC_DIFF_BLINK                  1017
+#define IDC_DIFF_INSERTION_DELETION_DETECTION_MODE 1007
+#define IDC_DIFF_GROUP                  1008
+#define IDC_DIFF_BLINK                  1009
+#define IDC_OVERLAY_MODE                1010
+#define IDC_OVERLAY_ALPHA_SLIDER        1011
+#define IDC_OVERLAY_ALPHA_STATIC        1012
+#define IDC_ZOOM_SLIDER                 1013
+#define IDC_ZOOM_STATIC                 1014
+#define IDC_PAGE_SPIN                   1016
+#define IDC_PAGE_EDIT                   1017
+#define IDC_OVERLAY_GROUP               1018
+#define IDC_VIEW_GROUP                  1019
 #define ID_VIEW_ZOOM_25                 32780
 #define ID_VIEW_ZOOM_50                 32781
 #define ID_VIEW_ZOOM_100                32782
@@ -93,6 +94,9 @@
 #define ID_VIEW_DRAGGINGMODE_NONE       32845
 #define ID_VIEW_DRAGGINGMODE_MOVE       32846
 #define ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET 32847
+#define ID_VIEW_INSERTIONDELETIONDETECTION_NONE 32848
+#define ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL 32849
+#define ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL 32850
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -101,8 +105,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32848
-#define _APS_NEXT_CONTROL_VALUE         1017
+#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

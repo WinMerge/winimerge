@@ -162,6 +162,7 @@ public:
 		if (m_bRO[dstPane])
 			return;
 
+		Image imgTemp;
 		const Rect<int>& rc = m_diffInfos[diffIndex].rc;
 		unsigned xmin = rc.left   * m_diffBlockSize;
 		if (xmin < m_offset[srcPane].x)
@@ -170,29 +171,29 @@ public:
 		if (ymin < m_offset[srcPane].y)
 			ymin = m_offset[srcPane].y;
 		unsigned xmax = rc.right  * m_diffBlockSize - 1;
-		if (xmax >= m_imgOrig32[srcPane].width()  + m_offset[srcPane].x)
-			xmax = m_imgOrig32[srcPane].width()  + m_offset[srcPane].x - 1;
+		if (xmax >= m_imgPreprocessed[srcPane].width()  + m_offset[srcPane].x)
+			xmax = m_imgPreprocessed[srcPane].width()  + m_offset[srcPane].x - 1;
 		unsigned ymax = rc.bottom * m_diffBlockSize - 1;
-		if (ymax >= m_imgOrig32[srcPane].height() + m_offset[srcPane].y)
-			ymax = m_imgOrig32[srcPane].height() + m_offset[srcPane].y - 1;
+		if (ymax >= m_imgPreprocessed[srcPane].height() + m_offset[srcPane].y)
+			ymax = m_imgPreprocessed[srcPane].height() + m_offset[srcPane].y - 1;
 		unsigned dsx = 0, dsy = 0, ox = 0, oy = 0;
 		if (xmin < m_offset[dstPane].x)
 			ox = m_offset[dstPane].x - xmin, dsx += ox;
 		if (ymin < m_offset[dstPane].y)
 			oy = m_offset[dstPane].y - ymin, dsy += oy;
-		if (xmax >= m_imgOrig32[dstPane].width() + m_offset[dstPane].x)
-			dsx += xmax - (m_imgOrig32[dstPane].width()  + m_offset[dstPane].x - 1);
-		if (ymax >= m_imgOrig32[dstPane].height() + m_offset[dstPane].y)
-			dsy += ymax - (m_imgOrig32[dstPane].height() + m_offset[dstPane].y - 1);
+		if (xmax >= m_imgPreprocessed[dstPane].width() + m_offset[dstPane].x)
+			dsx += xmax - (m_imgPreprocessed[dstPane].width()  + m_offset[dstPane].x - 1);
+		if (ymax >= m_imgPreprocessed[dstPane].height() + m_offset[dstPane].y)
+			dsy += ymax - (m_imgPreprocessed[dstPane].height() + m_offset[dstPane].y - 1);
 		if (dsx > 0 || dsy > 0)
 		{
-			Image imgTemp = m_imgOrig32[dstPane];
+			imgTemp = m_imgOrig32[dstPane];
 			m_imgOrig32[dstPane].setSize(m_imgOrig32[dstPane].width() + dsx, m_imgOrig32[dstPane].height() + dsy);
 			m_imgOrig32[dstPane].pasteSubImage(imgTemp, ox, oy);
 			m_offset[dstPane].x -= ox;
 			m_offset[dstPane].y -= oy;
 		}
-		
+
 		for (unsigned y = rc.top * m_diffBlockSize; y < rc.bottom * m_diffBlockSize; y += m_diffBlockSize)
 		{
 			for (unsigned x = rc.left * m_diffBlockSize; x < rc.right * m_diffBlockSize; x += m_diffBlockSize)
@@ -201,18 +202,73 @@ public:
 				{
 					for (unsigned i = 0; i < m_diffBlockSize; ++i)
 					{
-						int sy = y + i - m_offset[srcPane].y; 
-						if (sy >= 0 && sy < static_cast<int>(m_imgOrig32[srcPane].height()))
+						for (unsigned j = 0; j < m_diffBlockSize; ++j)
 						{
-							const unsigned char *scanline_src = m_imgOrig32[srcPane].scanLine(sy);
-							unsigned char *scanline_dst = m_imgOrig32[dstPane].scanLine(y + i - m_offset[dstPane].y);
-							for (unsigned j = 0; j < m_diffBlockSize; ++j)
+							int rsx, rsy;
+							if (ConvertToRealPos(srcPane, x + j, y + i, rsx, rsy))
 							{
-								int sx = x + j - m_offset[srcPane].x; 
-								if (sx >= 0 && sx < static_cast<int>(m_imgOrig32[srcPane].width()))
-									memcpy(&scanline_dst[(x + j - m_offset[dstPane].x) * 4], &scanline_src[sx * 4], 4);
+								int rdx, rdy;
+								if (ConvertToRealPos(dstPane, x + j, y + i, rdx, rdy))
+								{
+									const unsigned char* scanline_src = m_imgOrig32[srcPane].scanLine(rsy);
+									unsigned char* scanline_dst = m_imgOrig32[dstPane].scanLine(rdy);
+									memcpy(&scanline_dst[rdx * 4], &scanline_src[rsx * 4], 4);
+								}
 							}
 						}
+					}
+				}
+			}
+		}
+
+		if (!std::all_of(std::begin(m_offset), std::end(m_offset), [](auto& pt) { return pt.x == 0 && pt.y == 0; }))
+			return;
+
+		// insert or delete lines
+		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_VERTICAL)
+		{
+			for (auto& it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
+			{
+				if (static_cast<int>(rc.top * m_diffBlockSize) <= it->dbegin &&
+				    it->dend[srcPane] < static_cast<int>(rc.bottom * m_diffBlockSize))
+				{
+					int dh = it->dend[srcPane] - it->dend[dstPane];
+					if (dh > 0)
+					{
+						InsertRows(dstPane, it->end[dstPane] + 1, dh);
+						for (int i = 0; i < it->end[srcPane] + 1 - it->begin[srcPane]; ++i)
+							memcpy(m_imgOrig32[dstPane].scanLine(it->begin[dstPane] + i),
+							       m_imgOrig32[srcPane].scanLine(it->begin[srcPane] + i),
+							       m_imgOrig32[dstPane].width() * 4);
+					}
+					else if (dh < 0)
+					{
+						DeleteRows(dstPane, it->end[dstPane] + 1 + dh, -dh);
+					}
+				}
+			}
+		}
+		else if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_HORIZONTAL)
+		{
+			for (auto& it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
+			{
+				if (static_cast<int>(rc.left * m_diffBlockSize) <= it->dbegin &&
+				    it->dend[srcPane] < static_cast<int>(rc.right * m_diffBlockSize))
+				{
+					int dw = it->dend[srcPane] - it->dend[dstPane];
+					if (dw > 0)
+					{
+						InsertColumns(dstPane, it->end[dstPane] + 1, dw);
+						for (unsigned y = 0; y < m_imgOrig32[srcPane].height(); ++y)
+						{
+							memcpy(m_imgOrig32[dstPane].scanLine(y) + it->begin[dstPane] * 4,
+								   m_imgOrig32[srcPane].scanLine(y) + it->begin[srcPane] * 4,
+								   (it->end[srcPane] + 1 - it->begin[srcPane]) * 4);
+						}
+					}
+					else if (dw < 0)
+					{
+						DeleteColumns(dstPane, it->end[dstPane] + 1 + dw, -dw);
 					}
 				}
 			}
@@ -277,25 +333,25 @@ public:
 			int srcPane;
 			switch (m_diffInfos[diffIndex].op)
 			{
-			case DiffInfo::OP_1STONLY:
+			case OP_1STONLY:
 				if (dstPane == 1)
 					srcPane = 0;
 				else
 					srcPane = -1;
 				break;
-			case DiffInfo::OP_2NDONLY:
+			case OP_2NDONLY:
 				if (dstPane != 1)
 					srcPane = 1;
 				else
 					srcPane = -1;
 				break;
-			case DiffInfo::OP_3RDONLY:
+			case OP_3RDONLY:
 				if (dstPane == 1)
 					srcPane = 2;
 				else
 					srcPane = -1;
 				break;
-			case DiffInfo::OP_DIFF:
+			case OP_DIFF:
 				srcPane = -1;
 				break;
 			}
@@ -397,6 +453,49 @@ public:
 		for (int i = 0; i < m_nImages; ++i)
 			m_undoRecords.clear();
 		return CImgDiffBuffer::CloseImages();
+	}
+
+protected:
+	void InsertRows(int pane, int y, int rows)
+	{
+		Image tmpImage = m_imgOrig32[pane];
+		m_imgOrig32[pane].setSize(tmpImage.width(), tmpImage.height() + rows);
+		for (int i = 0; i < y; ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), tmpImage.width() * 4);
+		for (unsigned i = y; i < tmpImage.height(); ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i + rows), tmpImage.scanLine(i), tmpImage.width() * 4);
+	}
+
+	void DeleteRows(int pane, int y, int rows)
+	{
+		Image tmpImage = m_imgOrig32[pane];
+		m_imgOrig32[pane].setSize(tmpImage.width(), tmpImage.height() - rows);
+		for (int i = 0; i < y; ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), tmpImage.width() * 4);
+		for (unsigned i = y + rows; i < tmpImage.height(); ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i - rows), tmpImage.scanLine(i), tmpImage.width() * 4);
+	}
+
+	void InsertColumns(int pane, int x, int columns)
+	{
+		Image tmpImage = m_imgOrig32[pane];
+		m_imgOrig32[pane].setSize(tmpImage.width() + columns, tmpImage.height());
+		for (unsigned i = 0; i < tmpImage.height(); ++i)
+		{
+			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), x * 4);
+			memcpy(m_imgOrig32[pane].scanLine(i) + (x + columns) * 4, tmpImage.scanLine(i) + x * 4, (tmpImage.width() - x) * 4);
+		}
+	}
+
+	void DeleteColumns(int pane, int x, int columns)
+	{
+		Image tmpImage = m_imgOrig32[pane];
+		m_imgOrig32[pane].setSize(tmpImage.width() - columns, tmpImage.height());
+		for (unsigned i = 0; i < tmpImage.height(); ++i)
+		{
+			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), x * 4);
+			memcpy(m_imgOrig32[pane].scanLine(i) + x * 4, tmpImage.scanLine(i) + (x + columns) * 4, (tmpImage.width() - x - columns) * 4);
+		}
 	}
 
 private:

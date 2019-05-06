@@ -26,6 +26,12 @@
 #include <vector>
 #include <chrono>
 #include <cmath>
+#include <cassert>
+
+enum OP_TYPE
+{
+	OP_NONE = 0, OP_1STONLY, OP_2NDONLY, OP_3RDONLY, OP_DIFF, OP_TRIVIAL
+};
 
 template<class T> struct Point
 {
@@ -123,13 +129,31 @@ template <class T> struct Array2D
 
 struct DiffInfo
 {
-	enum OP_TYPE
-	{
-		OP_NONE = 0, OP_1STONLY, OP_2NDONLY, OP_3RDONLY, OP_DIFF, OP_TRIVIAL
-	};
 	DiffInfo(int op, int x, int y) : op(op), rc(x, y, x + 1, y + 1) {}
 	int op;
 	Rect<int> rc;
+};
+
+struct LineDiffInfo
+{
+	LineDiffInfo(int s1 = 0, int e1 = 0, int s2 = 0, int e2 = 0, int s3 = 0, int e3 = 0) :
+		begin{ s1, s2, s3 }, end{ e1, e2, e3 },
+		dbegin(0), dend{ -1, -1, -1 }, dendmax(-1), op(OP_DIFF) {}
+
+	LineDiffInfo(const LineDiffInfo& src) :
+		begin{ src.begin[0], src.begin[1], src.begin[2] },
+		end{ src.end[0], src.end[1], src.end[2] }, 
+		dbegin(src.dbegin),
+		dend{ src.dend[0], src.dend[1], src.dend[2] }, 
+		dendmax(src.dendmax), op(src.op)
+	{}
+
+	int begin[3];
+	int end[3];
+	int dbegin;
+	int dend[3];
+	int dendmax;
+	int op;
 };
 
 struct DiffStat { int d1, d2, d3, detc; };
@@ -144,13 +168,387 @@ namespace
 		int adist = Image::valueA(c1) - Image::valueA(c2);
 		return rdist * rdist + gdist * gdist + bdist * bdist + adist * adist;
 	}
+
+	/* diff3 algorithm. It is almost the same as GNU diff3's algorithm */
+	template<typename Element, typename Comp02Func>
+	std::vector<Element> Make3WayLineDiff(const std::vector<Element>& diff10, const std::vector<Element>& diff12,
+		Comp02Func cmpfunc)
+	{
+		std::vector<Element> diff3;
+
+		size_t diff10count = diff10.size();
+		size_t diff12count = diff12.size();
+
+		size_t diff10i = 0;
+		size_t diff12i = 0;
+		size_t diff3i = 0;
+
+		bool firstDiffBlockIsDiff12;
+
+		Element dr3, dr10, dr12, dr10first, dr10last, dr12first, dr12last;
+
+		int linelast0 = 0;
+		int linelast1 = 0;
+		int linelast2 = 0;
+
+		for (;;)
+		{
+			if (diff10i >= diff10count && diff12i >= diff12count)
+				break;
+
+			/*
+			 * merge overlapped diff blocks
+			 * diff10 is diff blocks between file1 and file0.
+			 * diff12 is diff blocks between file1 and file2.
+			 *
+			 *                      diff12
+			 *                 diff10            diff3
+			 *                 |~~~|             |~~~|
+			 * firstDiffBlock  |   |             |   |
+			 *                 |   | |~~~|       |   |
+			 *                 |___| |   |       |   |
+			 *                       |   |   ->  |   |
+			 *                 |~~~| |___|       |   |
+			 * lastDiffBlock   |   |             |   |
+			 *                 |___|             |___|
+			 */
+
+			if (diff10i >= diff10count && diff12i < diff12count)
+			{
+				dr12first = diff12.at(diff12i);
+				dr12last = dr12first;
+				firstDiffBlockIsDiff12 = true;
+			}
+			else if (diff10i < diff10count && diff12i >= diff12count)
+			{
+				dr10first = diff10.at(diff10i);
+				dr10last = dr10first;
+				firstDiffBlockIsDiff12 = false;
+			}
+			else
+			{
+				dr10first = diff10.at(diff10i);
+				dr12first = diff12.at(diff12i);
+				dr10last = dr10first;
+				dr12last = dr12first;
+				if (dr12first.begin[0] <= dr10first.begin[0])
+					firstDiffBlockIsDiff12 = true;
+				else
+					firstDiffBlockIsDiff12 = false;
+			}
+			bool lastDiffBlockIsDiff12 = firstDiffBlockIsDiff12;
+
+			size_t diff10itmp = diff10i;
+			size_t diff12itmp = diff12i;
+			for (;;)
+			{
+				if (diff10itmp >= diff10count || diff12itmp >= diff12count)
+					break;
+
+				dr10 = diff10.at(diff10itmp);
+				dr12 = diff12.at(diff12itmp);
+
+				if (dr10.end[0] == dr12.end[0])
+				{
+					diff10itmp++;
+					lastDiffBlockIsDiff12 = true;
+
+					dr10last = dr10;
+					dr12last = dr12;
+					break;
+				}
+
+				if (lastDiffBlockIsDiff12)
+				{
+					if ((std::max)(dr12.begin[0], dr12.end[0]) < dr10.begin[0])
+						break;
+				}
+				else
+				{
+					if ((std::max)(dr10.begin[0], dr10.end[0]) < dr12.begin[0])
+						break;
+				}
+
+				if (dr12.end[0] > dr10.end[0])
+				{
+					diff10itmp++;
+					lastDiffBlockIsDiff12 = true;
+				}
+				else
+				{
+					diff12itmp++;
+					lastDiffBlockIsDiff12 = false;
+				}
+
+				dr10last = dr10;
+				dr12last = dr12;
+			}
+
+			if (lastDiffBlockIsDiff12)
+				diff12itmp++;
+			else
+				diff10itmp++;
+
+			if (firstDiffBlockIsDiff12)
+			{
+				dr3.begin[1] = dr12first.begin[0];
+				dr3.begin[2] = dr12first.begin[1];
+				if (diff10itmp == diff10i)
+					dr3.begin[0] = dr3.begin[1] - linelast1 + linelast0;
+				else
+					dr3.begin[0] = dr3.begin[1] - dr10first.begin[0] + dr10first.begin[1];
+			}
+			else
+			{
+				dr3.begin[0] = dr10first.begin[1];
+				dr3.begin[1] = dr10first.begin[0];
+				if (diff12itmp == diff12i)
+					dr3.begin[2] = dr3.begin[1] - linelast1 + linelast2;
+				else
+					dr3.begin[2] = dr3.begin[1] - dr12first.begin[0] + dr12first.begin[1];
+			}
+
+			if (lastDiffBlockIsDiff12)
+			{
+				dr3.end[1] = dr12last.end[0];
+				dr3.end[2] = dr12last.end[1];
+				if (diff10itmp == diff10i)
+					dr3.end[0] = dr3.end[1] - linelast1 + linelast0;
+				else
+					dr3.end[0] = dr3.end[1] - dr10last.end[0] + dr10last.end[1];
+			}
+			else
+			{
+				dr3.end[0] = dr10last.end[1];
+				dr3.end[1] = dr10last.end[0];
+				if (diff12itmp == diff12i)
+					dr3.end[2] = dr3.end[1] - linelast1 + linelast2;
+				else
+					dr3.end[2] = dr3.end[1] - dr12last.end[0] + dr12last.end[1];
+			}
+
+			linelast0 = dr3.end[0] + 1;
+			linelast1 = dr3.end[1] + 1;
+			linelast2 = dr3.end[2] + 1;
+
+			if (diff10i == diff10itmp)
+				dr3.op = OP_3RDONLY;
+			else if (diff12i == diff12itmp)
+				dr3.op = OP_1STONLY;
+			else
+			{
+				if (!cmpfunc(dr3))
+					dr3.op = OP_DIFF;
+				else
+					dr3.op = OP_2NDONLY;
+			}
+
+			diff3.push_back(dr3);
+
+			diff3i++;
+			diff10i = diff10itmp;
+			diff12i = diff12itmp;
+		}
+
+		for (size_t i = 0; i < diff3i; i++)
+		{
+			Element& dr3r = diff3.at(i);
+			if (i < diff3i - 1)
+			{
+				Element& dr3next = diff3.at(i + 1);
+				for (int j = 0; j < 3; j++)
+				{
+					if (dr3r.end[j] >= dr3next.begin[j])
+						dr3r.end[j] = dr3next.begin[j] - 1;
+				}
+			}
+		}
+
+		return diff3;
+	}
+
+	bool alineEquals(const Image& img1, const Image& img2,
+		unsigned y1, unsigned y2, double colorDistanceThreshold)
+	{
+		if (img1.width() != img2.width())
+			return false;
+		const unsigned char* scanline1 = img1.scanLine(y1);
+		const unsigned char* scanline2 = img2.scanLine(y2);
+		if (colorDistanceThreshold > 0)
+		{
+			for (unsigned x = 0; x < img1.width(); ++x)
+			{
+				int bdist = scanline1[x * 4 + 0] - scanline2[x * 4 + 0];
+				int gdist = scanline1[x * 4 + 1] - scanline2[x * 4 + 1];
+				int rdist = scanline1[x * 4 + 2] - scanline2[x * 4 + 2];
+				int adist = scanline1[x * 4 + 3] - scanline2[x * 4 + 3];
+				int colorDistance2 = rdist * rdist + gdist * gdist + bdist * bdist + adist * adist;
+				if (colorDistance2 > colorDistanceThreshold * colorDistanceThreshold)
+					return false;
+			}
+			return true;
+		}
+		else
+		{
+			return (memcmp(img1.scanLine(y1), img2.scanLine(y2), img1.width() * 4) == 0);
+		}
+	}
 }
+
+class DataForONPDiff
+{
+	struct DatumForONPDiff
+	{
+		DatumForONPDiff(DataForONPDiff& data, int index) : 
+			m_data(data), m_index(index) { }
+
+		bool operator==(const DatumForONPDiff& other)
+		{
+			return alineEquals(
+				m_data.m_img, other.m_data.m_img,
+				m_index, other.m_index, m_data.m_colorDistanceThreshold);
+		}
+
+		DataForONPDiff& m_data;
+		int m_index;
+	};
+
+	friend DatumForONPDiff;
+
+public:
+	DataForONPDiff(const Image& img, double colorDistanceThreshold) :
+		m_img(img), m_colorDistanceThreshold(colorDistanceThreshold) { }
+	DatumForONPDiff operator[](int index) { return { *this, index }; }
+	unsigned size() const { return m_img.height(); }
+private:
+	const Image& m_img;
+	double m_colorDistanceThreshold;
+};
+
+template <class Data> class ONPDiffAlgorithm
+{
+public:
+	ONPDiffAlgorithm(Data& data1, Data& data2)
+		: m_data1(data1), m_data2(data2) { }
+
+	/**
+	 * @ brief An O(NP) Sequence Comparison Algorithm. Sun Wu, Udi Manber, Gene Myers
+	 */
+	int diff(std::vector<char>& edscript)
+	{
+		int M = static_cast<int>(m_data1.size());
+		int N = static_cast<int>(m_data2.size());
+		bool exchanged = false;
+		if (M > N)
+		{
+			M = static_cast<int>(m_data2.size());
+			N = static_cast<int>(m_data1.size());
+			exchanged = true;
+		}
+		int* fp = (new int[(M + 1) + 1 + (N + 1)]) + (M + 1);
+		std::vector<char> * es = (new std::vector<char>[(M + 1) + 1 + (N + 1)]) + (M + 1);
+		int DELTA = N - M;
+
+		int k;
+		for (k = -(M + 1); k <= (N + 1); k++)
+			fp[k] = -1;
+		int p = -1;
+		do
+		{
+			p = p + 1;
+			for (k = -p; k <= DELTA - 1; k++)
+			{
+				fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
+
+				es[k] = fp[k - 1] + 1 > fp[k + 1] ? es[k - 1] : es[k + 1];
+				es[k].push_back(fp[k - 1] + 1 > fp[k + 1] ? '+' : '-');
+				es[k].resize(es[k].size() + fp[k] - (std::max)(fp[k - 1] + 1, fp[k + 1]), '=');
+			}
+			for (k = DELTA + p; k >= DELTA + 1; k--)
+			{
+				fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
+
+				es[k] = fp[k - 1] + 1 > fp[k + 1] ? es[k - 1] : es[k + 1];
+				es[k].push_back(fp[k - 1] + 1 > fp[k + 1] ? '+' : '-');
+				es[k].resize(es[k].size() + fp[k] - (std::max)(fp[k - 1] + 1, fp[k + 1]), '=');
+			}
+			k = DELTA;
+			fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
+
+			es[k] = fp[k - 1] + 1 > fp[k + 1] ? es[k - 1] : es[k + 1];
+			es[k].push_back(fp[k - 1] + 1 > fp[k + 1] ? '+' : '-');
+			es[k].resize(es[k].size() + fp[k] - (std::max)(fp[k - 1] + 1, fp[k + 1]), '=');
+		} while (fp[k] != N);
+
+		std::vector<char> & ses = es[DELTA]; // Shortest edit script
+		edscript.clear();
+
+		int D = 0;
+		for (size_t i = 1; i < ses.size(); i++)
+		{
+			switch (ses[i])
+			{
+			case '+':
+				if (i + 1 < ses.size() && ses[i + 1] == '-')
+				{
+					edscript.push_back('!');
+					i++;
+					D++;
+				}
+				else
+				{
+					edscript.push_back(exchanged ? '-' : '+');
+					D++;
+				}
+				break;
+			case '-':
+				if (i + 1 < ses.size() && ses[i + 1] == '+')
+				{
+					edscript.push_back('!');
+					i++;
+					D++;
+				}
+				else
+				{
+					edscript.push_back(exchanged ? '+' : '-');
+					D++;
+				}
+				break;
+			default:
+				edscript.push_back('=');
+			}
+		}
+
+		delete[](es - (M + 1));
+		delete[](fp - (M + 1));
+
+		return D;
+	}
+
+private:
+	int snake(int k, int y, bool exchanged)
+	{
+		int M = static_cast<int>(exchanged ? m_data2.size() : m_data1.size());
+		int N = static_cast<int>(exchanged ? m_data1.size() : m_data2.size());
+		int x = y - k;
+		while (x < M && y < N && (exchanged ? m_data1[y] == m_data2[x] : m_data1[x] == m_data2[y])) {
+			x = x + 1; y = y + 1;
+		}
+		return y;
+	}
+
+	Data& m_data1;
+	Data& m_data2;
+};
 
 class CImgDiffBuffer
 {
 	typedef Array2D<int> DiffBlocks;
 
 public:
+	enum INSERTION_DELETION_DETECTION_MODE {
+		INSERTION_DELETION_DETECTION_NONE = 0, INSERTION_DELETION_DETECTION_VERTICAL, INSERTION_DELETION_DETECTION_HORIZONTAL
+	};
 	enum OVERLAY_MODE {
 		OVERLAY_NONE = 0, OVERLAY_XOR, OVERLAY_ALPHABLEND, OVERLAY_ALPHABLEND_ANIM
 	};
@@ -162,11 +560,14 @@ public:
 		  m_nImages(0)
 		, m_showDifferences(true)
 		, m_blinkDifferences(false)
+		, m_insertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_NONE)
 		, m_overlayMode(OVERLAY_NONE)
 		, m_overlayAlpha(0.3)
 		, m_diffBlockSize(8)
 		, m_selDiffColor(Image::Rgb(0xff, 0x40, 0x40))
+		, m_selDiffDeletedColor(Image::Rgb(0xf0, 0xc0, 0xc0))
 		, m_diffColor(Image::Rgb(0xff, 0xff, 0x40))
+		, m_diffDeletedColor(Image::Rgb(0xc0, 0xc0, 0xc0))
 		, m_diffColorAlpha(0.7)
 		, m_colorDistanceThreshold(0.0)
 		, m_currentDiffIndex(-1)
@@ -195,7 +596,7 @@ public:
 
 	Image::Color GetPixelColor(int pane, int x, int y) const
 	{
-		return m_imgOrig32[pane].pixel(x - m_offset[pane].x, y - m_offset[pane].y);
+		return m_imgPreprocessed[pane].pixel(x - m_offset[pane].x, y - m_offset[pane].y);
 	}
 
 	double GetColorDistance(int pane1, int pane2, int x, int y) const
@@ -215,6 +616,17 @@ public:
 		RefreshImages();
 	}
 
+	Image::Color GetDiffDeletedColor() const
+	{
+		return m_diffDeletedColor;
+	}
+
+	void SetDiffDeletedColor(Image::Color clrDiffDeletedColor)
+	{
+		m_diffDeletedColor = clrDiffDeletedColor;
+		RefreshImages();
+	}
+
 	Image::Color GetSelDiffColor() const
 	{
 		return m_selDiffColor;
@@ -223,6 +635,17 @@ public:
 	void SetSelDiffColor(Image::Color clrSelDiffColor)
 	{
 		m_selDiffColor = clrSelDiffColor;
+		RefreshImages();
+	}
+
+	Image::Color GetSelDiffDeletedColor() const
+	{
+		return m_selDiffDeletedColor;
+	}
+
+	void SetSelDiffDeletedColor(Image::Color clrSelDiffDeletedColor)
+	{
+		m_selDiffDeletedColor = clrSelDiffDeletedColor;
 		RefreshImages();
 	}
 
@@ -319,6 +742,17 @@ public:
 		CompareImages();
 	}
 
+	INSERTION_DELETION_DETECTION_MODE GetInsertionDeletionDetectionMode() const
+	{
+		return m_insertionDeletionDetectionMode;
+	}
+
+	void SetInsertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_MODE insertionDeletionDetectionMode)
+	{
+		m_insertionDeletionDetectionMode = insertionDeletionDetectionMode;
+		CompareImages();
+	}
+
 	OVERLAY_MODE GetOverlayMode() const
 	{
 		return m_overlayMode;
@@ -379,7 +813,7 @@ public:
 	{
 		int conflictCount = 0;
 		for (int i = 0; i < m_diffCount; ++i)
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 				++conflictCount;
 		return conflictCount;
 	}
@@ -445,7 +879,7 @@ public:
 	{
 		int oldDiffIndex = m_currentDiffIndex;
 		for (size_t i = 0; i < m_diffInfos.size(); ++i)
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 				m_currentDiffIndex = static_cast<int>(i);
 		if (oldDiffIndex == m_currentDiffIndex)
 			return false;
@@ -458,7 +892,7 @@ public:
 		int oldDiffIndex = m_currentDiffIndex;
 		for (int i = static_cast<int>(m_diffInfos.size() - 1); i >= 0; --i)
 		{
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 			{
 				m_currentDiffIndex = i;
 				break;
@@ -475,7 +909,7 @@ public:
 		int oldDiffIndex = m_currentDiffIndex;
 		for (size_t i = m_currentDiffIndex + 1; i < m_diffInfos.size(); ++i)
 		{
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 			{
 				m_currentDiffIndex = static_cast<int>(i);
 				break;
@@ -492,7 +926,7 @@ public:
 		int oldDiffIndex = m_currentDiffIndex;
 		for (int i = m_currentDiffIndex - 1; i >= 0; --i)
 		{
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 			{
 				m_currentDiffIndex = i;
 				break;
@@ -530,7 +964,7 @@ public:
 	int  GetNextConflictIndex() const
 	{
 		for (size_t i = m_currentDiffIndex + 1; i < m_diffInfos.size(); ++i)
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 				return static_cast<int>(i);
 		return -1;
 	}
@@ -538,7 +972,7 @@ public:
 	int  GetPrevConflictIndex() const
 	{
 		for (int i = static_cast<int>(m_currentDiffIndex - 1); i >= 0; --i)
-			if (m_diffInfos[i].op == DiffInfo::OP_DIFF)
+			if (m_diffInfos[i].op == OP_DIFF)
 				return i;
 		return -1;
 	}
@@ -547,6 +981,9 @@ public:
 	{
 		if (m_nImages <= 1)
 			return;
+
+		PreprocessImages();
+
 		InitializeDiff();
 		if (m_nImages == 2)
 		{
@@ -572,7 +1009,7 @@ public:
 			return;
 		InitializeDiffImages();
 		for (int i = 0; i < m_nImages; ++i)
-			CopyOriginalImageToDiffImage(i);
+			CopyPreprocessedImageToDiffImage(i);
 		void (CImgDiffBuffer::*func)(int src, int dst) = NULL;
 		if (m_overlayMode == OVERLAY_ALPHABLEND || m_overlayMode == OVERLAY_ALPHABLEND_ANIM)
 			func = &CImgDiffBuffer::AlphaBlendImages2;
@@ -629,6 +1066,7 @@ public:
 		{
 			m_imgOrig[i].clear();
 			m_imgOrig32[i].clear();
+			m_imgPreprocessed[i].clear();
 			m_offset[i].x = 0;
 			m_offset[i].y = 0;
 		}
@@ -789,6 +1227,128 @@ public:
 		RefreshImages();
 	}
 
+	bool ConvertToRealPos(int pane, int x, int y, int& rx, int& ry) const
+	{
+		x -= m_offset[pane].x;
+		y -= m_offset[pane].y;
+
+		bool inside = true;
+		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_NONE ||
+			m_lineDiffInfos.size() == 0)
+		{
+			if (x < 0)
+			{
+				rx = 0;
+				inside = false;
+			}
+			else if (x >= static_cast<int>(m_imgPreprocessed[pane].width()))
+			{
+				rx = m_imgPreprocessed[pane].width() - 1;
+				inside = false;
+			}
+			else
+				rx = x;
+			if (y < 0)
+			{
+				ry = 0;
+				inside = false;
+			}
+			else if (y >= static_cast<int>(m_imgPreprocessed[pane].height()))
+			{
+				ry = m_imgPreprocessed[pane].height() - 1;
+				inside = false;
+			}
+			else
+				ry = y;
+			return inside;
+		}
+
+		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_VERTICAL)
+		{
+			if (x < 0)
+			{
+				rx = 0;
+				inside = false;
+			}
+			else if (x >= static_cast<int>(m_imgPreprocessed[pane].width()))
+			{
+				rx = m_imgPreprocessed[pane].width() - 1;
+				inside = false;
+			}
+			else
+				rx = x;
+			for (auto& lineDiff: m_lineDiffInfos)
+			{
+				if (y <= lineDiff.dend[pane])
+				{
+					if (y < 0)
+					{
+						ry = 0;
+						inside = false;
+					}
+					else
+						ry = y - lineDiff.dbegin + lineDiff.begin[pane];
+					return inside;
+				}
+				else if (lineDiff.dend[pane] < y && y <= lineDiff.dendmax)
+				{
+					ry = lineDiff.end[pane];
+					inside = false;
+					return inside;
+				}
+			}
+			ry = y - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
+			if (ry >= static_cast<int>(m_imgOrig32[pane].height()))
+			{
+				ry = m_imgOrig32[pane].height() - 1;
+				inside = false;
+			}
+			return inside;
+		}
+		else
+		{
+			if (y < 0)
+			{
+				ry = 0;
+				inside = false;
+			}
+			else if (y >= static_cast<int>(m_imgPreprocessed[pane].height()))
+			{
+				ry = m_imgPreprocessed[pane].height() - 1;
+				inside = false;
+			}
+			else
+				ry = y;
+			for (auto& lineDiff: m_lineDiffInfos)
+			{
+				if (x <= lineDiff.dend[pane])
+				{
+					if (x < 0)
+					{
+						rx = 0;
+						inside = false;
+					}
+					else
+						rx = x - lineDiff.dbegin + lineDiff.begin[pane];
+					return inside;
+				}
+				else if (lineDiff.dend[pane] < x && x <= lineDiff.dendmax)
+				{
+					rx = lineDiff.end[pane];
+					inside = false;
+					return inside;
+				}
+			}
+			rx = x - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
+			if (rx >= static_cast<int>(m_imgOrig32[pane].width()))
+			{
+				rx = m_imgOrig32[pane].width() - 1;
+				inside = false;
+			}
+			return inside;
+		}
+	}
+
 protected:
 	bool LoadImages()
 	{
@@ -820,8 +1380,8 @@ protected:
 		unsigned hmax = 0;
 		for (int i = 0; i < m_nImages; ++i)
 		{
-			wmax = (std::max)(wmax, static_cast<unsigned>(m_imgOrig32[i].width())  + m_offset[i].x);
-			hmax = (std::max)(hmax, static_cast<unsigned>(m_imgOrig32[i].height()) + m_offset[i].y);
+			wmax = (std::max)(wmax, static_cast<unsigned>(m_imgPreprocessed[i].width())  + m_offset[i].x);
+			hmax = (std::max)(hmax, static_cast<unsigned>(m_imgPreprocessed[i].height()) + m_offset[i].y);
 		}
 		return Size<unsigned>(wmax, hmax);
 	}
@@ -855,14 +1415,14 @@ protected:
 
 	void CompareImages2(int pane1, int pane2, DiffBlocks& diff)
 	{
-		unsigned x1min = m_imgOrig32[pane1].width()  > 0 ? m_offset[pane1].x : -1;
-		unsigned y1min = m_imgOrig32[pane1].height() > 0 ? m_offset[pane1].y : -1;
-		unsigned x2min = m_imgOrig32[pane2].width()  > 0 ? m_offset[pane2].x : -1;
-		unsigned y2min = m_imgOrig32[pane2].height() > 0 ? m_offset[pane2].y : -1;
-		unsigned x1max = x1min + m_imgOrig32[pane1].width() - 1;
-		unsigned y1max = y1min + m_imgOrig32[pane1].height() - 1;
-		unsigned x2max = x2min + m_imgOrig32[pane2].width() - 1;
-		unsigned y2max = y2min + m_imgOrig32[pane2].height() - 1;
+		unsigned x1min = m_imgPreprocessed[pane1].width()  > 0 ? m_offset[pane1].x : -1;
+		unsigned y1min = m_imgPreprocessed[pane1].height() > 0 ? m_offset[pane1].y : -1;
+		unsigned x2min = m_imgPreprocessed[pane2].width()  > 0 ? m_offset[pane2].x : -1;
+		unsigned y2min = m_imgPreprocessed[pane2].height() > 0 ? m_offset[pane2].y : -1;
+		unsigned x1max = x1min + m_imgPreprocessed[pane1].width() - 1;
+		unsigned y1max = y1min + m_imgPreprocessed[pane1].height() - 1;
+		unsigned x2max = x2min + m_imgPreprocessed[pane2].width() - 1;
+		unsigned y2max = y2min + m_imgPreprocessed[pane2].height() - 1;
 
 		const unsigned wmax = (std::max)(x1max + 1, x2max + 1);
 		const unsigned hmax = (std::max)(y1max + 1, y2max + 1);
@@ -880,8 +1440,8 @@ protected:
 				}
 				else
 				{
-					const unsigned char *scanline1 = m_imgOrig32[pane1].scanLine(y - y1min);
-					const unsigned char *scanline2 = m_imgOrig32[pane2].scanLine(y - y2min);
+					const unsigned char *scanline1 = m_imgPreprocessed[pane1].scanLine(y - y1min);
+					const unsigned char *scanline2 = m_imgPreprocessed[pane2].scanLine(y - y2min);
 					if (x1min == x2min && x1max == x2max && m_colorDistanceThreshold == 0.0)
 					{
 						if (memcmp(scanline1, scanline2, (x2max + 1 - x1min) * 4) == 0)
@@ -966,7 +1526,7 @@ protected:
 				int idx = diff(bx, by);
 				if (idx == -1)
 				{
-					m_diffInfos.push_back(DiffInfo(DiffInfo::OP_DIFF, bx, by));
+					m_diffInfos.push_back(DiffInfo(OP_DIFF, bx, by));
 					++diffCount;
 					FloodFill8Directions(diff, bx, by, diffCount);
 				}
@@ -1014,13 +1574,13 @@ protected:
 		{
 			int op;
 			if (counter[i].d1 != 0 && counter[i].d2 == 0 && counter[i].d3 == 0 && counter[i].detc == 0)
-				op = DiffInfo::OP_1STONLY;
+				op = OP_1STONLY;
 			else if (counter[i].d1 == 0 && counter[i].d2 != 0 && counter[i].d3 == 0 && counter[i].detc == 0)
-				op = DiffInfo::OP_2NDONLY;
+				op = OP_2NDONLY;
 			else if (counter[i].d1 == 0 && counter[i].d2 == 0 && counter[i].d3 != 0 && counter[i].detc == 0)
-				op = DiffInfo::OP_3RDONLY;
+				op = OP_3RDONLY;
 			else
-				op = DiffInfo::OP_DIFF;
+				op = OP_DIFF;
 			m_diffInfos[i].op = op;
 		}
 		return diffCount;
@@ -1039,6 +1599,36 @@ protected:
 		}
 	}
 
+	inline Image::Color GetDiffColorFromPosition(int pane, int x, int y, Image::Color diffColor, Image::Color diffDeletedColor)
+	{
+		x -= m_offset[pane].x;
+		y -= m_offset[pane].y;
+
+		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_NONE || 
+			m_lineDiffInfos.size() == 0 ||
+			x < 0 || x >= static_cast<int>(m_imgPreprocessed[pane].width()) ||
+			y < 0 || y >= static_cast<int>(m_imgPreprocessed[pane].height()))
+			return diffColor;
+
+		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_VERTICAL)
+		{
+			for (auto& lineDiff: m_lineDiffInfos)
+			{
+				if (lineDiff.dbegin <= y && y <= lineDiff.dendmax)
+					return diffDeletedColor;
+			}
+		}
+		else
+		{
+			for (auto& lineDiff : m_lineDiffInfos)
+			{
+				if (lineDiff.dbegin <= x && x <= lineDiff.dendmax)
+					return diffDeletedColor;
+			}
+		}
+		return diffColor;
+	}
+
 	void MarkDiff(int pane, const DiffBlocks& diff)
 	{
 		const unsigned w = m_imgDiff[pane].width();
@@ -1050,12 +1640,13 @@ protected:
 			{
 				int diffIndex = diff(bx, by);
 				if (diffIndex != 0 && (
-					(pane == 0 && m_diffInfos[diffIndex - 1].op != DiffInfo::OP_3RDONLY) ||
+					(pane == 0 && m_diffInfos[diffIndex - 1].op != OP_3RDONLY) ||
 					(pane == 1) ||
-					(pane == 2 && m_diffInfos[diffIndex - 1].op != DiffInfo::OP_1STONLY)
+					(pane == 2 && m_diffInfos[diffIndex - 1].op != OP_1STONLY)
 					))
 				{
 					Image::Color color = (diffIndex - 1 == m_currentDiffIndex) ? m_selDiffColor : m_diffColor;
+					Image::Color colorDeleted = (diffIndex - 1 == m_currentDiffIndex) ? m_selDiffDeletedColor : m_diffDeletedColor;
 					unsigned bsy = (h - by * m_diffBlockSize < m_diffBlockSize) ? (h - by * m_diffBlockSize) : m_diffBlockSize;
 					for (unsigned i = 0; i < bsy; ++i)
 					{
@@ -1073,9 +1664,10 @@ protected:
 							}
 							else
 							{
-								scanline[x * 4 + 0] = Image::valueB(color);
-								scanline[x * 4 + 1] = Image::valueG(color);
-								scanline[x * 4 + 2] = Image::valueR(color);
+								Image::Color dcolor = GetDiffColorFromPosition(pane, x, y, color, colorDeleted);
+								scanline[x * 4 + 0] = Image::valueB(dcolor);
+								scanline[x * 4 + 1] = Image::valueG(dcolor);
+								scanline[x * 4 + 2] = Image::valueR(dcolor);
 								scanline[x * 4 + 3] = static_cast<unsigned char>(0xff * m_diffColorAlpha);
 							}
 						}
@@ -1085,14 +1677,14 @@ protected:
 		}
 	}
 
-	void CopyOriginalImageToDiffImage(int dst)
+	void CopyPreprocessedImageToDiffImage(int dst)
 	{
-		unsigned w = m_imgOrig32[dst].width();
-		unsigned h = m_imgOrig32[dst].height();
+		unsigned w = m_imgPreprocessed[dst].width();
+		unsigned h = m_imgPreprocessed[dst].height();
 		unsigned offset_x = m_offset[dst].x;
 		for (unsigned y = 0; y < h; ++y)
 		{
-			const unsigned char *scanline_src = m_imgOrig32[dst].scanLine(y);
+			const unsigned char *scanline_src = m_imgPreprocessed[dst].scanLine(y);
 			unsigned char *scanline_dst = m_imgDiff[dst].scanLine(y + m_offset[dst].y);
 			for (unsigned x = 0; x < w; ++x)
 			{
@@ -1106,12 +1698,12 @@ protected:
 
 	void XorImages2(int src, int dst)
 	{
-		unsigned w = m_imgOrig32[src].width();
-		unsigned h = m_imgOrig32[src].height();
+		unsigned w = m_imgPreprocessed[src].width();
+		unsigned h = m_imgPreprocessed[src].height();
 		unsigned offset_x = m_offset[src].x;
 		for (unsigned y = 0; y < h; ++y)
 		{
-			const unsigned char *scanline_src = m_imgOrig32[src].scanLine(y);
+			const unsigned char *scanline_src = m_imgPreprocessed[src].scanLine(y);
 			unsigned char *scanline_dst = m_imgDiff[dst].scanLine(y + m_offset[src].y);
 			for (unsigned x = 0; x < w; ++x)
 			{
@@ -1124,15 +1716,15 @@ protected:
 
 	void AlphaBlendImages2(int src, int dst)
 	{
-		unsigned w = m_imgOrig32[src].width();
-		unsigned h = m_imgOrig32[src].height();
+		unsigned w = m_imgPreprocessed[src].width();
+		unsigned h = m_imgPreprocessed[src].height();
 		unsigned offset_x = m_offset[src].x;
 		double overlayAlpha = m_overlayAlpha;
 		if (m_overlayMode == OVERLAY_ALPHABLEND_ANIM)
 		{
 			auto now = std::chrono::system_clock::now();
 			auto tse = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
-			double t = (tse.count() % OVERLAY_ALPHABLEND_ANIM_TIME);
+			double t = static_cast<double>(tse.count() % OVERLAY_ALPHABLEND_ANIM_TIME);
 			if (t < OVERLAY_ALPHABLEND_ANIM_TIME * 2 / 10)
 				overlayAlpha = t / (OVERLAY_ALPHABLEND_ANIM_TIME * 2 / 10);
 			else if (t < OVERLAY_ALPHABLEND_ANIM_TIME * 5 / 10)
@@ -1145,7 +1737,7 @@ protected:
 		}
 		for (unsigned y = 0; y < h; ++y)
 		{
-			const unsigned char *scanline_src = m_imgOrig32[src].scanLine(y);
+			const unsigned char *scanline_src = m_imgPreprocessed[src].scanLine(y);
 			unsigned char *scanline_dst = m_imgDiff[dst].scanLine(y + m_offset[src].y);
 			for (unsigned x = 0; x < w; ++x)
 			{
@@ -1157,21 +1749,223 @@ protected:
 		}	
 	}
 
+	void CopyImageWithGhostLine(const std::vector<LineDiffInfo>& lineDiffInfos, int npanes, Image src[], Image dst[])
+	{
+		unsigned nlines;
+		if (lineDiffInfos.size() == 0)
+		{
+			nlines = src[0].height();
+		}
+		else
+		{
+			const LineDiffInfo& lastLineDiff = lineDiffInfos.back();
+			nlines = (lastLineDiff.dendmax + 1) + src[0].height() - (lastLineDiff.end[0] + 1);
+		}
+
+		int ydst = 0;
+		for (int pane = 0; pane < npanes; ++pane)
+			dst[pane].setSize(src[pane].width(), nlines);
+		for (size_t i = 0; i < lineDiffInfos.size(); ++i)
+		{
+			const LineDiffInfo& lineDiffInfo = lineDiffInfos[i];
+
+			for (int pane = 0; pane < npanes; ++pane)
+			{
+				int orgydst = ydst;
+				for (int ysrc = (i > 0) ? (lineDiffInfos[i - 1].end[pane] + 1) : 0; ysrc < lineDiffInfo.begin[pane]; ++ysrc)
+					memcpy(dst[pane].scanLine(ydst++), src[pane].scanLine(ysrc), src[pane].width() * 4);
+				ydst = orgydst;
+			}
+
+			ydst = lineDiffInfo.dbegin;
+			for (int pane = 0; pane < npanes; ++pane)
+			{
+				int orgydst = ydst;
+				for (int ysrc = lineDiffInfo.begin[pane]; ysrc <= lineDiffInfo.end[pane]; ++ysrc)
+					memcpy(dst[pane].scanLine(ydst++), src[pane].scanLine(ysrc), src[pane].width() * 4);
+				ydst = orgydst;
+			}
+			ydst = lineDiffInfo.dendmax + 1;
+		}
+
+		for (int pane = 0; pane < npanes; ++pane)
+		{
+			int orgydst = ydst;
+			for (int ysrc = (lineDiffInfos.size() > 0) ? (lineDiffInfos[lineDiffInfos.size() - 1].end[pane] + 1) : 0;
+				ysrc < static_cast<int>(src[pane].height()); ++ysrc)
+				memcpy(dst[pane].scanLine(ydst++), src[pane].scanLine(ysrc), src[pane].width() * 4);
+			ydst = orgydst;
+		}
+	}
+
+	std::vector<LineDiffInfo> MakeLineDiff(const Image& img1, const Image& img2)
+	{
+		DataForONPDiff data1(img1, m_colorDistanceThreshold);
+		DataForONPDiff data2(img2, m_colorDistanceThreshold);
+		ONPDiffAlgorithm<DataForONPDiff> diff(data1, data2);
+		std::vector<char> edscript;
+		std::vector<LineDiffInfo> lineDiffInfosTmp;
+		std::vector<LineDiffInfo> lineDiffInfos;
+
+		diff.diff(edscript);
+
+		int i = 0, j = 0;
+		for (auto ed : edscript)
+		{
+			switch (ed)
+			{
+			case '-':
+				lineDiffInfosTmp.emplace_back(i, i, j, j - 1);
+				++i;
+				break;
+			case '+':
+				lineDiffInfosTmp.emplace_back(i, i - 1, j, j);
+				++j;
+				break;
+			case '!':
+				lineDiffInfosTmp.emplace_back(i, i, j, j);
+				++i;
+				++j;
+				break;
+			default:
+				++i;
+				++j;
+				break;
+			}
+		}
+
+		lineDiffInfos.clear();
+		for (size_t i = 0; i < lineDiffInfosTmp.size(); ++i)
+		{
+			bool skipIt = false;
+			// combine it with next ?
+			if (i + 1 < (int)lineDiffInfosTmp.size())
+			{
+				if (lineDiffInfosTmp[i].end[0] + 1 == lineDiffInfosTmp[i + 1].begin[0]
+					&& lineDiffInfosTmp[i].end[1] + 1 == lineDiffInfosTmp[i + 1].begin[1])
+				{
+					// diff[i] and diff[i+1] are contiguous
+					// so combine them into diff[i+1] and ignore diff[i]
+					lineDiffInfosTmp[i + 1].begin[0] = lineDiffInfosTmp[i].begin[0];
+					lineDiffInfosTmp[i + 1].begin[1] = lineDiffInfosTmp[i].begin[1];
+					skipIt = true;
+				}
+			}
+			if (!skipIt)
+			{
+				// Should never have a pair where both are missing
+				assert(lineDiffInfosTmp[i].begin[0] >= 0 || lineDiffInfosTmp[i].begin[1] >= 0);
+
+				// Store the diff[i] in the caller list (m_pDiffs)
+				lineDiffInfos.push_back(lineDiffInfosTmp[i]);
+			}
+		}
+
+		return lineDiffInfos;
+	}
+
+	unsigned PrimeLineDiffInfos(std::vector<LineDiffInfo>& lineDiffInfos, int npanes, unsigned height0)
+	{
+		unsigned dlines = 0;
+		for (size_t i = 0; i < lineDiffInfos.size(); ++i)
+		{
+			dlines += lineDiffInfos[i].begin[0] - ((i > 0) ? (lineDiffInfos[i - 1].end[0] + 1) : 0);
+
+			LineDiffInfo& lineDiffInfo = lineDiffInfos[i];
+			lineDiffInfo.dbegin = dlines;
+			lineDiffInfo.dendmax = 0;
+			for (int pane = 0; pane < npanes; ++pane)
+			{
+				lineDiffInfo.dend[pane] = lineDiffInfo.dbegin + lineDiffInfo.end[pane] - lineDiffInfo.begin[pane];
+				if (lineDiffInfo.dendmax < lineDiffInfo.dbegin + lineDiffInfo.end[pane] - lineDiffInfo.begin[pane])
+					lineDiffInfo.dendmax = lineDiffInfo.dbegin + lineDiffInfo.end[pane] - lineDiffInfo.begin[pane];
+			}
+			dlines = lineDiffInfo.dendmax + 1;
+		}
+		dlines += height0 - (lineDiffInfos.size() > 0 ? lineDiffInfos[lineDiffInfos.size() - 1].end[0] + 1 : 0);
+		return dlines;
+	}
+
+	void PreprocessImages()
+	{
+		auto compfunc02 = [&](const LineDiffInfo & wd3) {
+			unsigned wlen0 = wd3.end[0] + 1 - wd3.begin[0];
+			unsigned wlen2 = wd3.end[2] + 1 - wd3.begin[2];
+			if (wlen0 != wlen2)
+				return false;
+			for (unsigned i = 0; i < wlen0; ++i)
+			{
+				if (!alineEquals(
+					m_imgOrig32[0], m_imgOrig32[2],
+					wd3.begin[0] + i, wd3.begin[2] + i,
+					m_colorDistanceThreshold))
+					return false;
+			}
+			return true;
+		};
+		std::vector<LineDiffInfo> lineDiffInfos10, lineDiffInfos12;
+		switch (m_insertionDeletionDetectionMode)
+		{
+		case INSERTION_DELETION_DETECTION_VERTICAL:
+		{
+			if (m_nImages == 2)
+				 m_lineDiffInfos = MakeLineDiff(m_imgOrig32[0], m_imgOrig32[1]);
+			else
+			{
+				lineDiffInfos10 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[0]);
+				lineDiffInfos12 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[2]);
+				m_lineDiffInfos = ::Make3WayLineDiff(lineDiffInfos10, lineDiffInfos12, compfunc02);
+			}
+			PrimeLineDiffInfos(m_lineDiffInfos, m_nImages, m_imgOrig32[0].height());
+			CopyImageWithGhostLine(m_lineDiffInfos, m_nImages, m_imgOrig32, m_imgPreprocessed);
+			break;
+		}
+		case INSERTION_DELETION_DETECTION_HORIZONTAL:
+		{
+			Image imgTransposed[3] = { m_imgOrig32[0], m_imgOrig32[1], m_imgOrig32[2] };
+			for (int pane = 0; pane < m_nImages; ++pane)
+				imgTransposed[pane].rotate(-90);
+			if (m_nImages == 2)
+				m_lineDiffInfos = MakeLineDiff(imgTransposed[0], imgTransposed[1]);
+			else
+			{
+				lineDiffInfos10 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[0]);
+				lineDiffInfos12 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[2]);
+				m_lineDiffInfos = ::Make3WayLineDiff(lineDiffInfos10, lineDiffInfos12, compfunc02);
+			}
+			PrimeLineDiffInfos(m_lineDiffInfos, m_nImages, m_imgOrig32[0].height());
+			CopyImageWithGhostLine(m_lineDiffInfos, m_nImages, imgTransposed, m_imgPreprocessed);
+			for (int pane = 0; pane < m_nImages; ++pane)
+				m_imgPreprocessed[pane].rotate(90);
+			break;
+		}
+		default:
+			m_lineDiffInfos.clear();
+			for (int i = 0; i < m_nImages; ++i)
+				m_imgPreprocessed[i] = m_imgOrig32[i];
+			break;
+		}
+	}
+
 	int m_nImages;
 	MultiPageImages m_imgOrigMultiPage[3];
 	Point<unsigned> m_offset[3];
 	Image m_imgOrig[3];
 	Image m_imgOrig32[3];
+	Image m_imgPreprocessed[3];
 	Image m_imgDiff[3];
 	Image m_imgDiffMap;
 	std::wstring m_filename[3];
 	bool m_showDifferences;
 	bool m_blinkDifferences;
+	INSERTION_DELETION_DETECTION_MODE m_insertionDeletionDetectionMode;
 	OVERLAY_MODE m_overlayMode;
 	double m_overlayAlpha;
 	unsigned m_diffBlockSize;
 	Image::Color m_selDiffColor;
+	Image::Color m_selDiffDeletedColor;
 	Image::Color m_diffColor;
+	Image::Color m_diffDeletedColor;
 	double m_diffColorAlpha;
 	double m_colorDistanceThreshold;
 	int m_currentPage[3];
@@ -1179,4 +1973,5 @@ protected:
 	int m_diffCount;
 	DiffBlocks m_diff, m_diff01, m_diff21, m_diff02;
 	std::vector<DiffInfo> m_diffInfos;
+	std::vector<LineDiffInfo> m_lineDiffInfos;
 };

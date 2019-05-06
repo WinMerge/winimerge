@@ -80,7 +80,7 @@ public:
 		m_hInstance = hInstance;
 		MyRegisterClass(hInstance);
 		m_hWnd = CreateWindowExW(0, L"WinImgMergeWindowClass", NULL, WS_CHILD | WS_VISIBLE,
-			rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, hWndParent, reinterpret_cast<HMENU>(nID), hInstance, this);
+			rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, hWndParent, reinterpret_cast<HMENU>((intptr_t)nID), hInstance, this);
 		return m_hWnd ? true : false;
 	}
 
@@ -155,6 +155,14 @@ public:
 		return m_imgWindow[pane].ConvertDPtoLP(dpt.x, dpt.y);
 	}
 
+	bool ConvertToRealPos(int pane, const POINT& pt, POINT& ptReal) const
+	{
+		int rx, ry;
+		bool result = m_buffer.ConvertToRealPos(pane, pt.x, pt.y, rx, ry);
+		ptReal = { rx, ry };
+		return result;
+	}
+
 	RGBQUAD GetPixelColor(int pane, int x, int y) const
 	{
 		return m_buffer.GetPixelColor(pane, x, y);
@@ -218,6 +226,17 @@ public:
 		Invalidate();
 	}
 
+	COLORREF GetDiffDeletedColor() const
+	{
+		return RGBQUADtoCOLORREF(m_buffer.GetDiffDeletedColor());
+	}
+
+	void SetDiffDeletedColor(COLORREF clrDiffDeletedColor)
+	{
+		m_buffer.SetDiffDeletedColor(COLORREFtoRGBQUAD(clrDiffDeletedColor));
+		Invalidate();
+	}
+
 	COLORREF GetSelDiffColor() const
 	{
 		return RGBQUADtoCOLORREF(m_buffer.GetSelDiffColor());
@@ -226,6 +245,17 @@ public:
 	void SetSelDiffColor(COLORREF clrSelDiffColor)
 	{
 		m_buffer.SetSelDiffColor(COLORREFtoRGBQUAD(clrSelDiffColor));
+		Invalidate();
+	}
+
+	COLORREF GetSelDiffDeletedColor() const
+	{
+		return RGBQUADtoCOLORREF(m_buffer.GetSelDiffDeletedColor());
+	}
+
+	void SetSelDiffDeletedColor(COLORREF clrSelDiffDeletedColor)
+	{
+		m_buffer.SetSelDiffColor(COLORREFtoRGBQUAD(clrSelDiffDeletedColor));
 		Invalidate();
 	}
 
@@ -335,6 +365,17 @@ public:
 	void SetDiffBlockSize(int blockSize)
 	{
 		m_buffer.SetDiffBlockSize(blockSize);
+		Invalidate();
+	}
+
+	INSERTION_DELETION_DETECTION_MODE GetInsertionDeletionDetectionMode() const
+	{
+		return static_cast<INSERTION_DELETION_DETECTION_MODE>(m_buffer.GetInsertionDeletionDetectionMode());
+	}
+
+	void SetInsertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_MODE insertionDeletinoMode)
+	{
+		m_buffer.SetInsertionDeletionDetectionMode(static_cast<CImgMergeBuffer::INSERTION_DELETION_DETECTION_MODE>(insertionDeletinoMode));
 		Invalidate();
 	}
 
@@ -723,7 +764,7 @@ public:
 	POINT GetImageOffset(int pane) const
 	{
 		Point<unsigned> pt = m_buffer.GetImageOffset(pane);
-		POINT pt2 = {pt.x, pt.y};
+		POINT pt2 = {static_cast<long>(pt.x), static_cast<long>(pt.y)};
 		return pt2;
 	}
 
@@ -1140,7 +1181,7 @@ private:
 					SCROLLINFO sih = { sizeof SCROLLINFO };
 					sih.fMask = SIF_RANGE | SIF_PAGE;
 					GetScrollInfo(hwnd, SB_HORZ, &sih);
-					if (sih.nMax > sih.nPage)
+					if (sih.nMax > static_cast<int>(sih.nPage))
 					{
 						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) * zoom);
 						SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
@@ -1150,7 +1191,7 @@ private:
 					SCROLLINFO siv = { sizeof SCROLLINFO };
 					siv.fMask = SIF_RANGE | SIF_PAGE;
 					GetScrollInfo(hwnd, SB_VERT, &siv);
-					if (siv.nMax > siv.nPage)
+					if (siv.nMax > static_cast<int>(siv.nPage))
 					{
 						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) * zoom);
 						SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);

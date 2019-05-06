@@ -111,6 +111,12 @@ BEGIN
             MENUITEM "&32",                         ID_VIEW_THRESHOLD_32
             MENUITEM "64",                          ID_VIEW_THRESHOLD_64
         END
+        POPUP "Ins&ertion/Deletion Detection"
+        BEGIN
+            MENUITEM "&None",                       ID_VIEW_INSERTIONDELETIONDETECTION_NONE
+            MENUITEM "&Vertical",                   ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL
+            MENUITEM "&Horizontal",                 ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL
+        END
         MENUITEM SEPARATOR
         MENUITEM "&Prev Page",                  ID_VIEW_PAGE_PREVPAGE
         MENUITEM "&Next Page",                  ID_VIEW_PAGE_NEXTPAGE

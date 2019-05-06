@@ -62,6 +62,7 @@ public:
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_CDTHRESHOLD_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetColorDistanceThreshold()));
 		SendDlgItemMessage(m_hWnd, IDC_OVERLAY_ALPHA_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetOverlayAlpha() * 100));
 		SendDlgItemMessage(m_hWnd, IDC_ZOOM_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetZoom() * 8 - 8));
+		SendDlgItemMessage(m_hWnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_SETCURSEL, m_pImgMergeWindow->GetInsertionDeletionDetectionMode(), 0);
 		SendDlgItemMessage(m_hWnd, IDC_OVERLAY_MODE, CB_SETCURSEL, m_pImgMergeWindow->GetOverlayMode(), 0);
 		SendDlgItemMessage(m_hWnd, IDC_PAGE_SPIN, UDM_SETRANGE, 0, MAKELONG(1, m_pImgMergeWindow->GetMaxPageCount()));
 		SendDlgItemMessage(m_hWnd, IDC_PAGE_SPIN, UDM_SETPOS, 0, MAKELONG(m_pImgMergeWindow->GetCurrentMaxPage() + 1, 0));
@@ -108,6 +109,9 @@ private:
 		SendDlgItemMessage(hwnd, IDC_DIFF_BLOCKALPHA_SLIDER, TBM_SETRANGE, TRUE, MAKELPARAM(0, 100));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_ALPHA_SLIDER, TBM_SETRANGE, TRUE, MAKELPARAM(0, 100));
 		SendDlgItemMessage(hwnd, IDC_ZOOM_SLIDER, TBM_SETRANGE, TRUE, MAKELPARAM(-7, 56));
+		SendDlgItemMessage(hwnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("None")));
+		SendDlgItemMessage(hwnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Vertical")));
+		SendDlgItemMessage(hwnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Horizontal")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("None")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("XOR")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Alpha")));
@@ -126,6 +130,10 @@ private:
 		case IDC_DIFF_BLINK:
 			if (codeNotify == BN_CLICKED)
 				m_pImgMergeWindow->SetBlinkDifferences(Button_GetCheck(hwndCtl) == BST_CHECKED);
+			break;
+		case IDC_DIFF_INSERTION_DELETION_DETECTION_MODE:
+			if (codeNotify == CBN_SELCHANGE)
+				m_pImgMergeWindow->SetInsertionDeletionDetectionMode(static_cast<IImgMergeWindow::INSERTION_DELETION_DETECTION_MODE>(ComboBox_GetCurSel(hwndCtl)));
 			break;
 		case IDC_OVERLAY_MODE:
 			if (codeNotify == CBN_SELCHANGE)

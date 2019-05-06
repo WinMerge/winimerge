@@ -200,6 +200,8 @@ void UpdateMenuState(HWND hWnd)
 	HMENU hMenu = GetMenu(hWnd);
 	CheckMenuItem(hMenu, ID_VIEW_VIEWDIFFERENCES,    m_pImgMergeWindow->GetShowDifferences() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VIEW_SPLITHORIZONTALLY,  m_pImgMergeWindow->GetHorizontalSplit() ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuRadioItem(hMenu, ID_VIEW_INSERTIONDELETIONDETECTION_NONE, ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL,
+		m_pImgMergeWindow->GetInsertionDeletionDetectionMode() + ID_VIEW_INSERTIONDELETIONDETECTION_NONE, MF_BYCOMMAND);
 	CheckMenuRadioItem(hMenu, ID_VIEW_OVERLAY_NONE, ID_VIEW_OVERLAY_ALPHABLEND,
 		m_pImgMergeWindow->GetOverlayMode() + ID_VIEW_OVERLAY_NONE, MF_BYCOMMAND);
 	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET,
@@ -250,12 +252,10 @@ void UpdateStatusBar()
 	for (int pane = 0; pane < m_pImgMergeWindow->GetPaneCount(); ++pane)
 	{
 		wchar_t buf[256], *p = buf;
-		if (pt.x >= 0 && pt.y >= 0 &&
-		    pt.x < m_pImgMergeWindow->GetImageWidth(pane) &&
-		    pt.y < m_pImgMergeWindow->GetImageHeight(pane))
+		POINT ptReal;
+		if (m_pImgMergeWindow->ConvertToRealPos(pane, pt, ptReal))
 		{
-			POINT ptOffset = m_pImgMergeWindow->GetImageOffset(pane);
-			p += wsprintfW(p, L"Pt:(%d,%d) ", pt.x - ptOffset.x, pt.y - ptOffset.y);
+			p += wsprintfW(p, L"Pt:(%d,%d) ", ptReal.x, ptReal.y);
 			p += wsprintfW(p, L"RGBA:(%d,%d,%d,%d) ",
 				color[pane].rgbRed, color[pane].rgbGreen, color[pane].rgbBlue, color[pane].rgbReserved);
 			if (pane == 1 && m_pImgMergeWindow->GetPaneCount() == 3)
@@ -546,6 +546,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_THRESHOLD_32:
 		case ID_VIEW_THRESHOLD_64:
 			m_pImgMergeWindow->SetColorDistanceThreshold((1 << (wmId - ID_VIEW_THRESHOLD_2)) * 2.0);
+			UpdateMenuState(hWnd);
+			break;
+		case ID_VIEW_INSERTIONDELETIONDETECTION_NONE:
+		case ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL:
+		case ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL:
+			m_pImgMergeWindow->SetInsertionDeletionDetectionMode(static_cast<IImgMergeWindow::INSERTION_DELETION_DETECTION_MODE>(wmId - ID_VIEW_INSERTIONDELETIONDETECTION_NONE));
 			UpdateMenuState(hWnd);
 			break;
 		case ID_VIEW_SPLITHORIZONTALLY:

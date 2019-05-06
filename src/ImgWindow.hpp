@@ -31,7 +31,7 @@ public:
 		, m_nVScrollPos(0)
 		, m_nHScrollPos(0)
 		, m_zoom(1.0)
-		, m_useBackColor(true)
+		, m_useBackColor(false)
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
