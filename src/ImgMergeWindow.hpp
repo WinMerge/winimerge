@@ -1230,6 +1230,13 @@ private:
 		}
 		case WM_HSCROLL:
 		case WM_VSCROLL:
+			if (LOWORD(wParam) == SB_THUMBTRACK)
+			{
+				SCROLLINFO si = { si.cbSize = sizeof SCROLLINFO };
+				si.fMask = SIF_TRACKPOS;
+				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
+				wParam |= (si.nTrackPos & 0xff0000) >> 8;
+			}
 		case WM_MOUSEWHEEL:
 			for (int j = 0; j < pImgWnd->m_nImages; ++j)
 			{

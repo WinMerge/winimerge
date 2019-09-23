@@ -297,11 +297,32 @@ private:
 
 			PatBlt(hdcMem, 0, 0, rc.right - rc.left, rc.bottom - rc.top, PATCOPY);
 
-			POINT pt = ConvertLPtoDP(0, 0);
-			RECT rcImg = { pt.x, pt.y, pt.x + static_cast<int>(m_fip->getWidth() * m_zoom), pt.y + static_cast<int>(m_fip->getHeight() * m_zoom) };
-
 			if (m_fip->isValid())
-				m_fip->drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
+			{
+				POINT pt = ConvertLPtoDP(0, 0);
+				RECT rcImg = { pt.x, pt.y, pt.x + static_cast<int>(m_fip->getWidth() * m_zoom), pt.y + static_cast<int>(m_fip->getHeight() * m_zoom) };
+
+				if (rcImg.left <= -32767 / 2 || rcImg.right >= 32767 / 2 || rcImg.top <= -32767 / 2 || rcImg.bottom >= 32767 / 2)
+				{
+					fipWinImage fipSubImage;
+					POINT ptTmpLT = ConvertDPtoLP(0, 0);
+					POINT ptTmpRB = ConvertDPtoLP(rc.right + static_cast<int>(1 * m_zoom), static_cast<int>(rc.bottom + 1 * m_zoom));
+					POINT ptSubLT = { (ptTmpLT.x >= 0) ? ptTmpLT.x : 0, (ptTmpLT.y >= 0) ? ptTmpLT.y : 0 };
+					POINT ptSubRB = {
+						ptTmpRB.x < static_cast<int>(m_fip->getWidth()) ? ptTmpRB.x : static_cast<int>(m_fip->getWidth()),
+						ptTmpRB.y < static_cast<int>(m_fip->getHeight()) ? ptTmpRB.y : static_cast<int>(m_fip->getHeight())
+					};
+					POINT ptSubLTDP = ConvertLPtoDP(ptSubLT.x, ptSubLT.y);
+					POINT ptSubRBDP = ConvertLPtoDP(ptSubRB.x, ptSubRB.y);
+					rcImg = { ptSubLTDP.x, ptSubLTDP.y, ptSubRBDP.x, ptSubRBDP.y };
+					m_fip->copySubImage(fipSubImage, ptSubLT.x, ptSubLT.y, ptSubRB.x, ptSubRB.y);
+					fipSubImage.drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
+				}
+				else
+				{
+					m_fip->drawEx(hdcMem, rcImg, false, m_useBackColor ? &m_backColor : NULL);
+				}
+			}
 			
 			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
 
@@ -468,10 +489,10 @@ private:
 			OnPaint();
 			break;
 		case WM_HSCROLL:
-			OnHScroll((UINT)(LOWORD(wParam)), (int)(short)HIWORD(wParam));
+			OnHScroll((UINT)(LOWORD(wParam) & 0xff), (int)(unsigned short)HIWORD(wParam) | ((LOWORD(wParam) & 0xff00) << 8)); // See 'case WM_HSCROLL:' in CImgMergeWindow::ChildWndProc() 
 			break;
 		case WM_VSCROLL:
-			OnVScroll((UINT)(LOWORD(wParam)), (int)(short)HIWORD(wParam));
+			OnVScroll((UINT)(LOWORD(wParam) & 0xff), (int)(unsigned short)HIWORD(wParam) | ((LOWORD(wParam) & 0xff00) << 8)); // See 'case WM_VSCROLL:' in CImgMergeWindow::ChildWndProc() 
 			break;
 		case WM_LBUTTONDOWN:
 			OnLButtonDown((UINT)(wParam), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
