@@ -121,6 +121,18 @@ public:
 		return dp;
 	}
 
+	POINT GetCursorPos() const
+	{
+		POINT pt = {-1, -1};
+		POINT dpt;
+		::GetCursorPos(&dpt);
+		RECT rc;
+		::GetWindowRect(m_hWnd, &rc);
+		dpt.x -= rc.left;
+		dpt.y -= rc.top;
+		return ConvertDPtoLP(dpt.x, dpt.y);
+	}
+
 	bool IsFocused() const
 	{
 		return m_hWnd == GetFocus();
@@ -128,12 +140,9 @@ public:
 
 	void ScrollTo(int x, int y, bool force = false)
 	{
-		SCROLLINFO sih = {0}, siv = {0};
-		sih.cbSize = sizeof SCROLLINFO;
-		sih.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
+		SCROLLINFO sih{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
+		SCROLLINFO siv{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 		GetScrollInfo(m_hWnd, SB_HORZ, &sih);
-		siv.cbSize = sizeof SCROLLINFO;
-		siv.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
 		GetScrollInfo(m_hWnd, SB_VERT, &siv);
 
 		RECT rc;
@@ -171,6 +180,33 @@ public:
 			else if (m_nVScrollPos > siv.nMax - static_cast<int>(siv.nPage))
 				m_nVScrollPos = siv.nMax - siv.nPage;
 		}
+
+		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
+		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, &rcClip);
+		CalcScrollBarRange();
+		InvalidateRect(m_hWnd, NULL, FALSE);
+	}
+
+	void ScrollTo2(int lx, int ly, int dx, int dy)
+	{
+		SCROLLINFO sih{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
+		SCROLLINFO siv{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
+		GetScrollInfo(m_hWnd, SB_HORZ, &sih);
+		GetScrollInfo(m_hWnd, SB_VERT, &siv);
+
+		RECT rc;
+		GetClientRect(m_hWnd, &rc);
+
+		m_nHScrollPos = static_cast<int>(lx * m_zoom + MARGIN - dx + 1);
+		if (m_nHScrollPos < 0)
+			m_nHScrollPos = 0;
+		else if (m_nHScrollPos > sih.nMax - static_cast<int>(sih.nPage))
+			m_nHScrollPos = sih.nMax - sih.nPage;
+		m_nVScrollPos = static_cast<int>(ly * m_zoom + MARGIN - dy + 1);
+		if (m_nVScrollPos < 0)
+			m_nVScrollPos = 0;
+		else if (m_nVScrollPos > siv.nMax - static_cast<int>(siv.nPage))
+			m_nVScrollPos = siv.nMax - siv.nPage;
 
 		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
 		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, &rcClip);
@@ -341,9 +377,7 @@ private:
 
 	void OnHScroll(UINT nSBCode, UINT nPos)
 	{
-		SCROLLINFO si = {0};
-		si.cbSize = sizeof SCROLLINFO;
-		si.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
+		SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 		GetScrollInfo(m_hWnd, SB_HORZ, &si);
 		switch (nSBCode) {
 		case SB_LINEUP:
@@ -376,9 +410,7 @@ private:
 
 	void OnVScroll(UINT nSBCode, UINT nPos)
 	{
-		SCROLLINFO si = {0};
-		si.cbSize = sizeof SCROLLINFO;
-		si.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
+		SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 		GetScrollInfo(m_hWnd, SB_VERT, &si);
 		switch (nSBCode) {
 		case SB_LINEUP:
@@ -429,9 +461,7 @@ private:
 			{
 				if (rc.bottom - rc.top < m_fip->getHeight() * m_zoom + MARGIN * 2)
 				{
-					SCROLLINFO si = {0};
-					si.cbSize = sizeof SCROLLINFO;
-					si.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
+					SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 					GetScrollInfo(m_hWnd, SB_VERT, &si);
 					m_nVScrollPos += - zDelta / (WHEEL_DELTA / 16);
 					if (m_nVScrollPos < 0)
@@ -447,9 +477,7 @@ private:
 			{
 				if (rc.right - rc.left < m_fip->getWidth() * m_zoom + MARGIN * 2)
 				{
-					SCROLLINFO si = {0};
-					si.cbSize = sizeof SCROLLINFO;
-					si.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS;
+					SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 					GetScrollInfo(m_hWnd, SB_HORZ, &si);
 					m_nHScrollPos += - zDelta / (WHEEL_DELTA / 16);
 					if (m_nHScrollPos < 0)
@@ -464,10 +492,7 @@ private:
 		}
 		else
 		{
-			if (zDelta > 0)
-				SetZoom(m_zoom + 0.1);
-			else
-				SetZoom(m_zoom - 0.1);
+			SetZoom(m_zoom + (zDelta > 0 ? 0.1 : -0.1));
 		}
 	}
 
@@ -525,8 +550,7 @@ private:
 	{
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
-		SCROLLINFO si = {0};
-		si.cbSize = sizeof(SCROLLINFO);
+		SCROLLINFO si{ sizeof(SCROLLINFO) };
 		if (m_fip)
 		{
 			unsigned width  = static_cast<unsigned>(m_fip->getWidth()  * m_zoom) + MARGIN * 2;

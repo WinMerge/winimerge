@@ -145,14 +145,7 @@ public:
 		POINT pt = {-1, -1};
 		if (pane < 0 || pane > m_nImages || !m_hWnd)
 			return pt;
-		POINT dpt;
-		::GetCursorPos(&dpt);
-		RECT rc;
-		::GetWindowRect(m_hWnd, &rc);
-		RECT rcPane = GetPaneWindowRect(pane);
-		dpt.x -= rc.left + rcPane.left;
-		dpt.y -= rc.top + rcPane.top;
-		return m_imgWindow[pane].ConvertDPtoLP(dpt.x, dpt.y);
+		return m_imgWindow[pane].GetCursorPos();
 	}
 
 	bool ConvertToRealPos(int pane, const POINT& pt, POINT& ptReal) const
@@ -1178,8 +1171,7 @@ private:
 				double zoom = pImgWnd->GetZoom();
 				if (pImgWnd->m_draggingMode == DRAGGING_MODE::MOVE)
 				{
-					SCROLLINFO sih = { sizeof SCROLLINFO };
-					sih.fMask = SIF_RANGE | SIF_PAGE;
+					SCROLLINFO sih{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
 					GetScrollInfo(hwnd, SB_HORZ, &sih);
 					if (sih.nMax > static_cast<int>(sih.nPage))
 					{
@@ -1188,8 +1180,7 @@ private:
 						pImgWnd->m_ptOrg.x = evt.x;
 					}
 
-					SCROLLINFO siv = { sizeof SCROLLINFO };
-					siv.fMask = SIF_RANGE | SIF_PAGE;
+					SCROLLINFO siv{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
 					GetScrollInfo(hwnd, SB_VERT, &siv);
 					if (siv.nMax > static_cast<int>(siv.nPage))
 					{
@@ -1232,18 +1223,25 @@ private:
 		case WM_VSCROLL:
 			if (LOWORD(wParam) == SB_THUMBTRACK)
 			{
-				SCROLLINFO si = { si.cbSize = sizeof SCROLLINFO };
-				si.fMask = SIF_TRACKPOS;
+				SCROLLINFO si{ sizeof SCROLLINFO, SIF_TRACKPOS };
 				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
 				wParam |= (si.nTrackPos & 0xff0000) >> 8;
 			}
 		case WM_MOUSEWHEEL:
+			POINT ptLP = pImgWnd->m_imgWindow[i].GetCursorPos();
+			POINT ptDP;
+			::GetCursorPos(&ptDP);
+			RECT rc;
+			::GetWindowRect(pImgWnd->m_imgWindow[i].GetHWND(), &rc);
+			ptDP.x -= rc.left;
+			ptDP.y -= rc.top;
 			for (int j = 0; j < pImgWnd->m_nImages; ++j)
 			{
-				if (j != i)
-					(pImgWnd->m_ChildWndProc[j])(pImgWnd->m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
+				(pImgWnd->m_ChildWndProc[j])(pImgWnd->m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
+				if (GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL)
+					pImgWnd->m_imgWindow[j].ScrollTo2(ptLP.x, ptLP.y, ptDP.x, ptDP.y);
 			}
-			break;
+			return 0;
 		}
 		return (pImgWnd->m_ChildWndProc[i])(hwnd, iMsg, wParam, lParam);
 	}

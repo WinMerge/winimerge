@@ -227,12 +227,9 @@ private:
 		pImage->getFipImage()->drawEx(pDrawItem->hDC, rc, false, &bkColor);
 		HWND hwndLeftPane = m_pImgMergeWindow->GetPaneHWND(0);
 
-		SCROLLINFO sih, siv;
-		sih.cbSize = sizeof(sih);
-		sih.fMask = SIF_POS | SIF_PAGE | SIF_RANGE;
+		SCROLLINFO sih{ sizeof(sih), SIF_POS | SIF_PAGE | SIF_RANGE };
 		GetScrollInfo(hwndLeftPane, SB_HORZ, &sih);
-		siv.cbSize = sizeof(siv);
-		siv.fMask = SIF_POS | SIF_PAGE | SIF_RANGE;
+		SCROLLINFO siv{ sizeof(siv), SIF_POS | SIF_PAGE | SIF_RANGE };
 		GetScrollInfo(hwndLeftPane, SB_VERT, &siv);
 
 		if (static_cast<int>(sih.nPage) < sih.nMax || static_cast<int>(siv.nPage) < siv.nMax)
