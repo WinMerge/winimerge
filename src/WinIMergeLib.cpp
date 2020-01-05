@@ -16,6 +16,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Windows.h>
+#include <gdiplus.h>
 #include "ImgWindow.hpp"
 #include "ImgMergeWindow.hpp"
 #include "ImgToolWindow.hpp"
@@ -64,16 +65,21 @@ WinIMerge_DestroyToolWindow(IImgToolWindow *pImgToolWindow)
 	return true;
 }
 
+static ULONG_PTR g_gdiplusToken;
+
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
+		Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 		FreeImage_Initialise();
+		Gdiplus::GdiplusStartup(&g_gdiplusToken, &gdiplusStartupInput, nullptr);
 		return TRUE;
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		FreeImage_DeInitialise();
+		Gdiplus::GdiplusShutdown(g_gdiplusToken);
 	}
 	return FALSE;
 }

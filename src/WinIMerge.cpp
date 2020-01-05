@@ -175,7 +175,7 @@ void SaveImageAs(HWND hWnd, int pane)
 	lstrcpyW(szFileName, m_pImgMergeWindow->GetFileName(pane));
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = hWnd;
-	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur\0\0";
+	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf\0\0";
 	ofn.lpstrFile = szFileName;
 	ofn.lpstrFileTitle = szFile;
 	ofn.nMaxFile = MAX_PATH;
@@ -424,7 +424,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			OPENFILENAMEW ofn = {0};
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = hWnd;
-			ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur\0\0";
+			ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf\0\0";
 			ofn.lpstrFile = szFileName;
 			ofn.lpstrFileTitle = szFile;
 			ofn.nMaxFile = MAX_PATH;

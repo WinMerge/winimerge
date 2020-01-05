@@ -413,7 +413,7 @@ public:
 			return false;
 		if (!m_undoRecords.is_modified(pane))
 			return true;
-		bool result = SaveImageAs(pane, m_filename[pane].c_str());
+		bool result = SaveImageAs(pane, (m_filename[pane] + (m_imgConverter[pane].isValid() ? L".png" : L"")).c_str());
 		if (result)
 			m_undoRecords.save(pane);
 		return result;
