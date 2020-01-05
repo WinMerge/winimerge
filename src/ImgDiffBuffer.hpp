@@ -18,6 +18,7 @@
 #pragma once
 
 #include "image.hpp"
+#include "ImgConverter.hpp"
 #include <string>
 #include <algorithm>
 #include <cstdio>
@@ -1355,6 +1356,7 @@ protected:
 		bool bSucceeded = true;
 		for (int i = 0; i < m_nImages; ++i)
 		{
+			m_imgConverter[i].close();
 			m_currentPage[i] = 0;
 			m_imgOrigMultiPage[i].load(m_filename[i]);
 			if (m_imgOrigMultiPage[i].isValid() && m_imgOrigMultiPage[i].getPageCount() > 1)
@@ -1365,8 +1367,16 @@ protected:
 			else
 			{
 				m_imgOrigMultiPage[i].close();
-				if (!m_imgOrig[i].load(m_filename[i]))
-					bSucceeded = false;
+				if (ImgConverter::isSupportedImage(m_filename[i].c_str()))
+				{
+					if (m_imgConverter[i].load(m_filename[i].c_str()))
+						m_imgConverter[i].render(m_imgOrig[i], 1.0);
+				}
+				if (!m_imgConverter[i].isValid())
+				{
+					if (!m_imgOrig[i].load(m_filename[i]))
+						bSucceeded = false;
+				}
 				m_imgOrig32[i] = m_imgOrig[i];
 			}
 			m_imgOrig32[i].convertTo32Bits();
@@ -1955,6 +1965,7 @@ protected:
 	Image m_imgPreprocessed[3];
 	Image m_imgDiff[3];
 	Image m_imgDiffMap;
+	ImgConverter m_imgConverter[3];
 	std::wstring m_filename[3];
 	bool m_showDifferences;
 	bool m_blinkDifferences;
