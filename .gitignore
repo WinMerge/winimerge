@@ -6,3 +6,10 @@ BuildTmp/*
 Build/*
 
 
+*.user
+*.cmd~
+*.swp
+*.un~
+*.bak
+*.h~
+*.aps
