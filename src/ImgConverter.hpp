@@ -2,8 +2,13 @@
 
 #ifdef _WIN64
 #include <d2d1_3.h>
+#include <shcore.h>
+#include <Windows.Storage.h>
+#include <Windows.Storage.Streams.h>
+#include <Windows.Data.Pdf.h>
+#include <windows.data.pdf.interop.h>
 #include <wrl.h>
-#pragma comment(lib, "d2d1")
+#include "Win78Libraries.h"
 #endif
 
 #include "image.hpp"
@@ -14,14 +19,249 @@
 #pragma comment(lib, "shlwapi")
 #pragma comment(lib, "gdiplus") 
 
-struct ImageRenderer {
+struct ImageRenderer
+{
 	virtual bool load(const wchar_t *filename) = 0;
 	virtual bool isValid() const = 0;
-	virtual void render(Image& img, float zoom) = 0;
+	virtual void render(Image& img, int page, float zoom) = 0;
+	virtual unsigned getPageCount() const = 0;
 };
 
 #ifdef _WIN64
-class SvgRenderer: public ImageRenderer {
+
+class PdfRenderer: public ImageRenderer
+{
+public:
+	~PdfRenderer()
+	{
+		if (m_thread.Get())
+		{
+			PostThreadMessage(m_dwThreadId, WM_QUIT, 0, 0);
+		}
+	}
+
+	virtual bool isValid() const
+	{
+		return m_thread.IsValid();
+	}
+
+	virtual bool load(const wchar_t *filename)
+	{
+		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+
+		PdfRendererThreadParams params{};
+		params.filename = filename;
+		params.hEvent = loadCompleted.Get();
+		params.type = 0;
+		params.result = false;
+
+		if (!m_thread.IsValid())
+		{
+			m_thread.Attach(CreateThread(nullptr, 0, PdfRendererWorkerThread, &params, 0, &m_dwThreadId));
+			if (!m_thread.IsValid())
+				return false;
+		}
+		else
+		{
+			PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
+		}
+
+		WaitForSingleObject(params.hEvent, INFINITE);
+
+		m_pageCount = params.pageCount;
+
+		return params.result;
+	}
+
+	virtual void render(Image& img, int page, float zoom)
+	{
+		if (!isValid())
+			return;
+
+		Microsoft::WRL::Wrappers::Event renderCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+
+		wchar_t szTempPath[MAX_PATH];
+		GetTempPath(static_cast<DWORD>(std::size(szTempPath)), szTempPath);
+		wchar_t szFileName[MAX_PATH];
+		GetTempFileName(szTempPath, L"pdf", 0, szFileName);
+
+		PdfRendererThreadParams params{};
+		params.filename = szFileName;
+		params.hEvent = renderCompleted.Get();
+		params.page = page;
+		params.zoom = zoom;
+		params.type = 1;
+			
+		PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
+
+		WaitForSingleObject(params.hEvent, INFINITE);
+
+		img.load(szFileName);
+
+		DeleteFile(szFileName);
+	}
+
+	unsigned getPageCount() const
+	{
+		return m_pageCount;
+	}
+
+private:
+
+	struct PdfRendererThreadParams
+	{
+		const wchar_t *filename;
+		int type;
+		int page;
+		float zoom;
+		unsigned pageCount;
+		HANDLE hEvent;
+		bool result;
+	};
+
+	static bool LoadPdf(const wchar_t *filename, ABI::Windows::Data::Pdf::IPdfDocument **ppPdfDocument)
+	{
+		// https://dev.activebasic.com/egtra/2015/12/24/853/
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IRandomAccessStream> s;
+		HRESULT hr = CreateRandomAccessStreamOnFile(filename, static_cast<DWORD>(ABI::Windows::Storage::FileAccessMode_Read),
+			IID_PPV_ARGS(&s));
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfDocumentStatics> pPdfDocumentsStatics;
+		hr = Win78Libraries::RoGetActivationFactory(
+			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Data_Pdf_PdfDocument).Get(),
+			IID_PPV_ARGS(&pPdfDocumentsStatics));
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IAsyncOperation<ABI::Windows::Data::Pdf::PdfDocument*>> pAsync;
+		hr = pPdfDocumentsStatics->LoadFromStreamAsync(s.Get(), &pAsync);
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+		hr = loadCompleted.IsValid() ? S_OK : HRESULT_FROM_WIN32(GetLastError());
+		if (FAILED(hr))
+			return false;
+
+		HRESULT hrCallback = E_FAIL;
+		hr = pAsync->put_Completed(
+			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncOperationCompletedHandler<ABI::Windows::Data::Pdf::PdfDocument*>>(
+				[&ppPdfDocument, &loadCompleted, &hrCallback](_In_ ABI::Windows::Foundation::IAsyncOperation<ABI::Windows::Data::Pdf::PdfDocument*>* pAsync, AsyncStatus status)
+				{
+					hrCallback = (status == AsyncStatus::Completed) ? pAsync->GetResults(ppPdfDocument) : E_FAIL;
+					SetEvent(loadCompleted.Get());
+					return hrCallback;
+				}).Get());
+		if (FAILED(hr))
+			return false;
+
+		WaitForSingleObjectEx(loadCompleted.Get(), INFINITE, FALSE);
+		return SUCCEEDED(hrCallback);
+	}
+
+	static bool RenderPdfPage(ABI::Windows::Data::Pdf::IPdfDocument *pPdfDocument, int page, float zoom, const wchar_t *filename)
+	{
+		if (pPdfDocument == nullptr)
+			return false;
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfPage> pPdfPage;
+		auto hr = pPdfDocument->GetPage(page, &pPdfPage);
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::Wrappers::FileHandle file(CreateFile(filename, GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+		if (!file.IsValid())
+			return false;
+		file.Close();
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IRandomAccessStream> s;
+		hr = CreateRandomAccessStreamOnFile(filename, static_cast<DWORD>(ABI::Windows::Storage::FileAccessMode_ReadWrite),
+			IID_PPV_ARGS(&s));
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfPageRenderOptions> pPdfPageRenderOptions;
+		hr = Win78Libraries::RoActivateInstance(
+			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Data_Pdf_PdfPageRenderOptions).Get(),
+			&pPdfPageRenderOptions);
+		if (FAILED(hr))
+			return false;
+
+		ABI::Windows::Foundation::Size pageSize;
+		pPdfPage->get_Size(&pageSize);
+		pPdfPageRenderOptions->put_DestinationWidth(static_cast<unsigned>(pageSize.Width * zoom));
+		pPdfPageRenderOptions->put_DestinationHeight(static_cast<unsigned>(pageSize.Height * zoom));
+
+		Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IAsyncAction> pAsyncAction;
+		hr = pPdfPage->RenderWithOptionsToStreamAsync(s.Get(), pPdfPageRenderOptions.Get(), &pAsyncAction);
+		if (FAILED(hr))
+			return false;
+
+		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+		if (!loadCompleted.IsValid())
+			return false;
+
+		HRESULT hrCallback = E_FAIL;
+		hr = pAsyncAction->put_Completed(
+			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncActionCompletedHandler>(
+			[&loadCompleted, &hrCallback](ABI::Windows::Foundation::IAsyncAction* async, AsyncStatus status)
+			{
+				hrCallback = (status != AsyncStatus::Completed) ? E_FAIL : S_OK;
+				SetEvent(loadCompleted.Get());
+				return hrCallback;
+			}).Get());
+		if (FAILED(hr))
+			return false;
+
+		WaitForSingleObjectEx(loadCompleted.Get(), INFINITE, FALSE);
+		return SUCCEEDED(hrCallback);
+	}
+
+	static DWORD WINAPI PdfRendererWorkerThread(LPVOID lpParam)
+	{
+		if (Win78Libraries::RoGetActivationFactory == nullptr)
+			Win78Libraries::load();
+
+		HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+		Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfDocument> pPdfDocument;
+		PdfRendererThreadParams *pParam = reinterpret_cast<PdfRendererThreadParams *>(lpParam);
+		for (;;)
+		{
+			if (pParam->type == 0)
+			{
+				pParam->result = LoadPdf(pParam->filename, &pPdfDocument);
+				if (pPdfDocument)
+					pPdfDocument->get_PageCount(&pParam->pageCount);
+			}
+			else
+				pParam->result = RenderPdfPage(pPdfDocument.Get(), pParam->page, pParam->zoom, pParam->filename);
+			SetEvent(pParam->hEvent);
+
+			MSG msg;
+			BOOL bRet = GetMessage(&msg, nullptr, 0, 0);
+			if (bRet == 0 || bRet == -1)
+				break;
+			pParam = reinterpret_cast<PdfRendererThreadParams *>(msg.lParam);
+		}
+
+		CoUninitialize();
+		return true;
+	}
+
+private:
+	using Thread = Microsoft::WRL::Wrappers::HandleT<Microsoft::WRL::Wrappers::HandleTraits::HANDLENullTraits>;
+	Thread m_thread;
+	DWORD m_dwThreadId = 0;
+	float m_imageWidth = 0.0f;
+	float m_imageHeight = 0.0f;
+	unsigned m_pageCount = 0;
+};
+
+class SvgRenderer: public ImageRenderer
+{
 public:
 	virtual bool isValid() const
 	{
@@ -30,9 +270,12 @@ public:
 
 	virtual bool load(const wchar_t *filename)
 	{
+		if (Win78Libraries::D2D1CreateFactory == nullptr)
+			Win78Libraries::load();
+
 		if (!m_pD2DFactory)
 		{
-			if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, IID_ID2D1Factory, &m_pD2DFactory)))
+			if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, IID_ID2D1Factory, nullptr, &m_pD2DFactory)))
 				return false;
 		}
 
@@ -64,7 +307,7 @@ public:
 		return true;
 	}
 
-	void render(Image& img, float zoom)
+	void render(Image& img, int page, float zoom)
 	{
 		if (!isValid())
 			return;
@@ -90,6 +333,8 @@ public:
 		DeleteDC(hMemDC);
 		ReleaseDC(nullptr, hDC);
 	}
+
+	unsigned getPageCount() const { return 1; }
 
 private:
 	void calcSize()
@@ -124,10 +369,10 @@ private:
 	float m_imageHeight = 0.0f;
 };
 
-
 #endif
 
-class GdiPlusRenderer: public ImageRenderer {
+class GdiPlusRenderer: public ImageRenderer
+{
 public:
 	virtual bool isValid() const
 	{
@@ -155,7 +400,7 @@ public:
 		return true;
 	}
 
-	void render(Image& img, float zoom)
+	void render(Image& img, int page, float zoom)
 	{
 		HBITMAP hBitmap = nullptr;
 		Gdiplus::Bitmap bitmap(static_cast<unsigned>(m_imageWidth * zoom), static_cast<unsigned>(m_imageHeight * zoom));
@@ -167,16 +412,21 @@ public:
 		DeleteObject(hBitmap);
 	}
 
+	unsigned getPageCount() const { return 1; }
+
 private:
 	std::unique_ptr<Gdiplus::Metafile> m_pMetafile;
 	unsigned m_imageWidth = 0;
 	unsigned m_imageHeight = 0;
 };
 
-class ImgConverter {
+class ImgConverter
+{
 public:
-	enum ImageType {
+	enum class ImageType
+	{
 		NotSupported,
+		PDF,
 		SVG,
 		EMF,
 		WMF
@@ -190,6 +440,8 @@ public:
 		else if (_wcsicmp(ext.c_str(), L".wmf") == 0)
 			return ImageType::WMF;
 #ifdef _WIN64
+		else if (_wcsicmp(ext.c_str(), L".pdf") == 0)
+			return ImageType::PDF;
 		else if (_wcsicmp(ext.c_str(), L".svg") == 0)
 			return ImageType::SVG;
 #endif
@@ -211,6 +463,9 @@ public:
 		switch (getImageType(filename))
 		{
 #ifdef _WIN64
+		case ImageType::PDF:
+			m_pRenderer.reset(new PdfRenderer());
+			break;
 		case ImageType::SVG:
 			m_pRenderer.reset(new SvgRenderer());
 			break;
@@ -230,9 +485,14 @@ public:
 		m_pRenderer.reset();
 	}
 
-	void render(Image& img, float zoom)
+	void render(Image& img, int page, float zoom)
 	{
-		m_pRenderer->render(img, zoom);
+		m_pRenderer->render(img, page, zoom);
+	}
+
+	unsigned getPageCount() const
+	{
+		return m_pRenderer->getPageCount();
 	}
 
 private:

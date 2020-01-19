@@ -42,9 +42,15 @@
     <ClInclude Include="ImgConverter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Win78Libraries.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinIMergeLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Win78Libraries.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

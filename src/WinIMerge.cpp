@@ -175,7 +175,7 @@ void SaveImageAs(HWND hWnd, int pane)
 	lstrcpyW(szFileName, m_pImgMergeWindow->GetFileName(pane));
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = hWnd;
-	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf\0\0";
+	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf\0\0";
 	ofn.lpstrFile = szFileName;
 	ofn.lpstrFileTitle = szFile;
 	ofn.nMaxFile = MAX_PATH;
@@ -424,7 +424,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			OPENFILENAMEW ofn = {0};
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = hWnd;
-			ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf\0\0";
+			ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf\0\0";
 			ofn.lpstrFile = szFileName;
 			ofn.lpstrFileTitle = szFile;
 			ofn.nMaxFile = MAX_PATH;
@@ -602,6 +602,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			UpdateMenuState(hWnd);
 			break;
 		}
+		case ID_VIEW_VECTORIMAGESCALING_400:
+		case ID_VIEW_VECTORIMAGESCALING_200:
+		case ID_VIEW_VECTORIMAGESCALING_100:
+		case ID_VIEW_VECTORIMAGESCALING_50:
+		case ID_VIEW_VECTORIMAGESCALING_25:
+			m_pImgMergeWindow->SetVectorImageZoomRatio(static_cast<float>(pow(2.0, (wmId - ID_VIEW_VECTORIMAGESCALING_100))));
+			break;
 		case ID_MERGE_NEXTDIFFERENCE:
 			m_pImgMergeWindow->NextDiff();
 			break;
@@ -695,7 +702,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_HELP_ABOUT:
 			MessageBoxW(hWnd, 
 				L"WinIMerge\n\n"
-				L"(c) 2014-2019 sdottaka@users.sourceforge.net All rights reserved.\n\n"
+				L"(c) 2014-2020 sdottaka@users.sourceforge.net All rights reserved.\n\n"
 				L"This software uses the FreeImage open source image library. \n"
 				L"See http://freeimage.sourceforge.net for details.\n"
 				L"FreeImage is used under the GNU GPL version.\n", L"WinIMerge", MB_OK | MB_ICONINFORMATION);

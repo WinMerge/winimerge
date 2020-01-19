@@ -214,17 +214,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ImgConverter.hpp" />
     <ClInclude Include="ImgDiffBuffer.hpp" />
     <ClInclude Include="ImgMergeBuffer.hpp" />
     <ClInclude Include="ImgMergeWindow.hpp" />
     <ClInclude Include="ImgToolWindow.hpp" />
     <ClInclude Include="ImgWindow.hpp" />
     <ClInclude Include="image.hpp" />
+    <ClInclude Include="Win78Libraries.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="ImgConverter.hpp" />
     <ClInclude Include="WinIMergeLib.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Win78Libraries.cpp" />
     <ClCompile Include="WinIMergeLib.cpp" />
   </ItemGroup>
   <ItemGroup>

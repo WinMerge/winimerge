@@ -424,6 +424,17 @@ public:
 			KillTimer(m_hWnd, 1);
 	}
 
+	float GetVectorImageZoomRatio() const
+	{
+		return m_buffer.GetVectorImageZoomRatio();
+	}
+
+	void SetVectorImageZoomRatio(float zoom)
+	{
+		m_buffer.SetVectorImageZoomRatio(zoom);
+		Invalidate();
+	}
+
 	int  GetDiffCount() const
 	{
 		return m_buffer.GetDiffCount();

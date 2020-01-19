@@ -36,6 +36,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -46,6 +47,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v142</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -212,16 +214,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ImgConverter.hpp" />
     <ClInclude Include="ImgDiffBuffer.hpp" />
     <ClInclude Include="ImgMergeBuffer.hpp" />
     <ClInclude Include="ImgMergeWindow.hpp" />
     <ClInclude Include="ImgToolWindow.hpp" />
     <ClInclude Include="ImgWindow.hpp" />
     <ClInclude Include="image.hpp" />
+    <ClInclude Include="Win78Libraries.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="WinIMergeLib.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Win78Libraries.cpp" />
     <ClCompile Include="WinIMergeLib.cpp" />
   </ItemGroup>
   <ItemGroup>

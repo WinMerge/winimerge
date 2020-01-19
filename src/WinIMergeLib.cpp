@@ -78,6 +78,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
+#ifdef _WIN64
+		Win78Libraries::unload();
+#endif
 		FreeImage_DeInitialise();
 		Gdiplus::GdiplusShutdown(g_gdiplusToken);
 	}

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by WinIMergeLib.rc
+// Used by WinIMerge.rc
 //
 #define IDD_WINIMERGE_DIALOG            102
 #define IDD_DIALOGBAR                   103
@@ -97,6 +97,11 @@
 #define ID_VIEW_INSERTIONDELETIONDETECTION_NONE 32848
 #define ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL 32849
 #define ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL 32850
+#define ID_VIEW_VECTORIMAGESCALING_25   32860
+#define ID_VIEW_VECTORIMAGESCALING_50   32861
+#define ID_VIEW_VECTORIMAGESCALING_100  32862
+#define ID_VIEW_VECTORIMAGESCALING_200  32863
+#define ID_VIEW_VECTORIMAGESCALING_400  32864
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -105,7 +110,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_COMMAND_VALUE         32870
 #define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           111
 #endif

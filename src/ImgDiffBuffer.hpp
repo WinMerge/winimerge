@@ -561,6 +561,7 @@ public:
 		  m_nImages(0)
 		, m_showDifferences(true)
 		, m_blinkDifferences(false)
+		, m_vectorImageZoomRatio(1.0f)
 		, m_insertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_NONE)
 		, m_overlayMode(OVERLAY_NONE)
 		, m_overlayAlpha(0.3)
@@ -672,12 +673,10 @@ public:
 	{
 		if (page >= 0 && page < GetPageCount(pane))
 		{
-			if (m_imgOrigMultiPage[pane].isValid())
+			if (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid())
 			{
 				m_currentPage[pane] = page;
-				m_imgOrig[pane] = m_imgOrigMultiPage[pane].getImage(page);
-				m_imgOrig32[pane] = m_imgOrig[pane];
-				m_imgOrig32[pane].convertTo32Bits();
+				ChangePage(pane, page);
 				CompareImages();
 			}
 		}
@@ -685,8 +684,21 @@ public:
 
 	void SetCurrentPageAll(int page)
 	{
-		for (int i = 0; i < m_nImages; ++i)
-			SetCurrentPage(i, page);
+		bool frecompare = false;
+		for (int pane = 0; pane < m_nImages; ++pane)
+		{
+			if (page >= 0 && page < GetPageCount(pane))
+			{
+				if (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid())
+				{
+					m_currentPage[pane] = page;
+					ChangePage(pane, page);
+					frecompare = true;
+				}
+			}
+		}
+		if (frecompare)
+			CompareImages();
 	}
 
 	int  GetCurrentMaxPage() const
@@ -706,6 +718,8 @@ public:
 			return -1;
 		if (m_imgOrigMultiPage[pane].isValid())
 			return m_imgOrigMultiPage[pane].getPageCount();
+		if (m_imgConverter[pane].isValid())
+			return m_imgConverter[pane].getPageCount();
 		else
 			return 1;
 	}
@@ -796,6 +810,22 @@ public:
 	{
 		m_blinkDifferences = blink;
 		RefreshImages();
+	}
+
+	float GetVectorImageZoomRatio() const
+	{
+		return m_vectorImageZoomRatio;
+	}
+
+	void SetVectorImageZoomRatio(float zoom)
+	{
+		m_vectorImageZoomRatio = zoom;
+		for (int pane = 0; pane < m_nImages; ++pane)
+		{
+			if (m_imgConverter[pane].isValid())
+				ChangePage(pane, m_currentPage[pane]);
+		}
+		CompareImages();
 	}
 
 	const DiffInfo *GetDiffInfo(int diffIndex) const
@@ -1370,7 +1400,7 @@ protected:
 				if (ImgConverter::isSupportedImage(m_filename[i].c_str()))
 				{
 					if (m_imgConverter[i].load(m_filename[i].c_str()))
-						m_imgConverter[i].render(m_imgOrig[i], 1.0);
+						m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
 				}
 				if (!m_imgConverter[i].isValid())
 				{
@@ -1382,6 +1412,19 @@ protected:
 			m_imgOrig32[i].convertTo32Bits();
 		}
 		return bSucceeded;
+	}
+
+	void ChangePage(int pane, int page)
+	{
+		if (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid())
+		{
+			if (m_imgOrigMultiPage[pane].isValid())
+				m_imgOrig[pane] = m_imgOrigMultiPage[pane].getImage(page);
+			else
+				m_imgConverter[pane].render(m_imgOrig[pane], page, m_vectorImageZoomRatio);
+			m_imgOrig32[pane] = m_imgOrig[pane];
+			m_imgOrig32[pane].convertTo32Bits();
+		}
 	}
 
 	Size<unsigned> GetMaxWidthHeight()
@@ -1969,6 +2012,7 @@ protected:
 	std::wstring m_filename[3];
 	bool m_showDifferences;
 	bool m_blinkDifferences;
+	float m_vectorImageZoomRatio;
 	INSERTION_DELETION_DETECTION_MODE m_insertionDeletionDetectionMode;
 	OVERLAY_MODE m_overlayMode;
 	double m_overlayAlpha;

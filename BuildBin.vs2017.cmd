@@ -22,7 +22,7 @@ for %%i in ( ^
   src\cidiff.vs2017.vcxproj ^
   ) do (
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v141_xp || pause
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v141_xp || pause
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v141 || pause
 )
 
 if exist "%SIGNBAT_PATH%" (

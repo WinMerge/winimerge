@@ -14,6 +14,7 @@ public:
 		  m_hWnd(NULL)
 		, m_hInstance(NULL)
 		, m_pImgMergeWindow(NULL)
+		, m_bInSync(false)
 	{
 	}
 
@@ -44,6 +45,9 @@ public:
 	{
 		if (!m_pImgMergeWindow)
 			return;
+
+		m_bInSync = true;
+
 		TCHAR buf[256];
 		wsprintf(buf, _T("(%d)"), m_pImgMergeWindow->GetDiffBlockSize());
 		SetDlgItemText(m_hWnd, IDC_DIFF_BLOCKSIZE_STATIC, buf);
@@ -94,6 +98,8 @@ public:
 			rcDiffMap.right - rcDiffMap.left, rcDiffMap.bottom - rcDiffMap.top, SWP_NOZORDER);
 
 		InvalidateRect(GetDlgItem(m_hWnd, IDC_DIFFMAP), NULL, TRUE);
+
+		m_bInSync = false;
 	}
 
 	void SetImgMergeWindow(IImgMergeWindow *pImgMergeWindow)
@@ -121,6 +127,9 @@ private:
 
 	void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	{
+		if (m_bInSync)
+			return;
+
 		switch (id)
 		{
 		case IDC_DIFF_HIGHLIGHT:
@@ -295,4 +304,5 @@ private:
 	HWND m_hWnd;
 	HINSTANCE m_hInstance;
 	IImgMergeWindow *m_pImgMergeWindow;
+	bool m_bInSync;
 };

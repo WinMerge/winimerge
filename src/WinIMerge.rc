@@ -74,9 +74,9 @@ BEGIN
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
         POPUP "Save &As"
         BEGIN
-            MENUITEM "Save &Left As...",        ID_FILE_SAVE_LEFT_AS
-            MENUITEM "Save &Middle As...",      ID_FILE_SAVE_MIDDLE_AS
-            MENUITEM "Save &Right As...",       ID_FILE_SAVE_RIGHT_AS
+            MENUITEM "Save &Left As...",            ID_FILE_SAVE_LEFT_AS
+            MENUITEM "Save &Middle As...",          ID_FILE_SAVE_MIDDLE_AS
+            MENUITEM "Save &Right As...",           ID_FILE_SAVE_RIGHT_AS
         END
         MENUITEM "&Generate Report...",         ID_FILE_GENERATE_REPORT
         MENUITEM SEPARATOR
@@ -151,6 +151,14 @@ BEGIN
         END
         MENUITEM "Split &Horizontally",         ID_VIEW_SPLITHORIZONTALLY
         MENUITEM "&Set Background Color",       ID_VIEW_USEBACKCOLOR
+        POPUP "&Vector Image Scaling"
+        BEGIN
+            MENUITEM "&400%",                       ID_VIEW_VECTORIMAGESCALING_400
+            MENUITEM "&200%",                       ID_VIEW_VECTORIMAGESCALING_200
+            MENUITEM "&100%",                       ID_VIEW_VECTORIMAGESCALING_100
+            MENUITEM "50%",                         ID_VIEW_VECTORIMAGESCALING_50
+            MENUITEM "25%",                         ID_VIEW_VECTORIMAGESCALING_25
+        END
     END
     POPUP "&Merge"
     BEGIN
@@ -215,10 +223,10 @@ BEGIN
     VK_UP,          ID_MERGE_PREVIOUSDIFFERENCE, VIRTKEY, ALT, NOINVERT
     "0",            ID_VIEW_ZOOM_100,       VIRTKEY, CONTROL, NOINVERT
     VK_MULTIPLY,    ID_VIEW_ZOOM_100,       VIRTKEY, CONTROL, NOINVERT
-    VK_ADD,         ID_VIEW_ZOOMIN, VIRTKEY, CONTROL, NOINVERT
-    VK_OEM_PLUS,    ID_VIEW_ZOOMIN, VIRTKEY, CONTROL, NOINVERT
-    VK_SUBTRACT,    ID_VIEW_ZOOMOUT, VIRTKEY, CONTROL, NOINVERT
-    VK_OEM_MINUS,   ID_VIEW_ZOOMOUT, VIRTKEY, CONTROL, NOINVERT
+    VK_ADD,         ID_VIEW_ZOOMIN,         VIRTKEY, CONTROL, NOINVERT
+    VK_OEM_PLUS,    ID_VIEW_ZOOMIN,         VIRTKEY, CONTROL, NOINVERT
+    VK_SUBTRACT,    ID_VIEW_ZOOMOUT,        VIRTKEY, CONTROL, NOINVERT
+    VK_OEM_MINUS,   ID_VIEW_ZOOMOUT,        VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -249,7 +257,7 @@ BEGIN
             VALUE "FileDescription", "WinIMerge"
             VALUE "FileVersion", STRFILEVER
             VALUE "InternalName", "WinIMerge.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2014-2019 sdottaka@users.sourceforge.net"
+            VALUE "LegalCopyright", "Copyright (C) 2014-2020 sdottaka@users.sourceforge.net"
             VALUE "OriginalFilename", "WinIMerge.exe"
             VALUE "ProductName", "WinIMerge"
             VALUE "ProductVersion", STRPRODUCTVER
