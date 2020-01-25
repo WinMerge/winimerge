@@ -65,15 +65,11 @@ WinIMerge_DestroyToolWindow(IImgToolWindow *pImgToolWindow)
 	return true;
 }
 
-static ULONG_PTR g_gdiplusToken;
-
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 		FreeImage_Initialise();
-		Gdiplus::GdiplusStartup(&g_gdiplusToken, &gdiplusStartupInput, nullptr);
 		return TRUE;
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
@@ -82,7 +78,6 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 		Win78Libraries::unload();
 #endif
 		FreeImage_DeInitialise();
-		Gdiplus::GdiplusShutdown(g_gdiplusToken);
 	}
 	return FALSE;
 }

@@ -66,13 +66,18 @@ public:
 		, m_ptOrg{ 0, 0 }
 		, m_ptPrev{ 0, 0 }
 		, m_draggingMode(DRAGGING_MODE::MOVE)
+		, m_gdiplusToken(0)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_ChildWndProc[i] = NULL;
+
+		Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+		Gdiplus::GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
 	}
 
 	~CImgMergeWindow()
 	{
+		Gdiplus::GdiplusShutdown(m_gdiplusToken);
 	}
 
 	bool Create(HINSTANCE hInstance, HWND hWndParent, int nID, const RECT &rc)
@@ -1272,4 +1277,6 @@ private:
 	POINT m_ptPrev;
 	DRAGGING_MODE m_draggingMode;
 	CImgMergeBuffer m_buffer;
+	ULONG_PTR m_gdiplusToken;
+
 };
