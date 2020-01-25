@@ -4,12 +4,10 @@
 
 BuildTmp/*
 Build/*
-
+Dist/
 
 *.user
-*.cmd~
 *.swp
-*.un~
 *.bak
-*.h~
 *.aps
+*.*~
