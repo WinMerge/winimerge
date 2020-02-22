@@ -1424,6 +1424,8 @@ protected:
 				m_imgConverter[pane].render(m_imgOrig[pane], page, m_vectorImageZoomRatio);
 			m_imgOrig32[pane] = m_imgOrig[pane];
 			m_imgOrig32[pane].convertTo32Bits();
+			if (m_currentDiffIndex >= 0)
+				m_currentDiffIndex = 0;
 		}
 	}
 

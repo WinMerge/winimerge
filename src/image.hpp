@@ -220,7 +220,11 @@ public:
 	explicit Image(FIBITMAP *bitmap) : image_(bitmap) {}
 	BYTE *scanLine(int y) { return image_.getScanLine(image_.getHeight() - y - 1); }
 	const BYTE *scanLine(int y) const { return image_.getScanLine(image_.getHeight() - y - 1); }
-	bool convertTo32Bits() { return !!image_.convertTo32Bits(); }
+	bool convertTo32Bits() {
+		if (image_.convertTo32Bits())
+			return true;
+		return image_.convertToType(FIT_BITMAP) && image_.convertTo32Bits();
+	}
 	bool load(const std::wstring& filename) { return !!image_.loadU(filename.c_str()); }
 	bool save(const std::wstring& filename)
 	{
