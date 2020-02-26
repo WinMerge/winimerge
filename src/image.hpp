@@ -223,7 +223,7 @@ public:
 	bool convertTo32Bits() {
 		if (image_.convertTo32Bits())
 			return true;
-		return image_.convertToType(FIT_BITMAP) && image_.convertTo32Bits();
+		return image_.convertTo8Bits() && image_.convertTo32Bits();
 	}
 	bool load(const std::wstring& filename) { return !!image_.loadU(filename.c_str()); }
 	bool save(const std::wstring& filename)
