@@ -1191,7 +1191,9 @@ private:
 					GetScrollInfo(hwnd, SB_HORZ, &sih);
 					if (sih.nMax > static_cast<int>(sih.nPage))
 					{
-						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) * zoom);
+						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((pImgWnd->m_ptOrg.x - evt.x) * zoom);
+						if (posx < 0)
+							posx = 0;
 						SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
 						pImgWnd->m_ptOrg.x = evt.x;
 					}
@@ -1200,7 +1202,9 @@ private:
 					GetScrollInfo(hwnd, SB_VERT, &siv);
 					if (siv.nMax > static_cast<int>(siv.nPage))
 					{
-						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) * zoom);
+						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((pImgWnd->m_ptOrg.y - evt.y) * zoom);
+						if (posy < 0)
+							posy = 0;
 						SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
 						pImgWnd->m_ptOrg.y = evt.y;
 					}
