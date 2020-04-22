@@ -1095,6 +1095,8 @@ public:
 	{
 		for (int i = 0; i < m_nImages; ++i)
 		{
+			m_imgConverter[i].close();
+			m_imgOrigMultiPage[i].close();
 			m_imgOrig[i].clear();
 			m_imgOrig32[i].clear();
 			m_imgPreprocessed[i].clear();
