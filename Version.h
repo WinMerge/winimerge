@@ -1,4 +1,4 @@
-#define FILEVER        1,0,16,0
-#define PRODUCTVER     1,0,16,0
-#define STRFILEVER     "1.0.16.0"
-#define STRPRODUCTVER  "1.0.16.0"
+#define FILEVER        1,0,17,0
+#define PRODUCTVER     1,0,17,0
+#define STRFILEVER     "1.0.17.0"
+#define STRPRODUCTVER  "1.0.17.0"
