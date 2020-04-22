@@ -6,7 +6,7 @@ install:
 - cmd: >-
     cd c:\projects\winimerge\
 
-    hg clone https://bitbucket.org/winmerge/freeimage
+    git clone https://github.com/winmerge/freeimage
 
 build_script:
 - cmd: >-
