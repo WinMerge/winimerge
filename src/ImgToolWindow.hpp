@@ -108,6 +108,57 @@ public:
 		m_pImgMergeWindow->AddEventListener(OnEvent, this);
 	}
 
+	void Translate(TranslateCallback translateCallback)
+	{
+		auto translateString = [&](int id)
+		{
+			wchar_t org[256];
+			wchar_t translated[256];
+			::LoadString(m_hInstance, id, org, sizeof(org)/sizeof(org[0]));
+			if (translateCallback)
+				translateCallback(id, org, sizeof(translated)/sizeof(translated[0]), translated);
+			else
+				wcscpy_s(translated, org);
+			return std::wstring(translated);
+		};
+
+		struct StringIdControlId
+		{
+			int stringId;
+			int controlId;
+		};
+		static const StringIdControlId stringIdControlId[] = {
+			{IDS_DIFF_GROUP, IDC_DIFF_GROUP},
+			{IDS_DIFF_HIGHLIGHT, IDC_DIFF_HIGHLIGHT},
+			{IDS_DIFF_BLINK, IDC_DIFF_BLINK},
+			{IDS_DIFF_BLOCKSIZE, IDC_DIFF_BLOCKSIZE},
+			{IDS_DIFF_BLOCKALPHA, IDC_DIFF_BLOCKALPHA},
+			{IDS_DIFF_CDTHRESHOLD, IDC_DIFF_CDTHRESHOLD},
+			{IDS_DIFF_INSERTION_DELETION_DETECTION, IDC_DIFF_INSERTION_DELETION_DETECTION},
+			{IDS_OVERLAY_GROUP, IDC_OVERLAY_GROUP},
+			{IDS_OVERLAY_ALPHA, IDC_OVERLAY_ALPHA},
+			{IDS_ZOOM, IDC_ZOOM},
+			{IDS_PAGE, IDC_PAGE},
+		};
+		for (auto& e: stringIdControlId)
+			::SetDlgItemText(m_hWnd, e.controlId, translateString(e.stringId).c_str());
+
+		// translate ComboBox list
+		static const StringIdControlId stringIdControlId2[] = {
+			{IDS_DIFF_INSERTION_DELETION_DETECTION_NONE, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE},
+			{IDS_OVERLAY_MODE_NONE, IDC_OVERLAY_MODE},
+		};
+		for (auto& e: stringIdControlId2)
+		{
+			int cursel = static_cast<int>(::SendDlgItemMessage(m_hWnd, e.controlId, CB_GETCURSEL, 0, 0));
+			int count = static_cast<int>(::SendDlgItemMessage(m_hWnd, e.controlId, CB_GETCOUNT, 0, 0));
+			::SendDlgItemMessage(m_hWnd, e.controlId, CB_RESETCONTENT, 0, 0);
+			for (int i = 0; i < count; ++i)
+				::SendDlgItemMessage(m_hWnd, e.controlId, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(translateString(e.stringId + i).c_str()));
+			::SendDlgItemMessage(m_hWnd, e.controlId, CB_SETCURSEL, static_cast<WPARAM>(cursel), 0);
+		}
+	}
+
 private:
 	BOOL OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 	{
@@ -120,7 +171,7 @@ private:
 		SendDlgItemMessage(hwnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Horizontal")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("None")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("XOR")));
-		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Alpha")));
+		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Alpha Blend")));
 		SendDlgItemMessage(hwnd, IDC_OVERLAY_MODE, CB_ADDSTRING, 0, (LPARAM)(_T("Alpha Animation")));
 		return TRUE;
 	}
@@ -199,7 +250,7 @@ private:
 
 	void OnSize(HWND hwnd, UINT nType, int cx, int cy)
 	{
-		int nIDs[] = {
+		static const int nIDs[] = {
 			IDC_DIFF_GROUP,
 			IDC_OVERLAY_GROUP,
 			IDC_VIEW_GROUP,
@@ -212,14 +263,34 @@ private:
 
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
-		for (int i = 0; i < sizeof(nIDs) / sizeof(nIDs[0]); ++i)
+		for (int id: nIDs)
 		{
 			RECT rcCtrl;
-			HWND hwndCtrl = GetDlgItem(m_hWnd, nIDs[i]);
+			HWND hwndCtrl = GetDlgItem(m_hWnd, id);
 			GetWindowRect(hwndCtrl, &rcCtrl);
 			POINT pt = { rcCtrl.left, rcCtrl.top };
 			ScreenToClient(m_hWnd, &pt);
 			MoveWindow(hwndCtrl, pt.x, pt.y, rc.right - pt.x * 2, rcCtrl.bottom - rcCtrl.top, TRUE);
+		}
+
+		static const int nID2s[] = {
+			IDC_DIFF_BLOCKSIZE_STATIC,
+			IDC_DIFF_BLOCKALPHA_STATIC,
+			IDC_DIFF_CDTHRESHOLD_STATIC,
+			IDC_OVERLAY_ALPHA_STATIC,
+			IDC_ZOOM_STATIC,
+		};
+
+		RECT rcSlider;
+		GetWindowRect(GetDlgItem(m_hWnd, IDC_DIFF_BLOCKALPHA_SLIDER), &rcSlider);
+		for (int id: nID2s)
+		{
+			RECT rcCtrl;
+			HWND hwndCtrl = GetDlgItem(m_hWnd, id);
+			GetWindowRect(hwndCtrl, &rcCtrl);
+			POINT pt = { rcSlider.right - (rcCtrl.right - rcCtrl.left), rcCtrl.top };
+			ScreenToClient(m_hWnd, &pt);
+			MoveWindow(hwndCtrl, pt.x, pt.y, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top, TRUE);
 		}
 
 		Sync();

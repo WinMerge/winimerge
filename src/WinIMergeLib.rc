@@ -15,74 +15,6 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Japanese resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
-LANGUAGE LANG_JAPANESE, SUBLANG_NEUTRAL
-#pragma code_page(932)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_DIALOGBAR DIALOGEX 0, 0, 85, 263
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
-FONT 8, "MS Shell Dlg", 400, 0, 0x0
-BEGIN
-    GROUPBOX        "差異",IDC_DIFF_GROUP,2,0,80,115
-    CONTROL         "差異表示",IDC_DIFF_HIGHLIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,8,46,9
-    CONTROL         "点滅",IDC_DIFF_BLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,52,8,29,9
-    LTEXT           "ブロックサイズ",IDC_STATIC,5,19,70,8
-    CONTROL         "",IDC_DIFF_BLOCKSIZE_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,27,70,15
-    RTEXT           "",IDC_DIFF_BLOCKSIZE_STATIC,50,19,18,8
-    LTEXT           "ブロック透明度",IDC_STATIC,5,43,48,8
-    CONTROL         "",IDC_DIFF_BLOCKALPHA_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,51,70,15
-    RTEXT           "",IDC_DIFF_BLOCKALPHA_STATIC,50,43,18,8
-    LTEXT           "色距離閾値",IDC_STATIC,5,67,43,8
-    RTEXT           "",IDC_DIFF_CDTHRESHOLD_STATIC,50,67,18,8
-    CONTROL         "",IDC_DIFF_CDTHRESHOLD_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,5,75,70,15
-    LTEXT           "挿入/削除検出",IDC_STATIC,5,90,70,8
-    COMBOBOX        IDC_DIFF_INSERTION_DELETION_DETECTION_MODE,5,99,70,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "重ね合わせ",IDC_OVERLAY_GROUP,2,115,80,52
-    COMBOBOX        IDC_OVERLAY_MODE,5,126,70,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "透明度",IDC_STATIC,5,141,26,8
-    CONTROL         "",IDC_OVERLAY_ALPHA_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,149,70,15
-    RTEXT           "",IDC_OVERLAY_ALPHA_STATIC,50,140,18,8
-    GROUPBOX        "",IDC_VIEW_GROUP,2,166,80,52
-    CONTROL         "",IDC_ZOOM_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,182,69,15
-    RTEXT           "",IDC_ZOOM_STATIC,42,173,26,8
-    EDITTEXT        IDC_PAGE_EDIT,36,200,33,15,ES_AUTOHSCROLL
-    CONTROL         "",IDC_PAGE_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,57,200,12,15
-    LTEXT           "拡大",IDC_STATIC,5,173,26,8
-    LTEXT           "ページ:",IDC_STATIC,5,200,24,8
-    CONTROL         "",IDC_DIFFMAP,"Static",SS_OWNERDRAW | SS_NOTIFY,2,221,80,45
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_DIALOGBAR, DIALOG
-    BEGIN
-        LEFTMARGIN, 6
-        RIGHTMARGIN, 78
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 256
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-#endif    // Japanese resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
 // Japanese (Japan) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
@@ -137,22 +69,22 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
     GROUPBOX        "Diff",IDC_DIFF_GROUP,2,0,80,115
-    CONTROL         "Highlight",IDC_DIFF_HIGHLIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,8,46,9
-    CONTROL         "Blink",IDC_DIFF_BLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,52,8,29,9
-    LTEXT           "Block Size",IDC_STATIC,5,19,42,8
+    CONTROL         "Highlight",IDC_DIFF_HIGHLIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,9,46,9
+    CONTROL         "Blink",IDC_DIFF_BLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,52,9,29,9
+    LTEXT           "Block Size",IDC_DIFF_BLOCKSIZE,5,19,70,8
     CONTROL         "",IDC_DIFF_BLOCKSIZE_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,27,70,15
     RTEXT           "",IDC_DIFF_BLOCKSIZE_STATIC,50,19,18,8
-    LTEXT           "Block Alpha",IDC_STATIC,5,43,48,8
+    LTEXT           "Block Alpha",IDC_DIFF_BLOCKALPHA,5,43,70,8
     CONTROL         "",IDC_DIFF_BLOCKALPHA_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,51,70,15
     RTEXT           "",IDC_DIFF_BLOCKALPHA_STATIC,50,43,18,8
-    LTEXT           "CD Threshold",IDC_STATIC,5,67,48,8
+    LTEXT           "CD Threshold",IDC_DIFF_CDTHRESHOLD,5,67,70,8
     RTEXT           "",IDC_DIFF_CDTHRESHOLD_STATIC,50,67,18,8
     CONTROL         "",IDC_DIFF_CDTHRESHOLD_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,75,70,15
-    LTEXT           "Ins/Del Detection",IDC_STATIC,5,90,70,8
+    LTEXT           "Ins/Del Detection",IDC_DIFF_INSERTION_DELETION_DETECTION,5,90,70,8
     COMBOBOX        IDC_DIFF_INSERTION_DELETION_DETECTION_MODE,5,99,70,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "Overlay",IDC_OVERLAY_GROUP,2,115,80,52
     COMBOBOX        IDC_OVERLAY_MODE,5,126,70,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Alpha",IDC_STATIC,5,141,26,8
+    LTEXT           "Alpha",IDC_OVERLAY_ALPHA,5,141,26,8
     CONTROL         "",IDC_OVERLAY_ALPHA_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,149,70,15
     RTEXT           "",IDC_OVERLAY_ALPHA_STATIC,50,140,18,8
     GROUPBOX        "",IDC_VIEW_GROUP,2,166,80,52
@@ -160,8 +92,8 @@ BEGIN
     RTEXT           "",IDC_ZOOM_STATIC,42,173,26,8
     EDITTEXT        IDC_PAGE_EDIT,36,200,33,15,ES_AUTOHSCROLL
     CONTROL         "",IDC_PAGE_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,57,200,12,15
-    LTEXT           "Zoom",IDC_STATIC,5,173,26,8
-    LTEXT           "Page:",IDC_STATIC,5,200,24,8
+    LTEXT           "Zoom",IDC_ZOOM,5,173,26,8
+    LTEXT           "Page:",IDC_PAGE,5,200,24,8
     CONTROL         "",IDC_DIFFMAP,"Static",SS_OWNERDRAW | SS_NOTIFY,2,221,80,45
 END
 
@@ -222,6 +154,34 @@ BEGIN
     BEGIN
         VALUE "Translation", 0x409, 1200
     END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_DIFF_GROUP          "Diff"
+    IDS_DIFF_HIGHLIGHT      "Highlight"
+    IDS_DIFF_BLINK          "Blink"
+    IDS_DIFF_BLOCKSIZE      "Block Size"
+    IDS_DIFF_BLOCKALPHA     "Block Alpha"
+    IDS_DIFF_CDTHRESHOLD    "CD Threshold"
+    IDS_DIFF_INSERTION_DELETION_DETECTION "Ins/Del Detection"
+    IDS_DIFF_INSERTION_DELETION_DETECTION_NONE "None"
+    IDS_DIFF_INSERTION_DELETION_DETECTION_VERTICAL "Vertical"
+    IDS_DIFF_INSERTION_DELETION_DETECTION_HORIZONTAL "Horizontal"
+    IDS_OVERLAY_GROUP       "Overlay"
+    IDS_OVERLAY_ALPHA       "Alpha"
+    IDS_OVERLAY_MODE_NONE   "None"
+    IDS_OVERLAY_MODE_XOR    "XOR"
+    IDS_OVERLAY_MODE_ALPHA  "Alpha Blend"
+    IDS_OVERLAY_MODE_ALPHA_ANIMATION "Alpha Animation"
+    IDS_ZOOM                "Zoom"
+    IDS_PAGE                "Page:"
 END
 
 #endif    // English (United States) resources
