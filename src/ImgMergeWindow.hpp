@@ -1163,6 +1163,17 @@ private:
 			pImgWnd->m_ptPrev.x = INT_MIN;
 			pImgWnd->m_ptPrev.y = INT_MIN;
 			SetCapture(hwnd);
+			POINT pt = pImgWnd->GetCursorPos(evt.pane);
+			if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
+			{
+				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_VERTICAL);
+				pImgWnd->m_buffer.SetWipePosition(pt.x);
+			}
+			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+			{
+				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_HORIZONTAL);
+				pImgWnd->m_buffer.SetWipePosition(pt.x);
+			}
 			break;
 		}
 		case WM_LBUTTONUP:
@@ -1178,6 +1189,12 @@ private:
 					int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
 					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
 					pImgWnd->AddImageOffset(evt.pane, static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom), static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom));
+				}
+				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE || 
+				         pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+				{
+					pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
+					pImgWnd->Invalidate();
 				}
 			}
 			break;
@@ -1223,6 +1240,20 @@ private:
 					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
 					pImgWnd->m_ptPrev.x = evt.x;
 					pImgWnd->m_ptPrev.y = evt.y;
+				}
+				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
+				{
+					POINT pt = pImgWnd->GetCursorPos(evt.pane);
+					pImgWnd->m_buffer.SetWipePosition(pt.y);
+					pImgWnd->Invalidate();
+					SetCursor(LoadCursor(NULL, IDC_SIZENS));
+				}
+				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+				{
+					POINT pt = pImgWnd->GetCursorPos(evt.pane);
+					pImgWnd->m_buffer.SetWipePosition(pt.x);
+					pImgWnd->Invalidate();
+					SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 				}
 			}
 			break;

@@ -204,7 +204,7 @@ void UpdateMenuState(HWND hWnd)
 		m_pImgMergeWindow->GetInsertionDeletionDetectionMode() + ID_VIEW_INSERTIONDELETIONDETECTION_NONE, MF_BYCOMMAND);
 	CheckMenuRadioItem(hMenu, ID_VIEW_OVERLAY_NONE, ID_VIEW_OVERLAY_ALPHABLEND,
 		m_pImgMergeWindow->GetOverlayMode() + ID_VIEW_OVERLAY_NONE, MF_BYCOMMAND);
-	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET,
+	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE,
 		m_pImgMergeWindow->GetDraggingMode() + ID_VIEW_DRAGGINGMODE_NONE, MF_BYCOMMAND);
 	int blockSize = m_pImgMergeWindow->GetDiffBlockSize();
 	int id = ID_VIEW_DIFFBLOCKSIZE_1;
@@ -573,7 +573,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_DRAGGINGMODE_NONE:
 		case ID_VIEW_DRAGGINGMODE_MOVE:
 		case ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET:
+		case ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE:
+		case ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE:
 			m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(wmId - ID_VIEW_DRAGGINGMODE_NONE));
+			UpdateMenuState(hWnd);
 			break;
 		case ID_VIEW_USEBACKCOLOR:
 		{

@@ -553,6 +553,9 @@ public:
 	enum OVERLAY_MODE {
 		OVERLAY_NONE = 0, OVERLAY_XOR, OVERLAY_ALPHABLEND, OVERLAY_ALPHABLEND_ANIM
 	};
+	enum WIPE_MODE {
+		WIPE_NONE = 0, WIPE_VERTICAL, WIPE_HORIZONTAL
+	};
 	
 	enum { BLINK_TIME = 800 };
 	enum { OVERLAY_ALPHABLEND_ANIM_TIME = 1000 };
@@ -565,6 +568,8 @@ public:
 		, m_insertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_NONE)
 		, m_overlayMode(OVERLAY_NONE)
 		, m_overlayAlpha(0.3)
+		, m_wipeMode(WIPE_NONE)
+		, m_wipePosition(0)
 		, m_diffBlockSize(8)
 		, m_selDiffColor(Image::Rgb(0xff, 0x40, 0x40))
 		, m_selDiffDeletedColor(Image::Rgb(0xf0, 0xc0, 0xc0))
@@ -787,6 +792,28 @@ public:
 	void SetOverlayAlpha(double overlayAlpha)
 	{
 		m_overlayAlpha = overlayAlpha;
+		RefreshImages();
+	}
+
+	WIPE_MODE GetWipeMode() const
+	{
+		return m_wipeMode;
+	}
+
+	void SetWipeMode(WIPE_MODE wipeMode)
+	{
+		m_wipeMode = wipeMode;
+		RefreshImages();
+	}
+
+	int GetWipePosition() const
+	{
+		return m_wipePosition;
+	}
+
+	void SetWipePosition(int pos)
+	{
+		m_wipePosition = pos;
 		RefreshImages();
 	}
 
@@ -1060,6 +1087,10 @@ public:
 				(this->*func)(2, 1);
 				(this->*func)(1, 2);
 			}
+		}
+		if (m_wipeMode != WIPE_NONE)
+		{
+			WipeEffect();
 		}
 		if (m_showDifferences)
 		{
@@ -1734,6 +1765,56 @@ protected:
 		}
 	}
 
+	void WipeEffect()
+	{
+		const unsigned w = m_imgDiff[0].width();
+		const unsigned h = m_imgDiff[0].height();
+
+		if (m_wipeMode == WIPE_VERTICAL)
+		{
+			auto tmp = new unsigned char[w * 4];
+			for (unsigned y = m_wipePosition; y < h; ++y)
+			{
+				for (int pane = 0; pane < m_nImages - 1; ++pane)
+				{
+					unsigned char *scanline  = m_imgDiff[pane].scanLine(y);
+					unsigned char *scanline2 = m_imgDiff[pane + 1].scanLine(y);
+					memcpy(tmp, scanline, w * 4);
+					memcpy(scanline, scanline2, w * 4);
+					memcpy(scanline2, tmp, w * 4);
+				}
+			}
+			delete tmp;
+		}
+		else if (m_wipeMode = WIPE_HORIZONTAL)
+		{
+			for (unsigned y = 0; y < h; ++y)
+			{
+				for (int pane = 0; pane < m_nImages - 1; ++pane)
+				{
+					unsigned char *scanline = m_imgDiff[pane].scanLine(y);
+					unsigned char *scanline2 = m_imgDiff[pane + 1].scanLine(y);
+					for (unsigned x = m_wipePosition; x < w; ++x)
+					{
+						unsigned char tmp[4];
+						tmp[0] = scanline[x * 4 + 0];
+						tmp[1] = scanline[x * 4 + 1];
+						tmp[2] = scanline[x * 4 + 2];
+						tmp[3] = scanline[x * 4 + 3];
+						scanline[x * 4 + 0] = scanline2[x * 4 + 0];
+						scanline[x * 4 + 1] = scanline2[x * 4 + 1];
+						scanline[x * 4 + 2] = scanline2[x * 4 + 2];
+						scanline[x * 4 + 3] = scanline2[x * 4 + 3];
+						scanline2[x * 4 + 0] = tmp[0];
+						scanline2[x * 4 + 1] = tmp[1];
+						scanline2[x * 4 + 2] = tmp[2];
+						scanline2[x * 4 + 3] = tmp[3];
+					}
+				}
+			}
+		}
+	}
+
 	void CopyPreprocessedImageToDiffImage(int dst)
 	{
 		unsigned w = m_imgPreprocessed[dst].width();
@@ -2020,6 +2101,8 @@ protected:
 	INSERTION_DELETION_DETECTION_MODE m_insertionDeletionDetectionMode;
 	OVERLAY_MODE m_overlayMode;
 	double m_overlayAlpha;
+	WIPE_MODE m_wipeMode;
+	int m_wipePosition;
 	unsigned m_diffBlockSize;
 	Image::Color m_selDiffColor;
 	Image::Color m_selDiffDeletedColor;

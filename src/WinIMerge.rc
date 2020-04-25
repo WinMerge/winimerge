@@ -148,6 +148,8 @@ BEGIN
             MENUITEM "&None",                       ID_VIEW_DRAGGINGMODE_NONE
             MENUITEM "&Move",                       ID_VIEW_DRAGGINGMODE_MOVE
             MENUITEM "&Adjust Offset",              ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET
+            MENUITEM "&Vertical Wipe",              ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE
+            MENUITEM "&Horizontal Wipe",            ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE
         END
         MENUITEM "Split &Horizontally",         ID_VIEW_SPLITHORIZONTALLY
         MENUITEM "&Set Background Color",       ID_VIEW_USEBACKCOLOR
