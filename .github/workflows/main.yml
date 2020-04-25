@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    
+    runs-on: windows-latest
+
+    steps:  
+    - uses: actions/checkout@v2
+      with:
+        path: 'winimerge'
+
+    - name: Build
+      run: |
+        git clone https://github.com/winmerge/freeimage
+        cd winimerge
+        .\BuildBin.vs2019.cmd
+        .\BuildArc.cmd
+
+    - name: Upload zip
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: winimerge-exe.zip
+        path: Dist/*.zip
