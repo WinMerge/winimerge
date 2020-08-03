@@ -181,9 +181,8 @@ public:
 				m_nVScrollPos = siv.nMax - siv.nPage;
 		}
 
-		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, &rcClip);
 		CalcScrollBarRange();
+		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, NULL);
 		InvalidateRect(m_hWnd, NULL, FALSE);
 	}
 
@@ -197,20 +196,19 @@ public:
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
 
-		m_nHScrollPos = static_cast<int>(lx * m_zoom + MARGIN - dx + 1);
+		m_nHScrollPos = static_cast<int>(lx * m_zoom + MARGIN - dx);
 		if (m_nHScrollPos < 0)
 			m_nHScrollPos = 0;
 		else if (m_nHScrollPos > sih.nMax - static_cast<int>(sih.nPage))
 			m_nHScrollPos = sih.nMax - sih.nPage;
-		m_nVScrollPos = static_cast<int>(ly * m_zoom + MARGIN - dy + 1);
+		m_nVScrollPos = static_cast<int>(ly * m_zoom + MARGIN - dy);
 		if (m_nVScrollPos < 0)
 			m_nVScrollPos = 0;
 		else if (m_nVScrollPos > siv.nMax - static_cast<int>(siv.nPage))
 			m_nVScrollPos = siv.nMax - siv.nPage;
 
-		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, &rcClip);
 		CalcScrollBarRange();
+		ScrollWindow(m_hWnd, sih.nPos - m_nHScrollPos, siv.nPos - m_nVScrollPos, NULL, NULL);
 		InvalidateRect(m_hWnd, NULL, FALSE);
 	}
 
@@ -397,15 +395,8 @@ private:
 			break;
 		default: break;
 		}
-		if (m_nHScrollPos < 0)
-			m_nHScrollPos = 0;
-		if (m_nHScrollPos > si.nMax - static_cast<int>(si.nPage))
-			m_nHScrollPos = si.nMax - si.nPage;
-		RECT rc;
-		GetClientRect(m_hWnd, &rc);
-		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-		ScrollWindow(m_hWnd, si.nPos - m_nHScrollPos, 0, NULL, &rcClip);
 		CalcScrollBarRange();
+		ScrollWindow(m_hWnd, si.nPos - m_nHScrollPos, 0, NULL, NULL);
 	}
 
 	void OnVScroll(UINT nSBCode, UINT nPos)
@@ -430,15 +421,8 @@ private:
 			break;
 		default: break;
 		}
-		if (m_nVScrollPos < 0)
-			m_nVScrollPos = 0;
-		if (m_nVScrollPos > si.nMax - static_cast<int>(si.nPage))
-			m_nVScrollPos = si.nMax - si.nPage;
-		RECT rc;
-		GetClientRect(m_hWnd, &rc);
-		RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-		ScrollWindow(m_hWnd, 0, si.nPos - m_nVScrollPos, NULL, &rcClip);
 		CalcScrollBarRange();
+		ScrollWindow(m_hWnd, 0, si.nPos - m_nVScrollPos, NULL, NULL);
 	}
 
 	void OnLButtonDown(UINT nFlags, int x, int y)
@@ -464,13 +448,8 @@ private:
 					SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 					GetScrollInfo(m_hWnd, SB_VERT, &si);
 					m_nVScrollPos += - zDelta / (WHEEL_DELTA / 16);
-					if (m_nVScrollPos < 0)
-						m_nVScrollPos = 0;
-					if (m_nVScrollPos > si.nMax - static_cast<int>(si.nPage))
-						m_nVScrollPos = si.nMax - si.nPage;
-					RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-					ScrollWindow(m_hWnd, 0, si.nPos - m_nVScrollPos, NULL, &rcClip);
 					CalcScrollBarRange();
+					ScrollWindow(m_hWnd, 0, si.nPos - m_nVScrollPos, NULL, NULL);
 				}
 			}
 			else
@@ -480,13 +459,8 @@ private:
 					SCROLLINFO si{ sizeof SCROLLINFO, SIF_POS | SIF_RANGE | SIF_PAGE | SIF_TRACKPOS };
 					GetScrollInfo(m_hWnd, SB_HORZ, &si);
 					m_nHScrollPos += - zDelta / (WHEEL_DELTA / 16);
-					if (m_nHScrollPos < 0)
-						m_nHScrollPos = 0;
-					if (m_nHScrollPos > si.nMax - static_cast<int>(si.nPage))
-						m_nHScrollPos = si.nMax - si.nPage;
-					RECT rcClip = {rc.left + 1, rc.top + 1, rc.right - 1, rc.bottom - 1};
-					ScrollWindow(m_hWnd, si.nPos - m_nHScrollPos, 0, NULL, &rcClip);
 					CalcScrollBarRange();
+					ScrollWindow(m_hWnd, si.nPos - m_nHScrollPos, 0, NULL, NULL);
 				}
 			}
 		}
@@ -562,12 +536,14 @@ private:
 			si.nPage = rc.bottom;
 			si.nPos = m_nVScrollPos;
 			SetScrollInfo(m_hWnd, SB_VERT, &si, TRUE);
-			
+			m_nVScrollPos = GetScrollPos(m_hWnd, SB_VERT);
+
 			si.nMin = 0;
 			si.nMax = width;
 			si.nPage = rc.right;
 			si.nPos = m_nHScrollPos;
 			SetScrollInfo(m_hWnd, SB_HORZ, &si, TRUE);
+			m_nHScrollPos = GetScrollPos(m_hWnd, SB_HORZ);
 		}
 	}
 
