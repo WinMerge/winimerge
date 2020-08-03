@@ -487,6 +487,8 @@ private:
 		case WM_PAINT:
 			OnPaint();
 			break;
+		case WM_ERASEBKGND:
+			return TRUE;
 		case WM_HSCROLL:
 			OnHScroll((UINT)(LOWORD(wParam) & 0xff), (int)(unsigned short)HIWORD(wParam) | ((LOWORD(wParam) & 0xff00) << 8)); // See 'case WM_HSCROLL:' in CImgMergeWindow::ChildWndProc() 
 			break;
