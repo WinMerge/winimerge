@@ -257,7 +257,10 @@ private:
 			IDC_DIFF_BLOCKALPHA_SLIDER,
 			IDC_DIFF_BLOCKSIZE_SLIDER,
 			IDC_DIFF_CDTHRESHOLD_SLIDER,
+			IDC_DIFF_INSERTION_DELETION_DETECTION,
+			IDC_DIFF_INSERTION_DELETION_DETECTION_MODE,
 			IDC_OVERLAY_ALPHA_SLIDER,
+			IDC_OVERLAY_MODE,
 			IDC_ZOOM_SLIDER
 		};
 
@@ -291,6 +294,20 @@ private:
 			POINT pt = { rcSlider.right - (rcCtrl.right - rcCtrl.left), rcCtrl.top };
 			ScreenToClient(m_hWnd, &pt);
 			MoveWindow(hwndCtrl, pt.x, pt.y, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top, TRUE);
+		}
+
+		static const int nID3s[] = {
+			IDC_DIFF_BLINK,
+		};
+
+		for (int id: nID3s)
+		{
+			RECT rcCtrl;
+			HWND hwndCtrl = GetDlgItem(m_hWnd, id);
+			GetWindowRect(hwndCtrl, &rcCtrl);
+			POINT pt = { rcCtrl.left, rcCtrl.top };
+			ScreenToClient(m_hWnd, &pt);
+			MoveWindow(hwndCtrl, pt.x, pt.y, rc.right - pt.x - 5, rcCtrl.bottom - rcCtrl.top, TRUE);
 		}
 
 		Sync();
