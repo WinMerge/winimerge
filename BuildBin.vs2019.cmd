@@ -21,8 +21,8 @@ for %%i in ( ^
   src\WinIMerge.vs2019.vcxproj ^
   src\cidiff.vs2019.vcxproj ^
   ) do (
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v142 || pause
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v142 || pause
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v142 || goto :eof
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v142 || goto :eof
 )
 
 if exist "%SIGNBAT_PATH%" (
