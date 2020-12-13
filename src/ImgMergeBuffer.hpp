@@ -137,6 +137,36 @@ public:
 	{
 	}
 
+	bool NewImages(int nImages, int nPages, int width, int height)
+	{
+		CloseImages();
+		m_nImages = nImages;
+		for (int i = 0; i < nImages; ++i)
+			m_filename[i] = L"";
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			m_imgConverter[i].close();
+			m_currentPage[i] = 0;
+			if (nPages > 1)
+			{
+				for (int page = 0; page < nPages; ++page)
+				{
+					Image img{ width, height };
+					m_imgOrigMultiPage[i].insertPage(page, img);
+				}
+				m_imgOrig[i] = m_imgOrigMultiPage[i].getImage(0);
+				m_imgOrig32[i] = m_imgOrig[i];
+			}
+			else
+			{
+				m_imgOrigMultiPage[i].close();
+				m_imgOrig[i] = Image{ width, height };
+				m_imgOrig32[i] = m_imgOrig[i];
+			}
+		}
+		return true;
+	}
+
 	bool GetReadOnly(int pane) const
 	{
 		if (pane < 0 || pane >= m_nImages)

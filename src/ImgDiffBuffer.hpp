@@ -839,6 +839,13 @@ public:
 		RefreshImages();
 	}
 
+	void SetWipeModePosition(WIPE_MODE wipeMode, int pos)
+	{
+		m_wipeMode = wipeMode;
+		m_wipePosition = pos;
+		RefreshImages();
+	}
+
 	bool GetShowDifferences() const
 	{
 		return m_showDifferences;

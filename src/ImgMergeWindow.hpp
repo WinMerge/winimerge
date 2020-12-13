@@ -646,6 +646,36 @@ public:
 		notify(evt);
 	}
 
+	bool NewImages(int nImages, int nPages, int width, int height)
+	{
+		CloseImages();
+		m_nImages = nImages;
+		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
+		if (m_hWnd)
+		{
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].Create(m_hInstance, m_hWnd);
+				m_ChildWndProc[i] = (WNDPROC)SetWindowLongPtr(m_imgWindow[i].GetHWND(), GWLP_WNDPROC, (LONG_PTR)&ChildWndProc);
+			}
+		}
+		m_buffer.CompareImages();
+		if (m_hWnd)
+		{
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].SetWindowRect(rects[i]);
+				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+			}
+
+			Event evt;
+			evt.eventType = NEW;
+			notify(evt);
+		}
+		return bSucceeded;
+	}
+
 	bool OpenImages(int nImages, const wchar_t * const filename[3])
 	{
 		CloseImages();
@@ -824,6 +854,8 @@ public:
 		return metadatastr.length() + 1;
 	}
 
+
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -933,20 +965,17 @@ private:
 
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 	{
-		static WORD _dotPatternBmp[8] = 
+		static const WORD _dotPatternBmp[8] = 
 		{ 
 			0x00aa, 0x0055, 0x00aa, 0x0055, 
 			0x00aa, 0x0055, 0x00aa, 0x0055
 		};
 
-		HBITMAP hbm;
-		HBRUSH  hbr, hbrushOld;
-
-		hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
-		hbr = CreatePatternBrush(hbm);
+		HBITMAP hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
+		HBRUSH hbr = CreatePatternBrush(hbm);
 		
 		SetBrushOrgEx(hdc, x1, y1, 0);
-		hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
+		HBRUSH hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
 		
 		PatBlt(hdc, x1, y1, width, height, PATINVERT);
 		
@@ -1166,14 +1195,15 @@ private:
 			POINT pt = pImgWnd->GetCursorPos(evt.pane);
 			if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
 			{
-				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_VERTICAL);
-				pImgWnd->m_buffer.SetWipePosition(pt.x);
+				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, pImgWnd->m_buffer.GetImageWidth(evt.pane), pt.y);
+				pImgWnd->m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_VERTICAL, pt.y);
 			}
 			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
 			{
-				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_HORIZONTAL);
-				pImgWnd->m_buffer.SetWipePosition(pt.x);
+				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
+				pImgWnd->m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_HORIZONTAL, pt.x);
 			}
+			pImgWnd->Invalidate();
 			break;
 		}
 		case WM_LBUTTONUP:
@@ -1194,6 +1224,7 @@ private:
 				         pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
 				{
 					pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
+					pImgWnd->m_imgWindow[evt.pane].EraseRectangleSelection();
 					pImgWnd->Invalidate();
 				}
 			}
@@ -1244,6 +1275,7 @@ private:
 				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
 				{
 					POINT pt = pImgWnd->GetCursorPos(evt.pane);
+					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, pImgWnd->m_buffer.GetImageWidth(evt.pane), pt.y);
 					pImgWnd->m_buffer.SetWipePosition(pt.y);
 					pImgWnd->Invalidate();
 					SetCursor(LoadCursor(NULL, IDC_SIZENS));
@@ -1251,6 +1283,7 @@ private:
 				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
 				{
 					POINT pt = pImgWnd->GetCursorPos(evt.pane);
+					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
 					pImgWnd->m_buffer.SetWipePosition(pt.x);
 					pImgWnd->Invalidate();
 					SetCursor(LoadCursor(NULL, IDC_SIZEWE));

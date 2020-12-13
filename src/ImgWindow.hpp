@@ -32,6 +32,7 @@ public:
 		, m_nHScrollPos(0)
 		, m_zoom(1.0)
 		, m_useBackColor(false)
+		, m_visibleRectangleSelection(false)
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -296,6 +297,17 @@ public:
 		ReleaseDC(m_hWnd, hdc);
 	}
 
+	void SetRectangleSelection(int left, int top, int right, int bottom)
+	{
+		m_rcSelection = RECT{ left, top, right, bottom };
+		m_visibleRectangleSelection = true;
+	}
+
+	void EraseRectangleSelection()
+	{
+		m_visibleRectangleSelection = false;
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -359,6 +371,25 @@ private:
 			}
 			
 			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
+
+			if (m_visibleRectangleSelection)
+			{
+				POINT ptLT = ConvertLPtoDP(m_rcSelection.left, m_rcSelection.top);
+				POINT ptRB = ConvertLPtoDP(m_rcSelection.right, m_rcSelection.bottom);
+				RECT rcSelection = { ptLT.x, ptLT.y, ptRB.x, ptRB.y };
+				if (rcSelection.left == rcSelection.right || rcSelection.top == rcSelection.bottom)
+				{
+					DrawXorBar(hdc, rcSelection.left, rcSelection.top,
+						rcSelection.right - rcSelection.left + 1, rcSelection.bottom - rcSelection.top + 1);
+				}
+				else
+				{
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    rcSelection.right - rcSelection.left, 0);
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.bottom, rcSelection.right - rcSelection.left, 0);
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    0,                  rcSelection.bottom - rcSelection.top);
+					DrawXorBar(hdc, rcSelection.right, rcSelection.top,    0,                  rcSelection.bottom - rcSelection.top);
+				}
+			}
 
 			DeleteObject(SelectObject(hdcMem, hOldBrush));
 			SelectObject(hdcMem, hOld);
@@ -549,6 +580,28 @@ private:
 		}
 	}
 
+	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
+	{
+		static const WORD _dotPatternBmp[8] = 
+		{ 
+			0x00aa, 0x0055, 0x00aa, 0x0055, 
+			0x00aa, 0x0055, 0x00aa, 0x0055
+		};
+
+		HBITMAP hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
+		HBRUSH hbr = CreatePatternBrush(hbm);
+		
+		SetBrushOrgEx(hdc, x1, y1, 0);
+		HBRUSH hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
+		
+		PatBlt(hdc, x1, y1, width, height, PATINVERT);
+		
+		SelectObject(hdc, hbrushOld);
+		
+		DeleteObject(hbr);
+		DeleteObject(hbm);
+	}
+
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (iMsg == WM_NCCREATE)
@@ -565,4 +618,6 @@ private:
 	double m_zoom;
 	bool m_useBackColor;
 	RGBQUAD m_backColor;
+	bool m_visibleRectangleSelection;
+	RECT m_rcSelection;
 };

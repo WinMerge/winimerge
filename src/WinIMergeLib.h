@@ -33,10 +33,10 @@ struct IImgMergeWindow
 		MOUSEMOVE, MOUSEWHEEL, CONTEXTMENU,
 		KEYDOWN, KEYUP,
 		SIZE, HSCROLL, VSCROLL, SETFOCUS, KILLFOCUS,
-		REFRESH, SCROLLTODIFF, OPEN
+		REFRESH, SCROLLTODIFF, OPEN, NEW
 	};
 	enum DRAGGING_MODE {
-		NONE = 0, MOVE, ADJUST_OFFSET, VERTICAL_WIPE, HORIZONTAL_WIPE
+		NONE = 0, MOVE, ADJUST_OFFSET, VERTICAL_WIPE, HORIZONTAL_WIPE, RECTANGLE_SELECT
 	};
 	struct Event
 	{
@@ -149,6 +149,7 @@ struct IImgMergeWindow
 	virtual float GetVectorImageZoomRatio() const = 0;
 	virtual void SetVectorImageZoomRatio(float zoom) = 0;
 	virtual bool CloseImages() = 0;
+	virtual bool NewImages(int nImages, int nPages, int width, int height) = 0;
 };
 
 struct IImgToolWindow

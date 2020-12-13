@@ -153,6 +153,16 @@ void UpdateWindowTitle(HWND hWnd)
 		SetWindowTextW(hWnd, title);
 }
 
+bool NewImages(HWND hWnd, int nImages)
+{
+	bool bSucceeded;
+	bSucceeded = m_pImgMergeWindow->NewImages(nImages, 1, 320, 320);
+	if (bSucceeded)
+		UpdateWindowTitle(hWnd);
+	InvalidateRect(hWnd, NULL, TRUE);
+	return bSucceeded;
+}
+
 bool OpenImages(HWND hWnd, int nImages, const std::wstring filename[3])
 {
 	bool bSucceeded;
@@ -204,7 +214,7 @@ void UpdateMenuState(HWND hWnd)
 		m_pImgMergeWindow->GetInsertionDeletionDetectionMode() + ID_VIEW_INSERTIONDELETIONDETECTION_NONE, MF_BYCOMMAND);
 	CheckMenuRadioItem(hMenu, ID_VIEW_OVERLAY_NONE, ID_VIEW_OVERLAY_ALPHABLEND,
 		m_pImgMergeWindow->GetOverlayMode() + ID_VIEW_OVERLAY_NONE, MF_BYCOMMAND);
-	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE,
+	CheckMenuRadioItem(hMenu, ID_VIEW_DRAGGINGMODE_NONE, ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT,
 		m_pImgMergeWindow->GetDraggingMode() + ID_VIEW_DRAGGINGMODE_NONE, MF_BYCOMMAND);
 	int blockSize = m_pImgMergeWindow->GetDiffBlockSize();
 	int id = ID_VIEW_DIFFBLOCKSIZE_1;
@@ -417,6 +427,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		int wmId    = LOWORD(wParam); 
 		switch (wmId)
 		{
+		case ID_FILE_NEW:
+			NewImages(hWnd, 2);
+			break;
+		case ID_FILE_NEW3:
+			NewImages(hWnd, 3);
+			break;
 		case ID_FILE_OPEN:
 		case ID_FILE_OPEN3:
 		{
@@ -575,6 +591,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET:
 		case ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE:
 		case ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE:
+		case ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT:
 			m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(wmId - ID_VIEW_DRAGGINGMODE_NONE));
 			UpdateMenuState(hWnd);
 			break;

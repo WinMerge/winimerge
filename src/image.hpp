@@ -335,6 +335,11 @@ public:
 		FreeImage_UnlockPage(multi_, bitmaptmp, false);
 		return Image(bitmap);
 	}
+	void insertPage(int page, const Image& image)
+	{
+		fipImageEx imgAdd = image.image_;
+		multi_.insertPage(page, imgAdd);
+	}
 	void replacePage(int page, const Image& image)
 	{
 		fipImageEx imgOrg, imgAdd;

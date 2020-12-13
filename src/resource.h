@@ -4,13 +4,15 @@
 //
 #define IDD_WINIMERGE_DIALOG            102
 #define IDD_DIALOGBAR                   103
-#define ID_FILE_OPEN                    105
-#define ID_FILE_OPEN3                   106
-#define ID_FILE_GENERATE_REPORT         107
-#define ID_FILE_EXIT                    108
-#define IDI_WINIMERGE                   109
-#define IDC_WINIMERGE                   110
-#define IDC_DIFFMAP                     110
+#define ID_FILE_NEW                     104
+#define ID_FILE_NEW3                    105
+#define ID_FILE_OPEN                    106
+#define ID_FILE_OPEN3                   107
+#define ID_FILE_GENERATE_REPORT         108
+#define ID_FILE_EXIT                    109
+#define IDI_WINIMERGE                   110
+#define IDC_WINIMERGE                   111
+#define IDC_DIFFMAP                     112
 #define IDR_MAINFRAME                   128
 #define IDR_POPUPMENU                   130
 #define IDS_DIFF_GROUP                  131
@@ -121,9 +123,10 @@
 #define ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET 32847
 #define ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE 32848
 #define ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE 32849
-#define ID_VIEW_INSERTIONDELETIONDETECTION_NONE 32850
-#define ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL 32851
-#define ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL 32852
+#define ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT 32850
+#define ID_VIEW_INSERTIONDELETIONDETECTION_NONE 32851
+#define ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL 32852
+#define ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL 32853
 #define ID_VIEW_VECTORIMAGESCALING_25   32860
 #define ID_VIEW_VECTORIMAGESCALING_50   32861
 #define ID_VIEW_VECTORIMAGESCALING_100  32862
