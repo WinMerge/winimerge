@@ -581,6 +581,50 @@ public:
 		return m_buffer.IsRedoable();
 	}
 
+	bool SelectAll()
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		bool result = m_imgWindow[pane].SelectAll();
+		if (result)
+			m_imgWindow[pane].Invalidate();
+		return result;
+	}
+
+	bool Copy()
+	{
+		int pane = GetActivePane();
+		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
+			return false;
+		Image image;
+		RECT rc = m_imgWindow[pane].GetRectangleSelection();
+		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
+	}
+
+	bool Cut()
+	{
+		return true;
+	}
+
+	bool Delete()
+	{
+		int pane = GetActivePane();
+		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
+			return false;
+		RECT rc = m_imgWindow[pane].GetRectangleSelection();
+		bool result = m_buffer.DeleteRectangle(pane, rc.left, rc.top, rc.right, rc.bottom);
+		if (result)
+			Invalidate();
+		return result;
+	}
+
+	bool Paste()
+	{
+		return true;
+	}
+
 	bool Undo()
 	{
 		bool result = m_buffer.Undo();
@@ -1203,6 +1247,10 @@ private:
 				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
 				pImgWnd->m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_HORIZONTAL, pt.x);
 			}
+			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
+			{
+				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, pt.y, pt.x, pt.y);
+			}
 			pImgWnd->Invalidate();
 			break;
 		}
@@ -1287,6 +1335,13 @@ private:
 					pImgWnd->m_buffer.SetWipePosition(pt.x);
 					pImgWnd->Invalidate();
 					SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+				}
+				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
+				{
+					RECT rcSelect = pImgWnd->m_imgWindow[evt.pane].GetRectangleSelection();
+					POINT pt = pImgWnd->GetCursorPos(evt.pane);
+					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(rcSelect.left, rcSelect.top, pt.x, pt.y);
+					pImgWnd->Invalidate();
 				}
 			}
 			break;

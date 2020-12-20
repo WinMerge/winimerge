@@ -90,6 +90,10 @@ BEGIN
     BEGIN
         MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO
         MENUITEM "&Redo\tCtrl+Y",               ID_EDIT_REDO
+        MENUITEM "&Cut\tCtrl+X",                ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+        MENUITEM "Select &All\tCtrl+A",         ID_EDIT_SELECT_ALL
     END
     POPUP "&View"
     BEGIN
@@ -211,14 +215,17 @@ END
 IDC_WINIMERGE ACCELERATORS
 BEGIN
     "0",            ID_VIEW_ZOOM_100,       VIRTKEY, CONTROL, NOINVERT
+    "A",            ID_EDIT_SELECT_ALL,     VIRTKEY, CONTROL, NOINVERT
     "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
     "M",            ID_MERGE_AUTOMERGE,     VIRTKEY, CONTROL, ALT, NOINVERT
-    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL, ALT, NOINVERT
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL, NOINVERT
     "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
     "P",            ID_EDIT_PASTE,          VIRTKEY, CONTROL, NOINVERT
     "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL, NOINVERT
     "Y",            ID_EDIT_REDO,           VIRTKEY, CONTROL, NOINVERT
     "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL, NOINVERT
+    VK_DELETE,      ID_EDIT_DELETE,         VIRTKEY, NOINVERT
     VK_F5,          ID_FILE_RELOAD,         VIRTKEY, CONTROL, NOINVERT
     VK_LEFT,        ID_MERGE_COPYFROMRIGHT, VIRTKEY, SHIFT, ALT, NOINVERT
     VK_LEFT,        ID_MERGE_COPYTOLEFT,    VIRTKEY, ALT, NOINVERT

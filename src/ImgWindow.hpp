@@ -283,6 +283,8 @@ public:
 	void SetImage(fipWinImage *pfip)
 	{
 		m_fip = pfip;
+		m_visibleRectangleSelection = false;
+		m_rcSelection = {};
 		CalcScrollBarRange();
 	}
 
@@ -297,10 +299,46 @@ public:
 		ReleaseDC(m_hWnd, hdc);
 	}
 
-	void SetRectangleSelection(int left, int top, int right, int bottom)
+	bool SelectAll()
 	{
+		if (!m_fip)
+			return false;
+		return SetRectangleSelection(0, 0, m_fip->getWidth(), m_fip->getHeight());
+	}
+
+	bool SetRectangleSelection(int left, int top, int right, int bottom)
+	{
+		if (!m_fip)
+			return false;
 		m_rcSelection = RECT{ left, top, right, bottom };
+		if (m_rcSelection.left < 0)
+			m_rcSelection.left = 0;
+		if (m_rcSelection.top < 0)
+			m_rcSelection.top = 0;
+		if (m_rcSelection.right < 0)
+			m_rcSelection.right = 0;
+		if (m_rcSelection.bottom < 0)
+			m_rcSelection.bottom = 0;
+		if (m_rcSelection.left > static_cast<int>(m_fip->getWidth()))
+			m_rcSelection.left = m_fip->getWidth();
+		if (m_rcSelection.top > static_cast<int>(m_fip->getHeight()))
+			m_rcSelection.top = m_fip->getHeight();
+		if (m_rcSelection.right > static_cast<int>(m_fip->getWidth()))
+			m_rcSelection.right = m_fip->getWidth();
+		if (m_rcSelection.bottom > static_cast<int>(m_fip->getHeight()))
+			m_rcSelection.bottom = m_fip->getHeight();
 		m_visibleRectangleSelection = true;
+		return true;
+	}
+
+	RECT GetRectangleSelection() const
+	{
+		return m_rcSelection;
+	}
+
+	bool IsRectanlgeSelectionVisible() const
+	{
+		return m_visibleRectangleSelection;
 	}
 
 	void EraseRectangleSelection()
@@ -384,10 +422,10 @@ private:
 				}
 				else
 				{
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    rcSelection.right - rcSelection.left, 0);
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.bottom, rcSelection.right - rcSelection.left, 0);
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    0,                  rcSelection.bottom - rcSelection.top);
-					DrawXorBar(hdc, rcSelection.right, rcSelection.top,    0,                  rcSelection.bottom - rcSelection.top);
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    rcSelection.right - rcSelection.left, 1);
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.bottom, rcSelection.right - rcSelection.left, 1);
+					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    1,                  rcSelection.bottom - rcSelection.top);
+					DrawXorBar(hdc, rcSelection.right, rcSelection.top,    1,                  rcSelection.bottom - rcSelection.top);
 				}
 			}
 

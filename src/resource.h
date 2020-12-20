@@ -86,9 +86,10 @@
 #define ID_MERGE_PREVIOUSCONFLICT       32804
 #define ID_EDIT_COPY                    32805
 #define ID_EDIT_CUT                     32806
-#define ID_EDIT_PASTE                   32807
-#define ID_EDIT_SELECTALL               32808
-#define ID_HELP_ABOUT                   32809
+#define ID_EDIT_DELETE                  32807
+#define ID_EDIT_PASTE                   32808
+#define ID_EDIT_SELECT_ALL              32809
+#define ID_HELP_ABOUT                   32810
 #define ID_VIEW_DIFFBLOCKSIZE_1         32811
 #define ID_VIEW_DIFFBLOCKSIZE_2         32812
 #define ID_VIEW_DIFFBLOCKSIZE_4         32813

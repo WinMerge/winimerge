@@ -98,7 +98,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 
 	while (GetMessage(&msg, NULL, 0, 0)) 
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg) && (m_hwndImgToolWindow == 0 || !IsDialogMessage(m_hwndImgToolWindow, &msg)))
+		if (!TranslateAccelerator(m_hWnd, hAccelTable, &msg) && m_hwndImgToolWindow == 0 || !IsDialogMessage(m_hwndImgToolWindow, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -502,6 +502,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		case ID_FILE_EXIT:
 			DestroyWindow(hWnd);
+			break;
+		case ID_EDIT_CUT:
+			m_pImgMergeWindow->Cut();
+			break;
+		case ID_EDIT_COPY:
+			m_pImgMergeWindow->Copy();
+			break;
+		case ID_EDIT_DELETE:
+			m_pImgMergeWindow->Delete();
+			break;
+		case ID_EDIT_PASTE:
+			m_pImgMergeWindow->Paste();
+			break;
+		case ID_EDIT_SELECT_ALL:
+			m_pImgMergeWindow->SelectAll();
 			break;
 		case ID_EDIT_UNDO:
 			m_pImgMergeWindow->Undo();
