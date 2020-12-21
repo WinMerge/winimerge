@@ -25,9 +25,10 @@ class CImgWindow
 {
 	enum { MARGIN = 16 };
 public:
-	CImgWindow() :
-		  m_fip(NULL)
-		, m_hWnd(NULL)
+	CImgWindow()
+		: m_fip(nullptr)
+		, m_hWnd(nullptr)
+		, m_hCursor(nullptr)
 		, m_nVScrollPos(0)
 		, m_nHScrollPos(0)
 		, m_zoom(1.0)
@@ -286,6 +287,11 @@ public:
 		m_visibleRectangleSelection = false;
 		m_rcSelection = {};
 		CalcScrollBarRange();
+	}
+
+	void SetCursor(HCURSOR hCursor)
+	{
+		m_hCursor = hCursor;
 	}
 
 	void DrawFocusRectangle(int left, int top, int width, int height)
@@ -585,6 +591,9 @@ private:
 		case WM_SIZE:
 			OnSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
 			break;
+		case WM_SETCURSOR:
+			::SetCursor(m_hCursor ? m_hCursor : LoadCursor(nullptr, IDC_ARROW));
+			break;
 		default:
 			return DefWindowProc(hwnd, iMsg, wParam, lParam);
 		}
@@ -658,4 +667,5 @@ private:
 	RGBQUAD m_backColor;
 	bool m_visibleRectangleSelection;
 	RECT m_rcSelection;
+	HCURSOR m_hCursor;
 };

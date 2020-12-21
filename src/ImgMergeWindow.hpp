@@ -875,6 +875,25 @@ public:
 	void SetDraggingMode(DRAGGING_MODE draggingMode)
 	{
 		m_draggingMode = draggingMode;
+		TCHAR* cursor;
+		switch (draggingMode)
+		{
+		case HORIZONTAL_WIPE:
+			cursor = IDC_SIZEWE;
+			break;
+		case VERTICAL_WIPE:
+			cursor = IDC_SIZENS;
+			break;
+		case RECTANGLE_SELECT:
+			cursor = IDC_CROSS;
+			break;
+		default:
+			cursor = IDC_ARROW;
+			break;
+		}
+		HCURSOR hCursor = LoadCursor(nullptr, cursor);
+		for (int pane = 0; pane < m_nImages; ++pane)
+			m_imgWindow[pane].SetCursor(hCursor);
 	}
 
 	size_t GetMetadata(int pane, char *buf, size_t bufsize) const
@@ -1081,7 +1100,6 @@ private:
 	{
 		if (m_nImages < 2)
 			return;
-		SetCursor(LoadCursor(NULL, m_bHorizontalSplit ? IDC_SIZENS : IDC_SIZEWE));
 		if (m_nDraggingSplitter == -1)
 			return;
 		HDC hdc = GetWindowDC(m_hWnd);
@@ -1326,7 +1344,6 @@ private:
 					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, pImgWnd->m_buffer.GetImageWidth(evt.pane), pt.y);
 					pImgWnd->m_buffer.SetWipePosition(pt.y);
 					pImgWnd->Invalidate();
-					SetCursor(LoadCursor(NULL, IDC_SIZENS));
 				}
 				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
 				{
@@ -1334,7 +1351,6 @@ private:
 					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
 					pImgWnd->m_buffer.SetWipePosition(pt.x);
 					pImgWnd->Invalidate();
-					SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 				}
 				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
 				{
