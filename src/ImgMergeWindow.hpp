@@ -622,6 +622,16 @@ public:
 
 	bool Paste()
 	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		CImgWindow& imgWindow = m_imgWindow[pane];
+		if (imgWindow.IsRectanlgeSelectionVisible())
+			imgWindow.DeleteRectangleSelection();
+		fipWinImage image;
+		image.pasteFromClipboard();
+		imgWindow.SetOverlappedImage(image);
+		imgWindow.Invalidate();
 		return true;
 	}
 
@@ -1290,7 +1300,7 @@ private:
 				         pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
 				{
 					pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
-					pImgWnd->m_imgWindow[evt.pane].EraseRectangleSelection();
+					pImgWnd->m_imgWindow[evt.pane].DeleteRectangleSelection();
 					pImgWnd->Invalidate();
 				}
 			}

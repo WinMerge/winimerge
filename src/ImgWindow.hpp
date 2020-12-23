@@ -34,6 +34,7 @@ public:
 		, m_zoom(1.0)
 		, m_useBackColor(false)
 		, m_visibleRectangleSelection(false)
+		, m_ptOverlappedImage{}
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -347,9 +348,34 @@ public:
 		return m_visibleRectangleSelection;
 	}
 
-	void EraseRectangleSelection()
+	void DeleteRectangleSelection()
 	{
 		m_visibleRectangleSelection = false;
+	}
+
+	const fipWinImage& GetOverlappedImage() const
+	{
+		return m_fipOverlappedImage;
+	}
+
+	void SetOverlappedImage(const fipWinImage& image)
+	{
+		m_fipOverlappedImage = image;
+	}
+
+	void DeleteOverlappedImage()
+	{
+		m_fipOverlappedImage.clear();
+	}
+
+	POINT GetOverlappedImagePosition() const
+	{
+		return m_ptOverlappedImage;
+	}
+
+	void SetOverlappedImagePosition(const POINT& pt)
+	{
+		m_ptOverlappedImage = pt;
 	}
 
 private:
@@ -414,8 +440,6 @@ private:
 				}
 			}
 			
-			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
-
 			if (m_visibleRectangleSelection)
 			{
 				POINT ptLT = ConvertLPtoDP(m_rcSelection.left, m_rcSelection.top);
@@ -423,17 +447,24 @@ private:
 				RECT rcSelection = { ptLT.x, ptLT.y, ptRB.x, ptRB.y };
 				if (rcSelection.left == rcSelection.right || rcSelection.top == rcSelection.bottom)
 				{
-					DrawXorBar(hdc, rcSelection.left, rcSelection.top,
+					DrawXorBar(hdcMem, rcSelection.left, rcSelection.top,
 						rcSelection.right - rcSelection.left + 1, rcSelection.bottom - rcSelection.top + 1);
 				}
 				else
 				{
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    rcSelection.right - rcSelection.left, 1);
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.bottom, rcSelection.right - rcSelection.left, 1);
-					DrawXorBar(hdc, rcSelection.left,  rcSelection.top,    1,                  rcSelection.bottom - rcSelection.top);
-					DrawXorBar(hdc, rcSelection.right, rcSelection.top,    1,                  rcSelection.bottom - rcSelection.top);
+					DrawXorRectangle(hdcMem, rcSelection.left, rcSelection.top, rcSelection.right - rcSelection.left, rcSelection.bottom - rcSelection.top, 1);
 				}
 			}
+
+			if (m_fipOverlappedImage.isValid())
+			{
+				POINT pt = ConvertLPtoDP(m_ptOverlappedImage.x, m_ptOverlappedImage.y);
+				RECT rcImg = { pt.x, pt.y, pt.x + static_cast<int>(m_fipOverlappedImage.getWidth() * m_zoom), pt.y + static_cast<int>(m_fipOverlappedImage.getHeight() * m_zoom) };
+				m_fipOverlappedImage.draw(hdcMem, rcImg);
+				DrawXorRectangle(hdcMem, rcImg.left, rcImg.top, rcImg.right - rcImg.left, rcImg.bottom - rcImg.top, 1);
+			}
+
+			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
 
 			DeleteObject(SelectObject(hdcMem, hOldBrush));
 			SelectObject(hdcMem, hOld);
@@ -649,6 +680,16 @@ private:
 		DeleteObject(hbm);
 	}
 
+	void DrawXorRectangle(HDC hdc, int left, int top, int width, int height, int lineWidth)
+	{
+		int right = left + width;
+		int bottom = top + height;
+		DrawXorBar(hdc, left                 , top                   , width    , lineWidth);
+		DrawXorBar(hdc, left                 , bottom - lineWidth + 1, width    , lineWidth);
+		DrawXorBar(hdc, left                 , top                   , lineWidth, height);
+		DrawXorBar(hdc, right - lineWidth + 1, top                   , lineWidth, height);
+	}
+
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (iMsg == WM_NCCREATE)
@@ -660,6 +701,8 @@ private:
 
 	HWND m_hWnd;
 	fipWinImage *m_fip;
+	fipWinImage m_fipOverlappedImage;
+	POINT m_ptOverlappedImage;
 	int m_nVScrollPos;
 	int m_nHScrollPos;
 	double m_zoom;
