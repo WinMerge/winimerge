@@ -1201,6 +1201,165 @@ private:
 		return lResult;
 	}
 
+	void ChildWnd_OnLButtonDown(HWND hwnd, const Event& evt)
+	{
+		m_bDragging = true;
+		m_ptOrg.x = evt.x;
+		m_ptOrg.y = evt.y;
+		m_ptPrev.x = INT_MIN;
+		m_ptPrev.y = INT_MIN;
+		SetCapture(hwnd);
+		POINT pt = GetCursorPos(evt.pane);
+		CImgWindow& imgWindow = m_imgWindow[evt.pane];
+		if (m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(0, pt.y, m_buffer.GetImageWidth(evt.pane), pt.y);
+			m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_VERTICAL, pt.y);
+		}
+		else if (m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(pt.x, 0, pt.x, m_buffer.GetImageHeight(evt.pane));
+			m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_HORIZONTAL, pt.x);
+		}
+		else if (m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
+		{
+			imgWindow.SetRectangleSelection(pt.x, pt.y, pt.x, pt.y);
+		}
+		Invalidate();
+	}
+
+	void ChildWnd_OnLButtonUp(HWND hwnd, const Event& evt)
+	{
+		if (!m_bDragging)
+			return;
+		m_bDragging = false;
+		ReleaseCapture();
+		if (m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
+		{
+			POINT ptOffset = GetImageOffset(evt.pane);
+			double zoom = GetZoom();
+			int offsetX = ptOffset.x + static_cast<int>((m_ptPrev.x - m_ptOrg.x) / zoom);
+			int offsetY = ptOffset.y + static_cast<int>((m_ptPrev.y - m_ptOrg.y) / zoom);
+			m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, GetImageWidth(evt.pane), GetImageHeight(evt.pane));
+			AddImageOffset(evt.pane, static_cast<int>((evt.x - m_ptOrg.x) / zoom), static_cast<int>((evt.y - m_ptOrg.y) / zoom));
+		}
+		else if (m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE || 
+				 m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+		{
+			m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
+			m_imgWindow[evt.pane].DeleteRectangleSelection();
+			Invalidate();
+		}
+	}
+
+	void ChildWnd_OnMouseMove(HWND hwnd, const Event& evt)
+	{
+		if (!m_bDragging)
+			return;
+		double zoom = GetZoom();
+		if (m_draggingMode == DRAGGING_MODE::MOVE)
+		{
+			SCROLLINFO sih{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
+			GetScrollInfo(hwnd, SB_HORZ, &sih);
+			if (sih.nMax > static_cast<int>(sih.nPage))
+			{
+				int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((m_ptOrg.x - evt.x) * zoom);
+				if (posx < 0)
+					posx = 0;
+				SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
+				m_ptOrg.x = evt.x;
+			}
+
+			SCROLLINFO siv{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
+			GetScrollInfo(hwnd, SB_VERT, &siv);
+			if (siv.nMax > static_cast<int>(siv.nPage))
+			{
+				int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((m_ptOrg.y - evt.y) * zoom);
+				if (posy < 0)
+					posy = 0;
+				SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
+				m_ptOrg.y = evt.y;
+			}
+		}
+		else if (m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
+		{
+			POINT ptOffset = GetImageOffset(evt.pane);
+			if (m_ptPrev.x != INT_MIN && m_ptPrev.y != INT_MIN)
+			{
+				int offsetX = ptOffset.x + static_cast<int>((m_ptPrev.x - m_ptOrg.x) / zoom);
+				int offsetY = ptOffset.y + static_cast<int>((m_ptPrev.y - m_ptOrg.y) / zoom);
+				m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, GetImageWidth(evt.pane), GetImageHeight(evt.pane));
+			}
+			int offsetX = ptOffset.x + static_cast<int>((evt.x - m_ptOrg.x) / zoom);
+			int offsetY = ptOffset.y + static_cast<int>((evt.y - m_ptOrg.y) / zoom);
+			m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, GetImageWidth(evt.pane), GetImageHeight(evt.pane));
+			m_ptPrev.x = evt.x;
+			m_ptPrev.y = evt.y;
+		}
+		else if (m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
+		{
+			POINT pt = GetCursorPos(evt.pane);
+			m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, m_buffer.GetImageWidth(evt.pane), pt.y);
+			m_buffer.SetWipePosition(pt.y);
+			Invalidate();
+		}
+		else if (m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
+		{
+			POINT pt = GetCursorPos(evt.pane);
+			m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, m_buffer.GetImageHeight(evt.pane));
+			m_buffer.SetWipePosition(pt.x);
+			Invalidate();
+		}
+		else if (m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
+		{
+			RECT rcSelect = m_imgWindow[evt.pane].GetRectangleSelection();
+			POINT pt = GetCursorPos(evt.pane);
+			m_imgWindow[evt.pane].SetRectangleSelection(rcSelect.left, rcSelect.top, pt.x, pt.y);
+			Invalidate();
+		}
+	}
+
+	void ChildWnd_OnLButtonDblClk(HWND hwnd, const Event& evt)
+	{
+		POINT pt = GetCursorPos(evt.pane);
+		int diffIndex = GetDiffIndexFromPoint(pt.x, pt.y);
+		if (diffIndex >= 0)
+			SelectDiff(diffIndex);
+		else
+			SelectDiff(-1);
+	}
+
+	void ChildWnd_OnHVScroll(HWND hwnd, int iMsg, WPARAM wParam, LPARAM lParam, const Event& evt)
+	{
+		switch (iMsg)
+		{
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+			if (LOWORD(wParam) == SB_THUMBTRACK)
+			{
+				SCROLLINFO si{ sizeof SCROLLINFO, SIF_TRACKPOS };
+				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
+				wParam |= (si.nTrackPos & 0xff0000) >> 8;
+			}
+			// [[fallthrough]]
+		case WM_MOUSEWHEEL:
+			POINT ptLP = m_imgWindow[evt.pane].GetCursorPos();
+			POINT ptDP;
+			::GetCursorPos(&ptDP);
+			RECT rc;
+			::GetWindowRect(m_imgWindow[evt.pane].GetHWND(), &rc);
+			ptDP.x -= rc.left;
+			ptDP.y -= rc.top;
+			for (int j = 0; j < m_nImages; ++j)
+			{
+				(m_ChildWndProc[j])(m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
+				if (GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL)
+					m_imgWindow[j].ScrollTo2(ptLP.x, ptLP.y, ptDP.x, ptDP.y);
+			}
+			break;
+		}
+	}
+
 	static LRESULT CALLBACK ChildWndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	{
 		Event evt;
@@ -1257,155 +1416,25 @@ private:
 		switch (iMsg)
 		{
 		case WM_LBUTTONDOWN:
-		{
-			pImgWnd->m_bDragging = true;
-			pImgWnd->m_ptOrg.x = evt.x;
-			pImgWnd->m_ptOrg.y = evt.y;
-			pImgWnd->m_ptPrev.x = INT_MIN;
-			pImgWnd->m_ptPrev.y = INT_MIN;
-			SetCapture(hwnd);
-			POINT pt = pImgWnd->GetCursorPos(evt.pane);
-			if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
-			{
-				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, pImgWnd->m_buffer.GetImageWidth(evt.pane), pt.y);
-				pImgWnd->m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_VERTICAL, pt.y);
-			}
-			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-			{
-				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
-				pImgWnd->m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_HORIZONTAL, pt.x);
-			}
-			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
-			{
-				pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, pt.y, pt.x, pt.y);
-			}
-			pImgWnd->Invalidate();
+			pImgWnd->ChildWnd_OnLButtonDown(hwnd, evt);
 			break;
-		}
 		case WM_LBUTTONUP:
-			if (pImgWnd->m_bDragging)
-			{
-				pImgWnd->m_bDragging = false;
-				ReleaseCapture();
-				if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
-				{
-					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
-					double zoom = pImgWnd->GetZoom();
-					int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
-					int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
-					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					pImgWnd->AddImageOffset(evt.pane, static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom), static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom));
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE || 
-				         pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-				{
-					pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
-					pImgWnd->m_imgWindow[evt.pane].DeleteRectangleSelection();
-					pImgWnd->Invalidate();
-				}
-			}
+			pImgWnd->ChildWnd_OnLButtonUp(hwnd, evt);
 			break;
 		case WM_MOUSEMOVE:
-			if (pImgWnd->m_bDragging)
-			{
-				double zoom = pImgWnd->GetZoom();
-				if (pImgWnd->m_draggingMode == DRAGGING_MODE::MOVE)
-				{
-					SCROLLINFO sih{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
-					GetScrollInfo(hwnd, SB_HORZ, &sih);
-					if (sih.nMax > static_cast<int>(sih.nPage))
-					{
-						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((pImgWnd->m_ptOrg.x - evt.x) * zoom);
-						if (posx < 0)
-							posx = 0;
-						SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
-						pImgWnd->m_ptOrg.x = evt.x;
-					}
-
-					SCROLLINFO siv{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
-					GetScrollInfo(hwnd, SB_VERT, &siv);
-					if (siv.nMax > static_cast<int>(siv.nPage))
-					{
-						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((pImgWnd->m_ptOrg.y - evt.y) * zoom);
-						if (posy < 0)
-							posy = 0;
-						SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
-						pImgWnd->m_ptOrg.y = evt.y;
-					}
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
-				{
-					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
-					if (pImgWnd->m_ptPrev.x != INT_MIN && pImgWnd->m_ptPrev.y != INT_MIN)
-					{
-						int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
-						int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
-						pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					}
-					int offsetX = ptOffset.x + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom);
-					int offsetY = ptOffset.y + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom);
-					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					pImgWnd->m_ptPrev.x = evt.x;
-					pImgWnd->m_ptPrev.y = evt.y;
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
-				{
-					POINT pt = pImgWnd->GetCursorPos(evt.pane);
-					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(0, pt.y, pImgWnd->m_buffer.GetImageWidth(evt.pane), pt.y);
-					pImgWnd->m_buffer.SetWipePosition(pt.y);
-					pImgWnd->Invalidate();
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-				{
-					POINT pt = pImgWnd->GetCursorPos(evt.pane);
-					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(pt.x, 0, pt.x, pImgWnd->m_buffer.GetImageHeight(evt.pane));
-					pImgWnd->m_buffer.SetWipePosition(pt.x);
-					pImgWnd->Invalidate();
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::RECTANGLE_SELECT)
-				{
-					RECT rcSelect = pImgWnd->m_imgWindow[evt.pane].GetRectangleSelection();
-					POINT pt = pImgWnd->GetCursorPos(evt.pane);
-					pImgWnd->m_imgWindow[evt.pane].SetRectangleSelection(rcSelect.left, rcSelect.top, pt.x, pt.y);
-					pImgWnd->Invalidate();
-				}
-			}
+			pImgWnd->ChildWnd_OnMouseMove(hwnd, evt);
 			break;
 		}
+
 		switch (iMsg)
 		{
 		case WM_LBUTTONDBLCLK:
-		{
-			POINT pt = pImgWnd->GetCursorPos(i);
-			int diffIndex = pImgWnd->GetDiffIndexFromPoint(pt.x, pt.y);
-			if (diffIndex >= 0)
-				pImgWnd->SelectDiff(diffIndex);
-			else
-				pImgWnd->SelectDiff(-1);
+			pImgWnd->ChildWnd_OnLButtonDblClk(hwnd, evt);
 			break;
-		}
 		case WM_HSCROLL:
 		case WM_VSCROLL:
-			if (LOWORD(wParam) == SB_THUMBTRACK)
-			{
-				SCROLLINFO si{ sizeof SCROLLINFO, SIF_TRACKPOS };
-				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
-				wParam |= (si.nTrackPos & 0xff0000) >> 8;
-			}
 		case WM_MOUSEWHEEL:
-			POINT ptLP = pImgWnd->m_imgWindow[i].GetCursorPos();
-			POINT ptDP;
-			::GetCursorPos(&ptDP);
-			RECT rc;
-			::GetWindowRect(pImgWnd->m_imgWindow[i].GetHWND(), &rc);
-			ptDP.x -= rc.left;
-			ptDP.y -= rc.top;
-			for (int j = 0; j < pImgWnd->m_nImages; ++j)
-			{
-				(pImgWnd->m_ChildWndProc[j])(pImgWnd->m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
-				if (GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL)
-					pImgWnd->m_imgWindow[j].ScrollTo2(ptLP.x, ptLP.y, ptDP.x, ptDP.y);
-			}
+			pImgWnd->ChildWnd_OnHVScroll(hwnd, iMsg, wParam, lParam, evt);
 			return 0;
 		}
 		return (pImgWnd->m_ChildWndProc[i])(hwnd, iMsg, wParam, lParam);
