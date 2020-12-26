@@ -505,6 +505,21 @@ public:
 		return CImgDiffBuffer::CloseImages();
 	}
 
+	void PasteImage(int pane, int x, int y, const Image& image)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+
+		Image *oldbitmap = new Image(m_imgOrig32[pane]);
+
+		m_imgOrig32[pane].pasteSubImage(image, x, y);
+
+		Image *newbitmap = new Image(m_imgOrig32[pane]);
+		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+
+		CompareImages();
+	}
+
 protected:
 	void InsertRows(int pane, int y, int rows)
 	{

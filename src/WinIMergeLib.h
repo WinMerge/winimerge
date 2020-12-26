@@ -36,7 +36,8 @@ struct IImgMergeWindow
 		REFRESH, SCROLLTODIFF, OPEN, NEW
 	};
 	enum DRAGGING_MODE {
-		NONE = 0, MOVE, ADJUST_OFFSET, VERTICAL_WIPE, HORIZONTAL_WIPE, RECTANGLE_SELECT
+		NONE = 0, MOVE, ADJUST_OFFSET, VERTICAL_WIPE, HORIZONTAL_WIPE,
+		RECTANGLE_SELECT, MOVE_IMAGE, COPY_IMAGE
 	};
 	struct Event
 	{
@@ -155,6 +156,11 @@ struct IImgMergeWindow
 	virtual bool Delete() = 0;
 	virtual bool Paste() = 0;
 	virtual bool SelectAll() = 0;
+	virtual bool Cancel() = 0;
+	virtual bool IsCopyable() const = 0;
+	virtual bool IsCuttable() const = 0;
+	virtual bool IsPastable() const = 0;
+	virtual bool IsCancellable() const = 0;
 };
 
 struct IImgToolWindow

@@ -30,9 +30,10 @@ typedef fipImage fipWinImage;
 class fipImageEx : public fipWinImage
 {
 public:
-	fipImageEx(FREE_IMAGE_TYPE image_type = FIT_BITMAP, unsigned width = 0, unsigned height = 0, unsigned bpp = 0) :
-	fipWinImage(image_type, width, height, bpp) {}
-	fipImageEx(const fipImageEx& Image) : fipWinImage(Image) {}
+	fipImageEx(FREE_IMAGE_TYPE image_type = FIT_BITMAP, unsigned width = 0, unsigned height = 0, unsigned bpp = 0)
+		: fipWinImage(image_type, width, height, bpp) {}
+	fipImageEx(const fipImageEx& Image) { *this = Image; }
+	fipImageEx(const fipWinImage& Image) { *this = Image; }
 	explicit fipImageEx(FIBITMAP *bitmap) { *this = bitmap; }
 	virtual ~fipImageEx() {}
 
@@ -41,16 +42,19 @@ public:
 		if (this != &Image)
 		{
 			FIBITMAP *clone = FreeImage_Clone(static_cast<FIBITMAP*>(Image._dib));
-			if (clone)
-			{
-				replace(clone);
-			}
-			else
-			{
-				FreeImage_Unload(_dib);
-				_dib = NULL;
-				_bHasChanged = TRUE;
-			}
+			replace(clone);
+			_fif = Image._fif;
+		}
+		return *this;
+	}
+
+	fipImageEx& operator=(const fipWinImage& Image)
+	{
+		if (this != &Image)
+		{
+			FIBITMAP *clone = FreeImage_Clone(static_cast<FIBITMAP*>(const_cast<fipWinImage&>(Image)));
+			replace(clone);
+			_fif = Image.getFIF();
 		}
 		return *this;
 	}
@@ -218,6 +222,7 @@ public:
 	Image(int w, int h) : image_(FIT_BITMAP, w, h, 32) {}
 	Image(const Image& other) : image_(other.image_) {}
 	explicit Image(FIBITMAP *bitmap) : image_(bitmap) {}
+	explicit Image(const fipWinImage& image) : image_(image) {}
 	BYTE *scanLine(int y) { return image_.getScanLine(image_.getHeight() - y - 1); }
 	const BYTE *scanLine(int y) const { return image_.getScanLine(image_.getHeight() - y - 1); }
 	bool convertTo32Bits() {
@@ -254,9 +259,9 @@ public:
 	{
 		return !!image_.copySubImage(image.image_, x, y, x2, y2);
 	}
-	bool pasteSubImage(Image& image, int x, int y)
+	bool pasteSubImage(const Image& image, int x, int y)
 	{
-		return !!image_.pasteSubImage(image.image_, x, y);
+		return !!image_.pasteSubImage(const_cast<fipImageEx&>(image.image_), x, y);
 	}
 	bool rotate(double angle)
 	{

@@ -35,6 +35,7 @@ public:
 		, m_useBackColor(false)
 		, m_visibleRectangleSelection(false)
 		, m_ptOverlappedImage{}
+		, m_ptOverlappedImageCursor{}
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -350,6 +351,7 @@ public:
 
 	void DeleteRectangleSelection()
 	{
+		m_rcSelection = {};
 		m_visibleRectangleSelection = false;
 	}
 
@@ -363,6 +365,25 @@ public:
 		m_fipOverlappedImage = image;
 	}
 
+	void StartDraggingOverlappedImage(const fipWinImage& image, const POINT& ptImage, const POINT& ptCursor)
+	{
+		m_fipOverlappedImage = image;
+		m_ptOverlappedImage = ptImage;
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
+	void RestartDraggingOverlappedImage(const POINT& ptCursor)
+	{
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
+	void DragOverlappedImage(const POINT& ptCursor)
+	{
+		m_ptOverlappedImage.x += ptCursor.x - m_ptOverlappedImageCursor.x;
+		m_ptOverlappedImage.y += ptCursor.y - m_ptOverlappedImageCursor.y;
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
 	void DeleteOverlappedImage()
 	{
 		m_fipOverlappedImage.clear();
@@ -371,6 +392,13 @@ public:
 	POINT GetOverlappedImagePosition() const
 	{
 		return m_ptOverlappedImage;
+	}
+
+	RECT GetOverlappedImageRect() const
+	{
+		return { m_ptOverlappedImage.x, m_ptOverlappedImage.y,
+			static_cast<long>(m_ptOverlappedImage.x + m_fipOverlappedImage.getWidth()),
+			static_cast<long>(m_ptOverlappedImage.y + m_fipOverlappedImage.getHeight()) };
 	}
 
 	void SetOverlappedImagePosition(const POINT& pt)
@@ -703,6 +731,7 @@ private:
 	fipWinImage *m_fip;
 	fipWinImage m_fipOverlappedImage;
 	POINT m_ptOverlappedImage;
+	POINT m_ptOverlappedImageCursor;
 	int m_nVScrollPos;
 	int m_nHScrollPos;
 	double m_zoom;
