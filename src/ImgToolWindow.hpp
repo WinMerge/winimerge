@@ -36,12 +36,12 @@ public:
 		return !!bSucceeded;
 	}
 
-	HWND GetHWND() const
+	HWND GetHWND() const override
 	{
 		return m_hWnd;
 	}
 
-	void Sync()
+	void Sync() override
 	{
 		if (!m_pImgMergeWindow)
 			return;
@@ -108,7 +108,7 @@ public:
 		m_pImgMergeWindow->AddEventListener(OnEvent, this);
 	}
 
-	void Translate(TranslateCallback translateCallback)
+	void Translate(TranslateCallback translateCallback) override
 	{
 		auto translateString = [&](int id)
 		{
