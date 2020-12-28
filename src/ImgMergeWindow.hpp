@@ -582,7 +582,7 @@ public:
 		int pane = GetActivePane();
 		if (pane < 0)
 			return false;
-		return m_imgWindow[pane].IsRectanlgeSelectionVisible() && GetReadOnly(pane);
+		return m_imgWindow[pane].IsRectanlgeSelectionVisible() && !GetReadOnly(pane);
 	}
 
 	bool IsCopyable() const override
@@ -650,7 +650,7 @@ public:
 			return false;
 		Image image;
 		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
-		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		m_buffer.GetOriginalImage32(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
 		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 	}
 
@@ -661,7 +661,7 @@ public:
 			return false;
 		Image image;
 		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
-		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		m_buffer.GetOriginalImage32(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
 		bool result = !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 		if (result)
 		{
@@ -1569,19 +1569,19 @@ private:
 				RECT rcSelect = imgWindow.GetRectangleSelection();
 				RECT rcSelectReal = ConvertToRealRect(evt.pane, rcSelect, false);
 				bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+				Image image;
+				const Image* pImage = m_buffer.GetOriginalImage32(evt.pane);
+				pImage->copySubImage(image, rcSelectReal.left, rcSelectReal.top,
+					rcSelectReal.right, rcSelectReal.bottom);
+				imgWindow.DeleteRectangleSelection();
+				imgWindow.StartDraggingOverlappedImage(*image.getFipImage(),
+					{ rcSelect.left, rcSelect.top }, pt);
 				if (!controlKeyPressed)
 				{
 					m_buffer.DeleteRectangle(evt.pane,
 						rcSelectReal.left, rcSelectReal.top,
 						rcSelectReal.right, rcSelectReal.bottom);
 				}
-				Image image;
-				const Image* pImage = m_buffer.GetOriginalImage(evt.pane);
-				pImage->copySubImage(image, rcSelectReal.left, rcSelectReal.top,
-					rcSelectReal.right, rcSelectReal.bottom);
-				imgWindow.DeleteRectangleSelection();
-				imgWindow.StartDraggingOverlappedImage(*image.getFipImage(),
-					{ rcSelect.left, rcSelect.top }, pt);
 			}
 			else
 			{

@@ -1262,6 +1262,13 @@ public:
 		return &m_imgOrig[pane];
 	}
 
+	const Image *GetOriginalImage32(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return NULL;
+		return &m_imgOrig32[pane];
+	}
+
 	Image *GetDiffMapImage(unsigned w, unsigned h)
 	{
 		m_imgDiffMap.clear();
