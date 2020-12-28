@@ -66,6 +66,7 @@ public:
 		, m_ptOrg{ 0, 0 }
 		, m_ptPrev{ 0, 0 }
 		, m_draggingMode(DRAGGING_MODE::MOVE)
+		, m_draggingModeCurrent(DRAGGING_MODE::MOVE)
 		, m_gdiplusToken(0)
 	{
 		for (int i = 0; i < 3; ++i)
@@ -576,13 +577,133 @@ public:
 		return m_buffer.IsUndoable();
 	}
 
+	bool IsCuttable() const
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		return m_imgWindow[pane].IsRectanlgeSelectionVisible() && GetReadOnly(pane);
+	}
+
+	bool IsCopyable() const
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		return m_imgWindow[pane].IsRectanlgeSelectionVisible();
+	}
+
+	bool IsPastable() const
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		return !!IsClipboardFormatAvailable(CF_DIB);
+	}
+
 	bool IsRedoable() const
 	{
 		return m_buffer.IsRedoable();
 	}
 
+	bool IsCancellable() const
+	{
+		bool cancellable = false;
+		for (int pane = 0; pane < m_nImages; ++pane)
+		{
+			if (m_imgWindow[pane].IsRectanlgeSelectionVisible() ||
+				m_imgWindow[pane].GetOverlappedImage().isValid())
+				cancellable = true;
+		}
+		return cancellable;
+	}
+
+	bool IsRectangleSelectionVisible(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return false;
+		return m_imgWindow[pane].IsRectanlgeSelectionVisible();
+	}
+
+	RECT GetRectangleSelection(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return {};
+		return ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
+	}
+
+	bool SelectAll()
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		RECT rc = GetPreprocessedImageRect(pane);
+		m_imgWindow[pane].SetRectangleSelection(rc.left, rc.top, rc.right, rc.bottom);
+		m_imgWindow[pane].Invalidate();
+		return true;
+	}
+
+	bool Copy()
+	{
+		int pane = GetActivePane();
+		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
+			return false;
+		Image image;
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
+		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
+	}
+
+	bool Cut()
+	{
+		int pane = GetActivePane();
+		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
+			return false;
+		Image image;
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
+		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		bool result = !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
+		if (result)
+		{
+			m_buffer.DeleteRectangle(pane, rc.left, rc.top, rc.right, rc.bottom);
+			Cancel();
+		}
+		return result;
+	}
+
+	bool Delete()
+	{
+		int pane = GetActivePane();
+		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
+			return false;
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
+		Cancel();
+		bool result = m_buffer.DeleteRectangle(pane, rc.left, rc.top, rc.right, rc.bottom);
+		if (result)
+			Invalidate();
+		return result;
+	}
+
+	bool Paste()
+	{
+		int pane = GetActivePane();
+		if (pane < 0)
+			return false;
+		Cancel();
+		CImgWindow& imgWindow = m_imgWindow[pane];
+		fipImageEx image;
+		image.pasteFromClipboard();
+		int maxwidth  = (std::max)(m_buffer.GetImageWidth(pane), static_cast<int>(image.getWidth()));
+		int maxheight = (std::max)(m_buffer.GetImageHeight(pane), static_cast<int>(image.getHeight()));
+		m_buffer.Resize(pane, maxwidth, maxheight);
+		imgWindow.SetOverlappedImage(image);
+		imgWindow.Invalidate();
+		return true;
+	}
+
 	bool Undo()
 	{
+		Cancel();
 		bool result = m_buffer.Undo();
 		if (result)
 			Invalidate();
@@ -591,10 +712,24 @@ public:
 
 	bool Redo()
 	{
+		Cancel();
 		bool result = m_buffer.Redo();
 		if (result)
 			Invalidate();
 		return result;
+	}
+
+	bool Cancel()
+	{
+		if (!IsCancellable())
+			return false;
+		for (int pane = 0; pane < m_nImages; ++pane)
+		{
+			m_imgWindow[pane].DeleteRectangleSelection();
+			m_imgWindow[pane].DeleteOverlappedImage();
+		}
+		Invalidate();
+		return true;
 	}
 
 	void ScrollToDiff(int diffIndex)
@@ -644,6 +779,36 @@ public:
 		Event evt;
 		evt.eventType = REFRESH;
 		notify(evt);
+	}
+
+	bool NewImages(int nImages, int nPages, int width, int height)
+	{
+		CloseImages();
+		m_nImages = nImages;
+		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
+		if (m_hWnd)
+		{
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].Create(m_hInstance, m_hWnd);
+				m_ChildWndProc[i] = (WNDPROC)SetWindowLongPtr(m_imgWindow[i].GetHWND(), GWLP_WNDPROC, (LONG_PTR)&ChildWndProc);
+			}
+		}
+		m_buffer.CompareImages();
+		if (m_hWnd)
+		{
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
+			for (int i = 0; i < nImages; ++i)
+			{
+				m_imgWindow[i].SetWindowRect(rects[i]);
+				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+			}
+
+			Event evt;
+			evt.eventType = NEW;
+			notify(evt);
+		}
+		return bSucceeded;
 	}
 
 	bool OpenImages(int nImages, const wchar_t * const filename[3])
@@ -801,6 +966,9 @@ public:
 	void SetDraggingMode(DRAGGING_MODE draggingMode)
 	{
 		m_draggingMode = draggingMode;
+		HCURSOR hCursor = GetMouseCursorFromDraggingMode(draggingMode);
+		for (int pane = 0; pane < m_nImages; ++pane)
+			m_imgWindow[pane].SetCursor(hCursor);
 	}
 
 	size_t GetMetadata(int pane, char *buf, size_t bufsize) const
@@ -823,6 +991,8 @@ public:
 		}
 		return metadatastr.length() + 1;
 	}
+
+
 
 private:
 
@@ -933,20 +1103,17 @@ private:
 
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 	{
-		static WORD _dotPatternBmp[8] = 
+		static const WORD _dotPatternBmp[8] = 
 		{ 
 			0x00aa, 0x0055, 0x00aa, 0x0055, 
 			0x00aa, 0x0055, 0x00aa, 0x0055
 		};
 
-		HBITMAP hbm;
-		HBRUSH  hbr, hbrushOld;
-
-		hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
-		hbr = CreatePatternBrush(hbm);
+		HBITMAP hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
+		HBRUSH hbr = CreatePatternBrush(hbm);
 		
 		SetBrushOrgEx(hdc, x1, y1, 0);
-		hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
+		HBRUSH hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
 		
 		PatBlt(hdc, x1, y1, width, height, PATINVERT);
 		
@@ -954,6 +1121,27 @@ private:
 		
 		DeleteObject(hbr);
 		DeleteObject(hbm);
+	}
+
+	HCURSOR GetMouseCursorFromDraggingMode(DRAGGING_MODE draggingMode) const
+	{
+		TCHAR* cursor;
+		switch (draggingMode)
+		{
+		case HORIZONTAL_WIPE:
+			cursor = IDC_SIZEWE;
+			break;
+		case VERTICAL_WIPE:
+			cursor = IDC_SIZENS;
+			break;
+		case RECTANGLE_SELECT:
+			cursor = IDC_CROSS;
+			break;
+		default:
+			cursor = IDC_ARROW;
+			break;
+		}
+		return LoadCursor(nullptr, cursor);
 	}
 
 	void OnCreate(HWND hWnd, LPCREATESTRUCT lpCreateStruct)
@@ -967,6 +1155,12 @@ private:
 			m_imgWindow[i].SetWindowRect(rects[i]);
 	}
 	
+	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+	{
+		if (nChar == VK_ESCAPE)
+			Cancel();
+	}
+
 	void OnLButtonDown(UINT nFlags, int x, int y)
 	{
 		int i;
@@ -1008,7 +1202,6 @@ private:
 	{
 		if (m_nImages < 2)
 			return;
-		SetCursor(LoadCursor(NULL, m_bHorizontalSplit ? IDC_SIZENS : IDC_SIZEWE));
 		if (m_nDraggingSplitter == -1)
 			return;
 		HDC hdc = GetWindowDC(m_hWnd);
@@ -1051,6 +1244,9 @@ private:
 			break;
 		case WM_SIZE:
 			OnSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
+			break;
+		case WM_KEYDOWN:
+			OnKeyDown((UINT)wParam, (int)(short)LOWORD(lParam), (UINT)HIWORD(lParam));
 			break;
 		case WM_LBUTTONDOWN:
 			OnLButtonDown((UINT)(wParam), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
@@ -1098,6 +1294,364 @@ private:
 		CImgMergeWindow *pImgWnd = reinterpret_cast<CImgMergeWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 		LRESULT lResult = pImgWnd->OnWndMsg(hwnd, iMsg, wParam, lParam);
 		return lResult;
+	}
+
+	RECT ConvertToRealRect(int pane, const RECT& rc, bool clamp = true) const
+	{
+		Point<int> ptRealStart, ptRealEnd;
+		m_buffer.ConvertToRealPos(pane, rc.left, rc.top,
+			ptRealStart.x, ptRealStart.y, clamp);
+		m_buffer.ConvertToRealPos(pane, rc.right, rc.bottom,
+			ptRealEnd.x, ptRealEnd.y, clamp);
+		return { ptRealStart.x, ptRealStart.y, ptRealEnd.x, ptRealEnd.y };
+	}
+
+	void PasteOverlappedImage(int pane)
+	{
+		CImgWindow& imgWindow = m_imgWindow[pane];
+		if (!imgWindow.GetOverlappedImage().isValid())
+			return;
+		RECT rcOverlapeedImage = ConvertToRealRect(pane, imgWindow.GetOverlappedImageRect(), false);
+		Image image(imgWindow.GetOverlappedImage());
+		m_buffer.PasteImage(pane, rcOverlapeedImage.left, rcOverlapeedImage.top, image);
+		Invalidate();
+	}
+
+	void PasteAndDeleteOverlappedImage(int pane)
+	{
+		PasteOverlappedImage(pane);
+		m_imgWindow[pane].DeleteOverlappedImage();
+		Invalidate();
+	}
+
+	RECT GetPreprocessedImageRect(int pane) const
+	{
+		Point<unsigned int> ptOffset = m_buffer.GetImageOffset(pane);
+		long right = m_buffer.GetPreprocessedImageWidth(pane) + ptOffset.x;
+		long bottom = m_buffer.GetPreprocessedImageHeight(pane) + ptOffset.y;
+		return { static_cast<long>(ptOffset.x), static_cast<long>(ptOffset.y), right, bottom };
+	}
+
+	RECT GetRightBoxRect(int pane) const
+	{
+		RECT rc = GetPreprocessedImageRect(pane);
+		return { rc.right, rc.top, rc.right + 8, rc.bottom };
+	}
+
+	RECT GetBottomBoxRect(int pane) const
+	{
+		RECT rc = GetPreprocessedImageRect(pane);
+		return { rc.left, rc.bottom, rc.right, rc.bottom + 8 };
+	}
+
+	RECT GetRightBottomBoxRect(int pane) const
+	{
+		RECT rc = GetPreprocessedImageRect(pane);
+		return { rc.right, rc.bottom, rc.right + 8, rc.bottom + 8 };
+	}
+
+	void ChildWnd_OnKeyDown(HWND hwnd, const Event& evt)
+	{
+		if (evt.keycode == VK_ESCAPE)
+			Cancel();
+		else if (evt.keycode == VK_RETURN)
+			PasteAndDeleteOverlappedImage(evt.pane);
+	}
+
+	void ChildWnd_OnLButtonDown(HWND hwnd, const Event& evt)
+	{
+		m_bDragging = true;
+		m_draggingModeCurrent = m_draggingMode;
+		m_ptOrg.x = evt.x;
+		m_ptOrg.y = evt.y;
+		m_ptPrev.x = INT_MIN;
+		m_ptPrev.y = INT_MIN;
+		SetCapture(hwnd);
+		POINT pt = GetCursorPos(evt.pane);
+		CImgWindow& imgWindow = m_imgWindow[evt.pane];
+		RECT rcSelection = imgWindow.GetRectangleSelection();
+		RECT rcOverlapeedImage = imgWindow.GetOverlappedImageRect();
+		RECT rcPreprocessedImage = GetPreprocessedImageRect(evt.pane);
+
+		if (imgWindow.GetOverlappedImage().isValid() && !PtInRect(&rcOverlapeedImage, pt))
+			PasteAndDeleteOverlappedImage(evt.pane);
+		if (imgWindow.IsRectanlgeSelectionVisible() && !PtInRect(&rcSelection, pt))
+			imgWindow.DeleteRectangleSelection();
+
+		if (PtInRect(&GetRightBottomBoxRect(evt.pane), pt))
+		{
+			imgWindow.SetRectangleSelection(
+				rcPreprocessedImage.left, rcPreprocessedImage.top,
+				rcPreprocessedImage.right, rcPreprocessedImage.bottom);
+			m_draggingModeCurrent = DRAGGING_MODE::RESIZE_BOTH;
+		}
+		else if (PtInRect(&GetRightBoxRect(evt.pane), pt))
+		{
+			imgWindow.SetRectangleSelection(
+				rcPreprocessedImage.left, rcPreprocessedImage.top,
+				rcPreprocessedImage.right, rcPreprocessedImage.bottom);
+			m_draggingModeCurrent = DRAGGING_MODE::RESIZE_WIDTH;
+		}
+		else if (PtInRect(&GetBottomBoxRect(evt.pane), pt))
+		{
+			imgWindow.SetRectangleSelection(
+				rcPreprocessedImage.left, rcPreprocessedImage.top,
+				rcPreprocessedImage.right, rcPreprocessedImage.bottom);
+			m_draggingModeCurrent = DRAGGING_MODE::RESIZE_HEIGHT;
+		}
+		else if (imgWindow.GetOverlappedImage().isValid() && PtInRect(&rcOverlapeedImage, pt))
+		{
+			bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+			if (controlKeyPressed)
+				PasteOverlappedImage(evt.pane);
+			imgWindow.RestartDraggingOverlappedImage(pt);
+			m_draggingModeCurrent = DRAGGING_MODE::MOVE_IMAGE;
+		}
+		else if ((imgWindow.IsRectanlgeSelectionVisible() && PtInRect(&rcSelection, pt)))
+		{
+			m_draggingModeCurrent = DRAGGING_MODE::MOVE_IMAGE;
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::VERTICAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(0, pt.y, m_buffer.GetImageWidth(evt.pane), pt.y);
+			m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_VERTICAL, pt.y);
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::HORIZONTAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(pt.x, 0, pt.x, m_buffer.GetImageHeight(evt.pane));
+			m_buffer.SetWipeModePosition(CImgDiffBuffer::WIPE_HORIZONTAL, pt.x);
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::RECTANGLE_SELECT)
+		{
+			imgWindow.SetRectangleSelectionStart(pt.x, pt.y);
+			imgWindow.SetRectangleSelectionEnd(pt.x, pt.y);
+		}
+		Invalidate();
+	}
+
+	void ChildWnd_OnLButtonUp(HWND hwnd, const Event& evt)
+	{
+		if (!m_bDragging)
+			return;
+		m_bDragging = false;
+		ReleaseCapture();
+		switch (m_draggingModeCurrent)
+		{
+		case DRAGGING_MODE::ADJUST_OFFSET:
+		{
+			POINT ptOffset = GetImageOffset(evt.pane);
+			double zoom = GetZoom();
+			m_imgWindow[evt.pane].DeleteRectangleSelection();
+			AddImageOffset(evt.pane, static_cast<int>((evt.x - m_ptOrg.x) / zoom), static_cast<int>((evt.y - m_ptOrg.y) / zoom));
+			break;
+		}
+		case DRAGGING_MODE::VERTICAL_WIPE:
+		case DRAGGING_MODE::HORIZONTAL_WIPE:
+		{
+			m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
+			m_imgWindow[evt.pane].DeleteRectangleSelection();
+			Invalidate();
+			break;
+		}
+		case DRAGGING_MODE::RECTANGLE_SELECT:
+		{
+			if (memcmp(
+				&m_imgWindow[evt.pane].GetRectangleSelectionStart(),
+				&m_imgWindow[evt.pane].GetRectangleSelectionEnd(), sizeof POINT) == 0)
+			{
+				m_imgWindow[evt.pane].DeleteRectangleSelection();
+				Invalidate();
+			}
+			break;
+		}
+		case DRAGGING_MODE::RESIZE_WIDTH:
+		case DRAGGING_MODE::RESIZE_HEIGHT:
+		case DRAGGING_MODE::RESIZE_BOTH:
+		{
+			m_imgWindow[evt.pane].DeleteRectangleSelection();
+			POINT pt = GetCursorPos(evt.pane);
+			RECT rc = GetPreprocessedImageRect(evt.pane);
+			int width = m_buffer.GetImageWidth(evt.pane);
+			int height = m_buffer.GetImageHeight(evt.pane);
+			if (m_draggingModeCurrent == DRAGGING_MODE::RESIZE_WIDTH || 
+			    m_draggingModeCurrent == DRAGGING_MODE::RESIZE_BOTH)
+				width += pt.x - rc.right;
+			if (m_draggingModeCurrent == DRAGGING_MODE::RESIZE_HEIGHT || 
+			    m_draggingModeCurrent == DRAGGING_MODE::RESIZE_BOTH)
+				height += pt.y - rc.bottom;
+			if (width > 0 && height > 0)
+			{
+				m_buffer.Resize(evt.pane, width, height);
+			}
+			Invalidate();
+			break;
+		}
+		}
+	}
+
+	void ChildWnd_OnMouseMove(HWND hwnd, const Event& evt)
+	{
+		CImgWindow& imgWindow = m_imgWindow[evt.pane];
+		POINT pt = GetCursorPos(evt.pane);
+		if (!m_bDragging)
+		{
+			RECT rcSelect = imgWindow.GetRectangleSelection();
+			RECT rcOverlappedImage = imgWindow.GetOverlappedImageRect();
+			if ((imgWindow.IsRectanlgeSelectionVisible() && PtInRect(&rcSelect, pt)) ||
+				(imgWindow.GetOverlappedImage().isValid() && PtInRect(&rcOverlappedImage, pt)))
+				imgWindow.SetCursor(LoadCursor(nullptr, IDC_SIZEALL));
+			else if (PtInRect(&GetRightBottomBoxRect(evt.pane), pt))
+				imgWindow.SetCursor(LoadCursor(nullptr, IDC_SIZENWSE));
+			else if (PtInRect(&GetRightBoxRect(evt.pane), pt))
+				imgWindow.SetCursor(LoadCursor(nullptr, IDC_SIZEWE));
+			else if (PtInRect(&GetBottomBoxRect(evt.pane), pt))
+				imgWindow.SetCursor(LoadCursor(nullptr, IDC_SIZENS));
+			else
+				imgWindow.SetCursor(GetMouseCursorFromDraggingMode(m_draggingMode));
+			return;
+		}
+		double zoom = GetZoom();
+		if (m_draggingModeCurrent == DRAGGING_MODE::MOVE)
+		{
+			SCROLLINFO sih{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
+			GetScrollInfo(hwnd, SB_HORZ, &sih);
+			if (sih.nMax > static_cast<int>(sih.nPage))
+			{
+				int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((m_ptOrg.x - evt.x) * zoom);
+				if (posx < 0)
+					posx = 0;
+				SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
+				m_ptOrg.x = evt.x;
+			}
+
+			SCROLLINFO siv{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
+			GetScrollInfo(hwnd, SB_VERT, &siv);
+			if (siv.nMax > static_cast<int>(siv.nPage))
+			{
+				int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((m_ptOrg.y - evt.y) * zoom);
+				if (posy < 0)
+					posy = 0;
+				SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
+				m_ptOrg.y = evt.y;
+			}
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::ADJUST_OFFSET)
+		{
+			RECT rc = GetPreprocessedImageRect(evt.pane);
+			int offsetX = rc.left + static_cast<int>((evt.x - m_ptOrg.x) / zoom);
+			int offsetY = rc.top + static_cast<int>((evt.y - m_ptOrg.y) / zoom);
+			imgWindow.SetRectangleSelection(offsetX, offsetY,
+				offsetX + rc.right - rc.left, offsetY + rc.bottom - rc.top, false);
+			m_ptPrev.x = evt.x;
+			m_ptPrev.y = evt.y;
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::VERTICAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(0, pt.y, m_buffer.GetImageWidth(evt.pane), pt.y);
+			m_buffer.SetWipePosition(pt.y);
+			Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::HORIZONTAL_WIPE)
+		{
+			imgWindow.SetRectangleSelection(pt.x, 0, pt.x, m_buffer.GetImageHeight(evt.pane));
+			m_buffer.SetWipePosition(pt.x);
+			Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::RECTANGLE_SELECT)
+		{
+			imgWindow.SetRectangleSelectionEnd(pt.x, pt.y);
+			Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::MOVE_IMAGE)
+		{
+			if (imgWindow.IsRectanlgeSelectionVisible())
+			{
+				RECT rcSelect = imgWindow.GetRectangleSelection();
+				RECT rcSelectReal = ConvertToRealRect(evt.pane, rcSelect, false);
+				bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+				if (!controlKeyPressed)
+				{
+					m_buffer.DeleteRectangle(evt.pane,
+						rcSelectReal.left, rcSelectReal.top,
+						rcSelectReal.right, rcSelectReal.bottom);
+				}
+				Image image;
+				const Image* pImage = m_buffer.GetOriginalImage(evt.pane);
+				pImage->copySubImage(image, rcSelectReal.left, rcSelectReal.top,
+					rcSelectReal.right, rcSelectReal.bottom);
+				imgWindow.DeleteRectangleSelection();
+				imgWindow.StartDraggingOverlappedImage(*image.getFipImage(),
+					{ rcSelect.left, rcSelect.top }, pt);
+			}
+			else
+			{
+				imgWindow.DragOverlappedImage(pt);
+			}
+			imgWindow.Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::RESIZE_WIDTH)
+		{
+			RECT rc = GetPreprocessedImageRect(evt.pane);
+			imgWindow.SetRectangleSelectionEnd(pt.x, rc.bottom, false);
+			Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::RESIZE_HEIGHT)
+		{
+			RECT rc = GetPreprocessedImageRect(evt.pane);
+			imgWindow.SetRectangleSelectionEnd(rc.right, pt.y, false);
+			Invalidate();
+		}
+		else if (m_draggingModeCurrent == DRAGGING_MODE::RESIZE_BOTH)
+		{
+			imgWindow.SetRectangleSelectionEnd(pt.x, pt.y, false);
+			Invalidate();
+		}
+	}
+
+	void ChildWnd_OnLButtonDblClk(HWND hwnd, const Event& evt)
+	{
+		POINT pt = GetCursorPos(evt.pane);
+		int diffIndex = GetDiffIndexFromPoint(pt.x, pt.y);
+		if (diffIndex >= 0)
+			SelectDiff(diffIndex);
+		else
+			SelectDiff(-1);
+	}
+
+	void ChildWnd_OnKillFocus(HWND hwnd, const Event& evt)
+	{
+		PasteAndDeleteOverlappedImage(evt.pane);
+	}
+
+	void ChildWnd_OnHVScroll(HWND hwnd, int iMsg, WPARAM wParam, LPARAM lParam, const Event& evt)
+	{
+		switch (iMsg)
+		{
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+			if (LOWORD(wParam) == SB_THUMBTRACK)
+			{
+				SCROLLINFO si{ sizeof SCROLLINFO, SIF_TRACKPOS };
+				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
+				wParam |= (si.nTrackPos & 0xff0000) >> 8;
+			}
+			// [[fallthrough]]
+		case WM_MOUSEWHEEL:
+			POINT ptLP = m_imgWindow[evt.pane].GetCursorPos();
+			POINT ptDP;
+			::GetCursorPos(&ptDP);
+			RECT rc;
+			::GetWindowRect(m_imgWindow[evt.pane].GetHWND(), &rc);
+			ptDP.x -= rc.left;
+			ptDP.y -= rc.top;
+			for (int j = 0; j < m_nImages; ++j)
+			{
+				(m_ChildWndProc[j])(m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
+				if (GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL)
+					m_imgWindow[j].ScrollTo2(ptLP.x, ptLP.y, ptDP.x, ptDP.y);
+			}
+			break;
+		}
 	}
 
 	static LRESULT CALLBACK ChildWndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
@@ -1155,143 +1709,28 @@ private:
 		}
 		switch (iMsg)
 		{
-		case WM_LBUTTONDOWN:
-		{
-			pImgWnd->m_bDragging = true;
-			pImgWnd->m_ptOrg.x = evt.x;
-			pImgWnd->m_ptOrg.y = evt.y;
-			pImgWnd->m_ptPrev.x = INT_MIN;
-			pImgWnd->m_ptPrev.y = INT_MIN;
-			SetCapture(hwnd);
-			POINT pt = pImgWnd->GetCursorPos(evt.pane);
-			if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
-			{
-				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_VERTICAL);
-				pImgWnd->m_buffer.SetWipePosition(pt.x);
-			}
-			else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-			{
-				pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_HORIZONTAL);
-				pImgWnd->m_buffer.SetWipePosition(pt.x);
-			}
+		case WM_KEYDOWN:
+			pImgWnd->ChildWnd_OnKeyDown(hwnd, evt);
 			break;
-		}
+		case WM_LBUTTONDOWN:
+			pImgWnd->ChildWnd_OnLButtonDown(hwnd, evt);
+			break;
 		case WM_LBUTTONUP:
-			if (pImgWnd->m_bDragging)
-			{
-				pImgWnd->m_bDragging = false;
-				ReleaseCapture();
-				if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
-				{
-					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
-					double zoom = pImgWnd->GetZoom();
-					int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
-					int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
-					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					pImgWnd->AddImageOffset(evt.pane, static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom), static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom));
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE || 
-				         pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-				{
-					pImgWnd->m_buffer.SetWipeMode(CImgDiffBuffer::WIPE_NONE);
-					pImgWnd->Invalidate();
-				}
-			}
+			pImgWnd->ChildWnd_OnLButtonUp(hwnd, evt);
 			break;
 		case WM_MOUSEMOVE:
-			if (pImgWnd->m_bDragging)
-			{
-				double zoom = pImgWnd->GetZoom();
-				if (pImgWnd->m_draggingMode == DRAGGING_MODE::MOVE)
-				{
-					SCROLLINFO sih{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
-					GetScrollInfo(hwnd, SB_HORZ, &sih);
-					if (sih.nMax > static_cast<int>(sih.nPage))
-					{
-						int posx = GetScrollPos(hwnd, SB_HORZ) + static_cast<int>((pImgWnd->m_ptOrg.x - evt.x) * zoom);
-						if (posx < 0)
-							posx = 0;
-						SendMessage(hwnd, WM_HSCROLL, MAKEWPARAM(SB_THUMBTRACK, posx), 0);
-						pImgWnd->m_ptOrg.x = evt.x;
-					}
-
-					SCROLLINFO siv{ sizeof SCROLLINFO, SIF_RANGE | SIF_PAGE };
-					GetScrollInfo(hwnd, SB_VERT, &siv);
-					if (siv.nMax > static_cast<int>(siv.nPage))
-					{
-						int posy = GetScrollPos(hwnd, SB_VERT) + static_cast<int>((pImgWnd->m_ptOrg.y - evt.y) * zoom);
-						if (posy < 0)
-							posy = 0;
-						SendMessage(hwnd, WM_VSCROLL, MAKEWPARAM(SB_THUMBTRACK, posy), 0);
-						pImgWnd->m_ptOrg.y = evt.y;
-					}
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::ADJUST_OFFSET)
-				{
-					POINT ptOffset = pImgWnd->GetImageOffset(evt.pane);
-					if (pImgWnd->m_ptPrev.x != INT_MIN && pImgWnd->m_ptPrev.y != INT_MIN)
-					{
-						int offsetX = ptOffset.x + static_cast<int>((pImgWnd->m_ptPrev.x - pImgWnd->m_ptOrg.x) / zoom);
-						int offsetY = ptOffset.y + static_cast<int>((pImgWnd->m_ptPrev.y - pImgWnd->m_ptOrg.y) / zoom);
-						pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					}
-					int offsetX = ptOffset.x + static_cast<int>((evt.x - pImgWnd->m_ptOrg.x) / zoom);
-					int offsetY = ptOffset.y + static_cast<int>((evt.y - pImgWnd->m_ptOrg.y) / zoom);
-					pImgWnd->m_imgWindow[evt.pane].DrawFocusRectangle(offsetX, offsetY, pImgWnd->GetImageWidth(evt.pane), pImgWnd->GetImageHeight(evt.pane));
-					pImgWnd->m_ptPrev.x = evt.x;
-					pImgWnd->m_ptPrev.y = evt.y;
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::VERTICAL_WIPE)
-				{
-					POINT pt = pImgWnd->GetCursorPos(evt.pane);
-					pImgWnd->m_buffer.SetWipePosition(pt.y);
-					pImgWnd->Invalidate();
-					SetCursor(LoadCursor(NULL, IDC_SIZENS));
-				}
-				else if (pImgWnd->m_draggingMode == DRAGGING_MODE::HORIZONTAL_WIPE)
-				{
-					POINT pt = pImgWnd->GetCursorPos(evt.pane);
-					pImgWnd->m_buffer.SetWipePosition(pt.x);
-					pImgWnd->Invalidate();
-					SetCursor(LoadCursor(NULL, IDC_SIZEWE));
-				}
-			}
+			pImgWnd->ChildWnd_OnMouseMove(hwnd, evt);
 			break;
-		}
-		switch (iMsg)
-		{
 		case WM_LBUTTONDBLCLK:
-		{
-			POINT pt = pImgWnd->GetCursorPos(i);
-			int diffIndex = pImgWnd->GetDiffIndexFromPoint(pt.x, pt.y);
-			if (diffIndex >= 0)
-				pImgWnd->SelectDiff(diffIndex);
-			else
-				pImgWnd->SelectDiff(-1);
+			pImgWnd->ChildWnd_OnLButtonDblClk(hwnd, evt);
 			break;
-		}
+		case WM_KILLFOCUS:
+			pImgWnd->ChildWnd_OnKillFocus(hwnd, evt);
+			break;
 		case WM_HSCROLL:
 		case WM_VSCROLL:
-			if (LOWORD(wParam) == SB_THUMBTRACK)
-			{
-				SCROLLINFO si{ sizeof SCROLLINFO, SIF_TRACKPOS };
-				GetScrollInfo(hwnd, (iMsg == WM_HSCROLL) ? SB_HORZ : SB_VERT, &si);
-				wParam |= (si.nTrackPos & 0xff0000) >> 8;
-			}
 		case WM_MOUSEWHEEL:
-			POINT ptLP = pImgWnd->m_imgWindow[i].GetCursorPos();
-			POINT ptDP;
-			::GetCursorPos(&ptDP);
-			RECT rc;
-			::GetWindowRect(pImgWnd->m_imgWindow[i].GetHWND(), &rc);
-			ptDP.x -= rc.left;
-			ptDP.y -= rc.top;
-			for (int j = 0; j < pImgWnd->m_nImages; ++j)
-			{
-				(pImgWnd->m_ChildWndProc[j])(pImgWnd->m_imgWindow[j].GetHWND(), iMsg, wParam, lParam);
-				if (GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL)
-					pImgWnd->m_imgWindow[j].ScrollTo2(ptLP.x, ptLP.y, ptDP.x, ptDP.y);
-			}
+			pImgWnd->ChildWnd_OnHVScroll(hwnd, iMsg, wParam, lParam, evt);
 			return 0;
 		}
 		return (pImgWnd->m_ChildWndProc[i])(hwnd, iMsg, wParam, lParam);
@@ -1311,6 +1750,7 @@ private:
 	POINT m_ptOrg;
 	POINT m_ptPrev;
 	DRAGGING_MODE m_draggingMode;
+	DRAGGING_MODE m_draggingModeCurrent;
 	CImgMergeBuffer m_buffer;
 	ULONG_PTR m_gdiplusToken;
 

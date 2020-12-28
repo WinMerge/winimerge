@@ -20,18 +20,23 @@
 
 #include "FreeImagePlus.h"
 #include <vector>
+#include <algorithm>
 
 class CImgWindow
 {
 	enum { MARGIN = 16 };
 public:
-	CImgWindow() :
-		  m_fip(NULL)
-		, m_hWnd(NULL)
+	CImgWindow()
+		: m_fip(nullptr)
+		, m_hWnd(nullptr)
+		, m_hCursor(nullptr)
 		, m_nVScrollPos(0)
 		, m_nHScrollPos(0)
 		, m_zoom(1.0)
 		, m_useBackColor(false)
+		, m_visibleRectangleSelection(false)
+		, m_ptOverlappedImage{}
+		, m_ptOverlappedImageCursor{}
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -282,18 +287,140 @@ public:
 	void SetImage(fipWinImage *pfip)
 	{
 		m_fip = pfip;
+		m_visibleRectangleSelection = false;
+		m_ptSelectionStart = {};
+		m_ptSelectionEnd   = {};
 		CalcScrollBarRange();
 	}
 
-	void DrawFocusRectangle(int left, int top, int width, int height)
+	void SetCursor(HCURSOR hCursor)
 	{
-		HDC hdc = GetDC(m_hWnd);
-		POINT pt = ConvertLPtoDP(left, top);
-		RECT rc = { pt.x, pt.y };
-		rc.right = rc.left + static_cast<int>(width * m_zoom);
-		rc.bottom = rc.top + static_cast<int>(height * m_zoom);
-		::DrawFocusRect(hdc, &rc);
-		ReleaseDC(m_hWnd, hdc);
+		m_hCursor = hCursor;
+	}
+
+	POINT GetRectangleSelectionStart() const
+	{
+		return m_ptSelectionStart;
+	}
+
+	bool SetRectangleSelectionStart(int x, int y, bool clamp = true)
+	{
+		if (!m_fip)
+			return false;
+		if (clamp)
+		{
+			m_ptSelectionStart.x = std::clamp(x, 0, static_cast<int>(m_fip->getWidth()));
+			m_ptSelectionStart.y = std::clamp(y, 0, static_cast<int>(m_fip->getHeight()));
+		}
+		else
+		{
+			m_ptSelectionStart.x = x;
+			m_ptSelectionStart.y = y;
+		}
+		m_visibleRectangleSelection = true;
+		return true;
+	}
+
+	POINT GetRectangleSelectionEnd() const
+	{
+		return m_ptSelectionEnd;
+	}
+
+	bool SetRectangleSelectionEnd(int x, int y, bool clamp = true)
+	{
+		if (!m_fip)
+			return false;
+		if (clamp)
+		{
+			m_ptSelectionEnd.x = std::clamp(x, 0, static_cast<int>(m_fip->getWidth()));
+			m_ptSelectionEnd.y = std::clamp(y, 0, static_cast<int>(m_fip->getHeight()));
+		}
+		else
+		{
+			m_ptSelectionEnd.x = x;
+			m_ptSelectionEnd.y = y;
+		}
+		return true;
+	}
+
+	bool SetRectangleSelection(int left, int top, int right, int bottom, bool clamp = true)
+	{
+		SetRectangleSelectionStart(left, top, clamp);
+		return SetRectangleSelectionEnd(right, bottom, clamp);
+	}
+
+	RECT GetRectangleSelection() const
+	{
+		int left    = (std::min)(m_ptSelectionStart.x, m_ptSelectionEnd.x);
+		int top     = (std::min)(m_ptSelectionStart.y, m_ptSelectionEnd.y);
+		int right   = (std::max)(m_ptSelectionStart.x, m_ptSelectionEnd.x);
+		int bottom  = (std::max)(m_ptSelectionStart.y, m_ptSelectionEnd.y);
+		return { left, top, right, bottom };
+	}
+
+	bool IsRectanlgeSelectionVisible() const
+	{
+		return m_visibleRectangleSelection;
+	}
+
+	void DeleteRectangleSelection()
+	{
+		m_ptSelectionStart = {};
+		m_ptSelectionEnd   = {};
+		m_visibleRectangleSelection = false;
+	}
+
+	const fipWinImage& GetOverlappedImage() const
+	{
+		return m_fipOverlappedImage;
+	}
+
+	void SetOverlappedImage(const fipWinImage& image)
+	{
+		m_fipOverlappedImage = image;
+		m_ptOverlappedImage = {};
+		m_ptOverlappedImageCursor = {};
+	}
+
+	void StartDraggingOverlappedImage(const fipWinImage& image, const POINT& ptImage, const POINT& ptCursor)
+	{
+		m_fipOverlappedImage = image;
+		m_ptOverlappedImage = ptImage;
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
+	void RestartDraggingOverlappedImage(const POINT& ptCursor)
+	{
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
+	void DragOverlappedImage(const POINT& ptCursor)
+	{
+		m_ptOverlappedImage.x += ptCursor.x - m_ptOverlappedImageCursor.x;
+		m_ptOverlappedImage.y += ptCursor.y - m_ptOverlappedImageCursor.y;
+		m_ptOverlappedImageCursor = ptCursor;
+	}
+
+	void DeleteOverlappedImage()
+	{
+		m_fipOverlappedImage.clear();
+	}
+
+	POINT GetOverlappedImagePosition() const
+	{
+		return m_ptOverlappedImage;
+	}
+
+	RECT GetOverlappedImageRect() const
+	{
+		return { m_ptOverlappedImage.x, m_ptOverlappedImage.y,
+			static_cast<long>(m_ptOverlappedImage.x + m_fipOverlappedImage.getWidth()),
+			static_cast<long>(m_ptOverlappedImage.y + m_fipOverlappedImage.getHeight()) };
+	}
+
+	void SetOverlappedImagePosition(const POINT& pt)
+	{
+		m_ptOverlappedImage = pt;
 	}
 
 private:
@@ -358,6 +485,31 @@ private:
 				}
 			}
 			
+			if (m_visibleRectangleSelection)
+			{
+				RECT rcSelectionL = GetRectangleSelection();
+				POINT ptLT = ConvertLPtoDP(rcSelectionL.left, rcSelectionL.top);
+				POINT ptRB = ConvertLPtoDP(rcSelectionL.right, rcSelectionL.bottom);
+				RECT rcSelection = { ptLT.x, ptLT.y, ptRB.x, ptRB.y };
+				if (rcSelection.left == rcSelection.right || rcSelection.top == rcSelection.bottom)
+				{
+					DrawXorBar(hdcMem, rcSelection.left, rcSelection.top,
+						rcSelection.right - rcSelection.left + 1, rcSelection.bottom - rcSelection.top + 1);
+				}
+				else
+				{
+					DrawXorRectangle(hdcMem, rcSelection.left, rcSelection.top, rcSelection.right - rcSelection.left, rcSelection.bottom - rcSelection.top, 1);
+				}
+			}
+
+			if (m_fipOverlappedImage.isValid())
+			{
+				POINT pt = ConvertLPtoDP(m_ptOverlappedImage.x, m_ptOverlappedImage.y);
+				RECT rcImg = { pt.x, pt.y, pt.x + static_cast<int>(m_fipOverlappedImage.getWidth() * m_zoom), pt.y + static_cast<int>(m_fipOverlappedImage.getHeight() * m_zoom) };
+				m_fipOverlappedImage.draw(hdcMem, rcImg);
+				DrawXorRectangle(hdcMem, rcImg.left, rcImg.top, rcImg.right - rcImg.left, rcImg.bottom - rcImg.top, 1);
+			}
+
 			BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
 
 			DeleteObject(SelectObject(hdcMem, hOldBrush));
@@ -516,6 +668,9 @@ private:
 		case WM_SIZE:
 			OnSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
 			break;
+		case WM_SETCURSOR:
+			::SetCursor(m_hCursor ? m_hCursor : LoadCursor(nullptr, IDC_ARROW));
+			break;
 		default:
 			return DefWindowProc(hwnd, iMsg, wParam, lParam);
 		}
@@ -549,6 +704,38 @@ private:
 		}
 	}
 
+	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
+	{
+		static const WORD _dotPatternBmp[8] = 
+		{ 
+			0x00aa, 0x0055, 0x00aa, 0x0055, 
+			0x00aa, 0x0055, 0x00aa, 0x0055
+		};
+
+		HBITMAP hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
+		HBRUSH hbr = CreatePatternBrush(hbm);
+		
+		SetBrushOrgEx(hdc, x1, y1, 0);
+		HBRUSH hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
+		
+		PatBlt(hdc, x1, y1, width, height, PATINVERT);
+		
+		SelectObject(hdc, hbrushOld);
+		
+		DeleteObject(hbr);
+		DeleteObject(hbm);
+	}
+
+	void DrawXorRectangle(HDC hdc, int left, int top, int width, int height, int lineWidth)
+	{
+		int right = left + width;
+		int bottom = top + height;
+		DrawXorBar(hdc, left                 , top                   , width    , lineWidth);
+		DrawXorBar(hdc, left                 , bottom - lineWidth + 1, width    , lineWidth);
+		DrawXorBar(hdc, left                 , top                   , lineWidth, height);
+		DrawXorBar(hdc, right - lineWidth + 1, top                   , lineWidth, height);
+	}
+
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (iMsg == WM_NCCREATE)
@@ -560,9 +747,16 @@ private:
 
 	HWND m_hWnd;
 	fipWinImage *m_fip;
+	fipWinImage m_fipOverlappedImage;
+	POINT m_ptOverlappedImage;
+	POINT m_ptOverlappedImageCursor;
 	int m_nVScrollPos;
 	int m_nHScrollPos;
 	double m_zoom;
 	bool m_useBackColor;
 	RGBQUAD m_backColor;
+	bool m_visibleRectangleSelection;
+	POINT m_ptSelectionStart;
+	POINT m_ptSelectionEnd;
+	HCURSOR m_hCursor;
 };

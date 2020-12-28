@@ -137,6 +137,55 @@ public:
 	{
 	}
 
+	bool NewImages(int nImages, int nPages, int width, int height)
+	{
+		CloseImages();
+		m_nImages = nImages;
+		for (int i = 0; i < nImages; ++i)
+			m_filename[i] = L"";
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			m_imgConverter[i].close();
+			m_currentPage[i] = 0;
+			if (nPages > 1)
+			{
+				for (int page = 0; page < nPages; ++page)
+				{
+					Image img{ width, height };
+					m_imgOrigMultiPage[i].insertPage(page, img);
+				}
+				m_imgOrig[i] = m_imgOrigMultiPage[i].getImage(0);
+				m_imgOrig32[i] = m_imgOrig[i];
+			}
+			else
+			{
+				m_imgOrigMultiPage[i].close();
+				m_imgOrig[i] = Image{ width, height };
+				m_imgOrig32[i] = m_imgOrig[i];
+			}
+		}
+		return true;
+	}
+
+	bool Resize(int pane, int width, int height)
+	{
+		if (width == m_imgOrig32[pane].width() && height == m_imgOrig32[pane].height())
+			return false;
+
+		Image *oldbitmap = new Image(m_imgOrig32[pane]);
+
+		m_imgOrig32[pane].setSize(width, height);
+		PasteImageInternal(pane, 0, 0, *oldbitmap, false);
+
+		Image *newbitmap = new Image(m_imgOrig32[pane]);
+
+		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+
+		CompareImages();
+
+		return true;
+	}
+
 	bool GetReadOnly(int pane) const
 	{
 		if (pane < 0 || pane >= m_nImages)
@@ -370,6 +419,26 @@ public:
 		return nMerged;
 	}
 
+	bool DeleteRectangle(int pane, int left, int top, int right, int bottom)
+	{
+		if (pane < 0 || pane >= m_nImages || m_bRO[pane])
+			return false;
+
+		Image *oldbitmap = new Image(m_imgOrig32[pane]);
+
+		for (unsigned i = top; i < static_cast<unsigned>(bottom); ++i)
+		{
+			unsigned char* scanline = m_imgOrig32[pane].scanLine(i);
+			memset(scanline + left * 4, 0, (right - left) * 4);
+		}
+
+		Image *newbitmap = new Image(m_imgOrig32[pane]);
+		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+
+		CompareImages();
+		return true;
+	}
+
 	bool IsModified(int pane) const
 	{
 		return m_undoRecords.is_modified(pane);
@@ -455,6 +524,12 @@ public:
 		return CImgDiffBuffer::CloseImages();
 	}
 
+	void PasteImage(int pane, int x, int y, const Image& image)
+	{
+		PasteImageInternal(pane, x, y, image, true);
+		CompareImages();
+	}
+
 protected:
 	void InsertRows(int pane, int y, int rows)
 	{
@@ -495,6 +570,40 @@ protected:
 		{
 			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), x * 4);
 			memcpy(m_imgOrig32[pane].scanLine(i) + x * 4, tmpImage.scanLine(i) + (x + columns) * 4, (tmpImage.width() - x - columns) * 4);
+		}
+	}
+
+	void PasteImageInternal(int pane, int x, int y, const Image& image, bool history)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+
+		int width = m_imgOrig32[pane].width();
+		int height = m_imgOrig32[pane].height();
+		if (width == 0 || height == 0)
+			return;
+
+		int left = std::clamp(x, 0, width - 1);
+		int top = std::clamp(y, 0, height - 1);
+		int right = std::clamp(static_cast<int>(x + image.width()), 0, width);
+		int bottom = std::clamp(static_cast<int>(y + image.height()), 0, height);
+		if (right - left <= 0)
+			return;
+		if (bottom - top <= 0)
+			return;
+
+		Image *oldbitmap = nullptr;
+		if (history)
+			oldbitmap = new Image(m_imgOrig32[pane]);
+
+		for (int i = top; i < bottom; ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i) + left * 4, 
+				image.scanLine(i - y) + (left - x) * 4, (right - left) * 4);
+
+		if (history)
+		{
+			Image *newbitmap = new Image(m_imgOrig32[pane]);
+			m_undoRecords.push_back(pane, oldbitmap, newbitmap);
 		}
 	}
 
