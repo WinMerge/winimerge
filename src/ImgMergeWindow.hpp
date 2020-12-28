@@ -1308,7 +1308,7 @@ private:
 
 	void PasteOverlappedImage(int pane)
 	{
-		CImgWindow& imgWindow = m_imgWindow[pane];
+		const CImgWindow& imgWindow = m_imgWindow[pane];
 		if (!imgWindow.GetOverlappedImage().isValid())
 			return;
 		RECT rcOverlapeedImage = ConvertToRealRect(pane, imgWindow.GetOverlappedImageRect(), false);

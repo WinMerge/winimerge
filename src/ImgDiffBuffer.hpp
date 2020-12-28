@@ -1687,7 +1687,7 @@ protected:
 		return diffCount;
 	}
 
-	int MarkDiffIndex3way(DiffBlocks& diff01, DiffBlocks& diff21, DiffBlocks& diff02, DiffBlocks& diff3)
+	int MarkDiffIndex3way(const DiffBlocks& diff01, const DiffBlocks& diff21, const DiffBlocks& diff02, DiffBlocks& diff3)
 	{
 		int diffCount = MarkDiffIndex(diff3);
 		std::vector<DiffStat> counter(m_diffInfos.size());
