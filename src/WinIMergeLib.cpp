@@ -49,7 +49,6 @@ WinIMerge_DestroyWindow(IImgMergeWindow *pImgMergeWindow)
 extern "C" IImgToolWindow *
 WinIMerge_CreateToolWindow(HINSTANCE hInstance, HWND hWndParent, IImgMergeWindow *pImgMergeWindow)
 {
-	RECT rc = {0};
 	CImgToolWindow *pImgToolWindow = new CImgToolWindow();
 	pImgToolWindow->Create(hInstance, hWndParent);
 	pImgToolWindow->SetImgMergeWindow(pImgMergeWindow);
