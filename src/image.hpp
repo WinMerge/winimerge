@@ -33,7 +33,7 @@ public:
 	fipImageEx(FREE_IMAGE_TYPE image_type = FIT_BITMAP, unsigned width = 0, unsigned height = 0, unsigned bpp = 0)
 		: fipWinImage(image_type, width, height, bpp) {}
 	fipImageEx(const fipImageEx& Image) { *this = Image; }
-	fipImageEx(const fipWinImage& Image) { *this = Image; }
+	explicit fipImageEx(const fipWinImage& Image) { *this = Image; }
 	explicit fipImageEx(FIBITMAP *bitmap) { *this = bitmap; }
 	virtual ~fipImageEx() {}
 
