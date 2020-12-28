@@ -128,7 +128,6 @@ public:
 
 	POINT GetCursorPos() const
 	{
-		POINT pt = {-1, -1};
 		POINT dpt;
 		::GetCursorPos(&dpt);
 		RECT rc;
