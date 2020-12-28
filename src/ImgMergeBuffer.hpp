@@ -517,7 +517,7 @@ public:
 		return true;
 	}
 
-	virtual bool CloseImages()
+	virtual bool CloseImages() override
 	{
 		for (int i = 0; i < m_nImages; ++i)
 			m_undoRecords.clear();

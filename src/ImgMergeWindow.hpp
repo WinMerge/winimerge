@@ -104,17 +104,17 @@ public:
 		m_listener.push_back(EventListenerInfo(func, userdata));
 	}
 
-	const wchar_t *GetFileName(int pane)
+	const wchar_t *GetFileName(int pane) override
 	{
 		return m_buffer.GetFileName(pane);
 	}
 
-	int GetPaneCount() const
+	int GetPaneCount() const override
 	{
 		return m_nImages;
 	}
 
-	RECT GetPaneWindowRect(int pane) const
+	RECT GetPaneWindowRect(int pane) const override
 	{
 		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 		{
@@ -124,7 +124,7 @@ public:
 		return m_imgWindow[pane].GetWindowRect();
 	}
 
-	RECT GetWindowRect() const
+	RECT GetWindowRect() const override
 	{
 		if (!m_hWnd)
 			return RECT{0};
@@ -139,14 +139,14 @@ public:
 		return rc;
 	}
 
-	bool SetWindowRect(const RECT& rc)
+	bool SetWindowRect(const RECT& rc) override
 	{
 		if (m_hWnd)
 			MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
 		return true;
 	}
 
-	POINT GetCursorPos(int pane) const
+	POINT GetCursorPos(int pane) const override
 	{
 		POINT pt = {-1, -1};
 		if (pane < 0 || pane > m_nImages || !m_hWnd)
@@ -154,7 +154,7 @@ public:
 		return m_imgWindow[pane].GetCursorPos();
 	}
 
-	bool ConvertToRealPos(int pane, const POINT& pt, POINT& ptReal) const
+	bool ConvertToRealPos(int pane, const POINT& pt, POINT& ptReal) const override
 	{
 		int rx, ry;
 		bool result = m_buffer.ConvertToRealPos(pane, pt.x, pt.y, rx, ry);
@@ -162,17 +162,17 @@ public:
 		return result;
 	}
 
-	RGBQUAD GetPixelColor(int pane, int x, int y) const
+	RGBQUAD GetPixelColor(int pane, int x, int y) const override
 	{
 		return m_buffer.GetPixelColor(pane, x, y);
 	}
 
-	double GetColorDistance(int pane1, int pane2, int x, int y) const
+	double GetColorDistance(int pane1, int pane2, int x, int y) const override
 	{
 		return m_buffer.GetColorDistance(pane1, pane2, x, y);
 	}
 
-	int GetActivePane() const
+	int GetActivePane() const override
 	{
 		if (!m_hWnd)
 			return -1;
@@ -182,29 +182,29 @@ public:
 		return -1;
 	}
 
-	void SetActivePane(int pane)
+	void SetActivePane(int pane) override
 	{
 		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 			return;
 		m_imgWindow[pane].SetFocus();
 	}
 
-	bool GetReadOnly(int pane) const
+	bool GetReadOnly(int pane) const override
 	{
 		return m_buffer.GetReadOnly(pane);
 	}
 
-	void SetReadOnly(int pane, bool readOnly)
+	void SetReadOnly(int pane, bool readOnly) override
 	{
 		m_buffer.SetReadOnly(pane, readOnly);
 	}
 
-	bool GetHorizontalSplit() const
+	bool GetHorizontalSplit() const override
 	{
 		return m_bHorizontalSplit;
 	}
 
-	void SetHorizontalSplit(bool horizontalSplit)
+	void SetHorizontalSplit(bool horizontalSplit) override
 	{
 		if (!m_hWnd)
 			return;
@@ -214,67 +214,67 @@ public:
 			m_imgWindow[i].SetWindowRect(rects[i]);
 	}
 
-	COLORREF GetDiffColor() const
+	COLORREF GetDiffColor() const override
 	{
 		return RGBQUADtoCOLORREF(m_buffer.GetDiffColor());
 	}
 
-	void SetDiffColor(COLORREF clrDiffColor)
+	void SetDiffColor(COLORREF clrDiffColor) override
 	{
 		m_buffer.SetDiffColor(COLORREFtoRGBQUAD(clrDiffColor));
 		Invalidate();
 	}
 
-	COLORREF GetDiffDeletedColor() const
+	COLORREF GetDiffDeletedColor() const override
 	{
 		return RGBQUADtoCOLORREF(m_buffer.GetDiffDeletedColor());
 	}
 
-	void SetDiffDeletedColor(COLORREF clrDiffDeletedColor)
+	void SetDiffDeletedColor(COLORREF clrDiffDeletedColor) override
 	{
 		m_buffer.SetDiffDeletedColor(COLORREFtoRGBQUAD(clrDiffDeletedColor));
 		Invalidate();
 	}
 
-	COLORREF GetSelDiffColor() const
+	COLORREF GetSelDiffColor() const override
 	{
 		return RGBQUADtoCOLORREF(m_buffer.GetSelDiffColor());
 	}
 
-	void SetSelDiffColor(COLORREF clrSelDiffColor)
+	void SetSelDiffColor(COLORREF clrSelDiffColor) override
 	{
 		m_buffer.SetSelDiffColor(COLORREFtoRGBQUAD(clrSelDiffColor));
 		Invalidate();
 	}
 
-	COLORREF GetSelDiffDeletedColor() const
+	COLORREF GetSelDiffDeletedColor() const override
 	{
 		return RGBQUADtoCOLORREF(m_buffer.GetSelDiffDeletedColor());
 	}
 
-	void SetSelDiffDeletedColor(COLORREF clrSelDiffDeletedColor)
+	void SetSelDiffDeletedColor(COLORREF clrSelDiffDeletedColor) override
 	{
 		m_buffer.SetSelDiffColor(COLORREFtoRGBQUAD(clrSelDiffDeletedColor));
 		Invalidate();
 	}
 
-	double GetDiffColorAlpha() const
+	double GetDiffColorAlpha() const override
 	{
 		return m_buffer.GetDiffColorAlpha();
 	}
 
-	void SetDiffColorAlpha(double diffColorAlpha)
+	void SetDiffColorAlpha(double diffColorAlpha) override
 	{
 		m_buffer.SetDiffColorAlpha(diffColorAlpha);
 		Invalidate();
 	}
 
-	RGBQUAD GetBackColor() const
+	RGBQUAD GetBackColor() const override
 	{
 		return m_hWnd ? m_imgWindow[0].GetBackColor() : RGBQUAD{0};
 	}
 
-	void SetBackColor(RGBQUAD backColor)
+	void SetBackColor(RGBQUAD backColor) override
 	{
 		if (m_hWnd)
 		{
@@ -283,12 +283,12 @@ public:
 		}
 	}
 
-	bool GetUseBackColor() const
+	bool GetUseBackColor() const override
 	{
 		return m_hWnd ? m_imgWindow[0].GetUseBackColor() : false;
 	}
 
-	void SetUseBackColor(bool useBackColor)
+	void SetUseBackColor(bool useBackColor) override
 	{
 		if (!m_hWnd)
 			return;
@@ -296,12 +296,12 @@ public:
 			m_imgWindow[i].SetUseBackColor(useBackColor);
 	}
 
-	double GetZoom() const
+	double GetZoom() const override
 	{
 		return m_hWnd ? m_imgWindow[0].GetZoom() : 1.0;
 	}
 
-	void SetZoom(double zoom)
+	void SetZoom(double zoom) override
 	{
 		if (!m_hWnd)
 			return;
@@ -313,77 +313,77 @@ public:
 		notify(evt);
 	}
 
-	int  GetCurrentPage(int pane) const
+	int  GetCurrentPage(int pane) const override
 	{
 		return m_buffer.GetCurrentPage(pane);
 	}
 
-	void SetCurrentPage(int pane, int page)
+	void SetCurrentPage(int pane, int page) override
 	{
 		m_buffer.SetCurrentPage(pane, page);
 		Invalidate();
 	}
 
-	void SetCurrentPageAll(int page)
+	void SetCurrentPageAll(int page) override
 	{
 		m_buffer.SetCurrentPageAll(page);
 		Invalidate();
 	}
 
-	int  GetCurrentMaxPage() const
+	int  GetCurrentMaxPage() const override
 	{
 		return m_buffer.GetCurrentMaxPage();
 	}
 
-	int  GetPageCount(int pane) const
+	int  GetPageCount(int pane) const override
 	{
 		return m_buffer.GetPageCount(pane);
 	}
 
-	int  GetMaxPageCount() const
+	int  GetMaxPageCount() const override
 	{
 		return m_buffer.GetMaxPageCount();
 	}
 
-	double GetColorDistanceThreshold() const
+	double GetColorDistanceThreshold() const override
 	{
 		return m_buffer.GetColorDistanceThreshold();
 	}
 
-	void SetColorDistanceThreshold(double threshold)
+	void SetColorDistanceThreshold(double threshold) override
 	{
 		m_buffer.SetColorDistanceThreshold(threshold);
 		Invalidate();
 	}
 
-	int  GetDiffBlockSize() const
+	int  GetDiffBlockSize() const override
 	{
 		return m_buffer.GetDiffBlockSize();
 	}
 	
-	void SetDiffBlockSize(int blockSize)
+	void SetDiffBlockSize(int blockSize) override
 	{
 		m_buffer.SetDiffBlockSize(blockSize);
 		Invalidate();
 	}
 
-	INSERTION_DELETION_DETECTION_MODE GetInsertionDeletionDetectionMode() const
+	INSERTION_DELETION_DETECTION_MODE GetInsertionDeletionDetectionMode() const override
 	{
 		return static_cast<INSERTION_DELETION_DETECTION_MODE>(m_buffer.GetInsertionDeletionDetectionMode());
 	}
 
-	void SetInsertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_MODE insertionDeletinoMode)
+	void SetInsertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_MODE insertionDeletinoMode) override
 	{
 		m_buffer.SetInsertionDeletionDetectionMode(static_cast<CImgMergeBuffer::INSERTION_DELETION_DETECTION_MODE>(insertionDeletinoMode));
 		Invalidate();
 	}
 
-	OVERLAY_MODE GetOverlayMode() const
+	OVERLAY_MODE GetOverlayMode() const override
 	{
 		return static_cast<OVERLAY_MODE>(m_buffer.GetOverlayMode());
 	}
 
-	void SetOverlayMode(OVERLAY_MODE overlayMode)
+	void SetOverlayMode(OVERLAY_MODE overlayMode) override
 	{
 		m_buffer.SetOverlayMode(static_cast<CImgMergeBuffer::OVERLAY_MODE>(overlayMode));
 		Invalidate();
@@ -393,34 +393,34 @@ public:
 			KillTimer(m_hWnd, 2);
 	}
 
-	double GetOverlayAlpha() const
+	double GetOverlayAlpha() const override
 	{
 		return m_buffer.GetOverlayAlpha();
 	}
 
-	void SetOverlayAlpha(double overlayAlpha)
+	void SetOverlayAlpha(double overlayAlpha) override
 	{
 		m_buffer.SetOverlayAlpha(overlayAlpha);
 		Invalidate();
 	}
 
-	bool GetShowDifferences() const
+	bool GetShowDifferences() const override
 	{
 		return m_buffer.GetShowDifferences();
 	}
 
-	void SetShowDifferences(bool visible)
+	void SetShowDifferences(bool visible) override
 	{
 		m_buffer.SetShowDifferences(visible);
 		Invalidate();
 	}
 
-	bool GetBlinkDifferences() const
+	bool GetBlinkDifferences() const override
 	{
 		return m_buffer.GetBlinkDifferences();
 	}
 
-	void SetBlinkDifferences(bool blink)
+	void SetBlinkDifferences(bool blink) override
 	{
 		m_buffer.SetBlinkDifferences(blink);
 		Invalidate();
@@ -430,33 +430,33 @@ public:
 			KillTimer(m_hWnd, 1);
 	}
 
-	float GetVectorImageZoomRatio() const
+	float GetVectorImageZoomRatio() const override
 	{
 		return m_buffer.GetVectorImageZoomRatio();
 	}
 
-	void SetVectorImageZoomRatio(float zoom)
+	void SetVectorImageZoomRatio(float zoom) override
 	{
 		m_buffer.SetVectorImageZoomRatio(zoom);
 		Invalidate();
 	}
 
-	int  GetDiffCount() const
+	int  GetDiffCount() const override
 	{
 		return m_buffer.GetDiffCount();
 	}
 
-	int  GetConflictCount() const
+	int  GetConflictCount() const override
 	{
 		return m_buffer.GetConflictCount();
 	}
 
-	int  GetCurrentDiffIndex() const
+	int  GetCurrentDiffIndex() const override
 	{
 		return m_buffer.GetCurrentDiffIndex();
 	}
 
-	bool FirstDiff()
+	bool FirstDiff() override
 	{
 		bool result = m_buffer.FirstDiff();
 		if (result)
@@ -464,7 +464,7 @@ public:
 		return result;
 	}
 
-	bool LastDiff()
+	bool LastDiff() override
 	{
 		bool result = m_buffer.LastDiff();
 		if (result)
@@ -472,7 +472,7 @@ public:
 		return result;
 	}
 
-	bool NextDiff()
+	bool NextDiff() override
 	{
 		bool result = m_buffer.NextDiff();
 		if (result)
@@ -480,7 +480,7 @@ public:
 		return result;
 	}
 
-	bool PrevDiff()
+	bool PrevDiff() override
 	{
 		bool result = m_buffer.PrevDiff();
 		if (result)
@@ -488,7 +488,7 @@ public:
 		return result;
 	}
 
-	bool FirstConflict()
+	bool FirstConflict() override
 	{
 		bool result = m_buffer.FirstConflict();
 		if (result)
@@ -496,7 +496,7 @@ public:
 		return result;
 	}
 
-	bool LastConflict()
+	bool LastConflict() override
 	{
 		bool result = m_buffer.LastConflict();
 		if (result)
@@ -504,7 +504,7 @@ public:
 		return result;
 	}
 
-	bool NextConflict()
+	bool NextConflict() override
 	{
 		bool result = m_buffer.NextConflict();
 		if (result)
@@ -512,7 +512,7 @@ public:
 		return result;
 	}
 
-	bool PrevConflict()
+	bool PrevConflict() override
 	{
 		bool result = m_buffer.PrevConflict();
 		if (result)
@@ -520,7 +520,7 @@ public:
 		return result;
 	}
 
-	bool SelectDiff(int diffIndex)
+	bool SelectDiff(int diffIndex) override
 	{
 		bool result = m_buffer.SelectDiff(diffIndex);
 		if (result)
@@ -528,56 +528,56 @@ public:
 		return result;
 	}
 	
-	int  GetNextDiffIndex() const
+	int  GetNextDiffIndex() const override
 	{
 		return m_buffer.GetNextDiffIndex();
 	}
 
-	int  GetPrevDiffIndex() const
+	int  GetPrevDiffIndex() const override
 	{
 		return m_buffer.GetPrevDiffIndex();
 	}
 
-	int  GetNextConflictIndex() const
+	int  GetNextConflictIndex() const override
 	{
 		return m_buffer.GetNextConflictIndex();
 	}
 
-	int  GetPrevConflictIndex() const
+	int  GetPrevConflictIndex() const override
 	{
 		return m_buffer.GetPrevConflictIndex();
 	}
 
-	void CopyDiff(int diffIndex, int srcPane, int dstPane)
+	void CopyDiff(int diffIndex, int srcPane, int dstPane) override
 	{
 		m_buffer.CopyDiff(diffIndex, srcPane, dstPane);
 		Invalidate();
 	}
 
-	void CopyDiffAll(int srcPane, int dstPane)
+	void CopyDiffAll(int srcPane, int dstPane) override
 	{
 		m_buffer.CopyDiffAll(srcPane, dstPane);
 		Invalidate();
 	}
 
-	int CopyDiff3Way(int dstPane)
+	int CopyDiff3Way(int dstPane) override
 	{
 		int result = m_buffer.CopyDiff3Way(dstPane);
 		Invalidate();
 		return result;
 	}
 
-	bool IsModified(int pane) const
+	bool IsModified(int pane) const override
 	{
 		return m_buffer.IsModified(pane);
 	}
 
-	bool IsUndoable() const
+	bool IsUndoable() const override
 	{
 		return m_buffer.IsUndoable();
 	}
 
-	bool IsCuttable() const
+	bool IsCuttable() const override
 	{
 		int pane = GetActivePane();
 		if (pane < 0)
@@ -585,7 +585,7 @@ public:
 		return m_imgWindow[pane].IsRectanlgeSelectionVisible() && GetReadOnly(pane);
 	}
 
-	bool IsCopyable() const
+	bool IsCopyable() const override
 	{
 		int pane = GetActivePane();
 		if (pane < 0)
@@ -593,7 +593,7 @@ public:
 		return m_imgWindow[pane].IsRectanlgeSelectionVisible();
 	}
 
-	bool IsPastable() const
+	bool IsPastable() const override
 	{
 		int pane = GetActivePane();
 		if (pane < 0)
@@ -601,12 +601,12 @@ public:
 		return !!IsClipboardFormatAvailable(CF_DIB);
 	}
 
-	bool IsRedoable() const
+	bool IsRedoable() const override
 	{
 		return m_buffer.IsRedoable();
 	}
 
-	bool IsCancellable() const
+	bool IsCancellable() const override
 	{
 		bool cancellable = false;
 		for (int pane = 0; pane < m_nImages; ++pane)
@@ -618,21 +618,21 @@ public:
 		return cancellable;
 	}
 
-	bool IsRectangleSelectionVisible(int pane) const
+	bool IsRectangleSelectionVisible(int pane) const override
 	{
 		if (pane < 0 || pane >= m_nImages)
 			return false;
 		return m_imgWindow[pane].IsRectanlgeSelectionVisible();
 	}
 
-	RECT GetRectangleSelection(int pane) const
+	RECT GetRectangleSelection(int pane) const override
 	{
 		if (pane < 0 || pane >= m_nImages)
 			return {};
 		return ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
 	}
 
-	bool SelectAll()
+	bool SelectAll() override
 	{
 		int pane = GetActivePane();
 		if (pane < 0)
@@ -643,7 +643,7 @@ public:
 		return true;
 	}
 
-	bool Copy()
+	bool Copy() override
 	{
 		int pane = GetActivePane();
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
@@ -654,7 +654,7 @@ public:
 		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 	}
 
-	bool Cut()
+	bool Cut() override
 	{
 		int pane = GetActivePane();
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
@@ -671,7 +671,7 @@ public:
 		return result;
 	}
 
-	bool Delete()
+	bool Delete() override
 	{
 		int pane = GetActivePane();
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
@@ -684,7 +684,7 @@ public:
 		return result;
 	}
 
-	bool Paste()
+	bool Paste() override
 	{
 		int pane = GetActivePane();
 		if (pane < 0)
@@ -701,7 +701,7 @@ public:
 		return true;
 	}
 
-	bool Undo()
+	bool Undo() override
 	{
 		Cancel();
 		bool result = m_buffer.Undo();
@@ -710,7 +710,7 @@ public:
 		return result;
 	}
 
-	bool Redo()
+	bool Redo() override
 	{
 		Cancel();
 		bool result = m_buffer.Redo();
@@ -719,7 +719,7 @@ public:
 		return result;
 	}
 
-	bool Cancel()
+	bool Cancel() override
 	{
 		if (!IsCancellable())
 			return false;
@@ -781,7 +781,7 @@ public:
 		notify(evt);
 	}
 
-	bool NewImages(int nImages, int nPages, int width, int height)
+	bool NewImages(int nImages, int nPages, int width, int height) override
 	{
 		CloseImages();
 		m_nImages = nImages;
@@ -841,19 +841,19 @@ public:
 		return bSucceeded;
 	}
 
-	bool OpenImages(const wchar_t *filename1, const wchar_t *filename2)
+	bool OpenImages(const wchar_t *filename1, const wchar_t *filename2) override
 	{
 		const wchar_t *filenames[] = {filename1, filename2};
 		return OpenImages(2, filenames);
 	}
 
-	bool OpenImages(const wchar_t *filename1, const wchar_t *filename2, const wchar_t *filename3)
+	bool OpenImages(const wchar_t *filename1, const wchar_t *filename2, const wchar_t *filename3) override
 	{
 		const wchar_t *filenames[] = {filename1, filename2, filename3};
 		return OpenImages(3, filenames);
 	}
 
-	bool ReloadImages()
+	bool ReloadImages() override
 	{
 		if (m_nImages == 2)
 			return OpenImages(m_buffer.GetFileName(0), m_buffer.GetFileName(1));
@@ -862,22 +862,22 @@ public:
 		return false;
 	}
 
-	bool SaveImage(int pane)
+	bool SaveImage(int pane) override
 	{
 		return m_buffer.SaveImage(pane);
 	}
 
-	bool SaveImages()
+	bool SaveImages() override
 	{
 		return m_buffer.SaveImages();
 	}
 
-	bool SaveImageAs(int pane, const wchar_t *filename)
+	bool SaveImageAs(int pane, const wchar_t *filename) override
 	{
 		return m_buffer.SaveImageAs(pane, filename);
 	}
 
-	bool CloseImages()
+	bool CloseImages() override
 	{
 		m_buffer.CloseImages();
 		if (m_hWnd)
@@ -888,29 +888,29 @@ public:
 		return true;
 	}
 
-	bool SaveDiffImageAs(int pane, const wchar_t *filename)
+	bool SaveDiffImageAs(int pane, const wchar_t *filename) override
 	{
 		return m_buffer.SaveDiffImageAs(pane, filename);
 	}
 
-	HWND GetPaneHWND(int pane) const
+	HWND GetPaneHWND(int pane) const override
 	{
 		if (pane < 0 || pane >= m_nImages || !m_hWnd)
 			return NULL;
 		return m_imgWindow[pane].GetHWND();
 	}
 
-	HWND GetHWND() const
+	HWND GetHWND() const override
 	{
 		return m_hWnd;
 	}
 
-	int  GetImageWidth(int pane) const
+	int  GetImageWidth(int pane) const override
 	{
 		return m_buffer.GetImageWidth(pane);
 	}
 
-	int  GetImageHeight(int pane) const
+	int  GetImageHeight(int pane) const override
 	{
 		return m_buffer.GetImageHeight(pane);
 	}
@@ -925,7 +925,7 @@ public:
 		return m_buffer.GetDiffImageHeight();
 	}
 
-	int  GetImageBitsPerPixel(int pane) const
+	int  GetImageBitsPerPixel(int pane) const override
 	{
 		return m_buffer.GetImageBitsPerPixel(pane);
 	}
@@ -935,14 +935,14 @@ public:
 		return m_buffer.GetDiffIndexFromPoint(x, y);
 	}
 
-	POINT GetImageOffset(int pane) const
+	POINT GetImageOffset(int pane) const override
 	{
 		Point<unsigned> pt = m_buffer.GetImageOffset(pane);
 		POINT pt2 = {static_cast<long>(pt.x), static_cast<long>(pt.y)};
 		return pt2;
 	}
 
-	void AddImageOffset(int pane, int dx, int dy)
+	void AddImageOffset(int pane, int dx, int dy) override
 	{
 		m_buffer.AddImageOffset(pane, dx, dy);
 		Invalidate();
@@ -958,12 +958,12 @@ public:
 		return m_buffer.GetDiffMapImage(w, h);
 	}
 
-	DRAGGING_MODE GetDraggingMode() const
+	DRAGGING_MODE GetDraggingMode() const override
 	{
 		return m_draggingMode;
 	}
 
-	void SetDraggingMode(DRAGGING_MODE draggingMode)
+	void SetDraggingMode(DRAGGING_MODE draggingMode) override
 	{
 		m_draggingMode = draggingMode;
 		HCURSOR hCursor = GetMouseCursorFromDraggingMode(draggingMode);
@@ -971,7 +971,7 @@ public:
 			m_imgWindow[pane].SetCursor(hCursor);
 	}
 
-	size_t GetMetadata(int pane, char *buf, size_t bufsize) const
+	size_t GetMetadata(int pane, char *buf, size_t bufsize) const override
 	{
 		std::map<std::string, std::string> metadata = m_buffer.GetOriginalImage(pane)->getMetadata();
 		std::string metadatastr;

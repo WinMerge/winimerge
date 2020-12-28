@@ -40,12 +40,12 @@ public:
 		}
 	}
 
-	virtual bool isValid() const
+	virtual bool isValid() const override
 	{
 		return m_thread.IsValid();
 	}
 
-	virtual bool load(const wchar_t *filename)
+	virtual bool load(const wchar_t *filename) override
 	{
 		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
 
@@ -73,7 +73,7 @@ public:
 		return params.result;
 	}
 
-	virtual void render(Image& img, int page, float zoom)
+	virtual void render(Image& img, int page, float zoom) override
 	{
 		if (!isValid())
 			return;
@@ -101,7 +101,7 @@ public:
 		DeleteFile(szFileName);
 	}
 
-	unsigned getPageCount() const
+	virtual unsigned getPageCount() const override
 	{
 		return m_pageCount;
 	}
@@ -263,12 +263,12 @@ private:
 class SvgRenderer: public ImageRenderer
 {
 public:
-	virtual bool isValid() const
+	virtual bool isValid() const override
 	{
 		return m_pSvgDocument != nullptr;
 	}
 
-	virtual bool load(const wchar_t *filename)
+	virtual bool load(const wchar_t *filename) override
 	{
 		if (Win78Libraries::D2D1CreateFactory == nullptr)
 			Win78Libraries::load();
@@ -307,7 +307,7 @@ public:
 		return true;
 	}
 
-	void render(Image& img, int page, float zoom)
+	virtual void render(Image& img, int page, float zoom) override
 	{
 		if (!isValid())
 			return;
@@ -334,7 +334,7 @@ public:
 		ReleaseDC(nullptr, hDC);
 	}
 
-	unsigned getPageCount() const { return 1; }
+	virtual unsigned getPageCount() const override { return 1; }
 
 private:
 	void calcSize()
@@ -374,12 +374,12 @@ private:
 class GdiPlusRenderer: public ImageRenderer
 {
 public:
-	virtual bool isValid() const
+	virtual bool isValid() const override
 	{
 		return m_pMetafile != nullptr;
 	}
 
-	virtual bool load(const wchar_t *filename)
+	virtual bool load(const wchar_t *filename) override
 	{
 		m_pMetafile.reset(new Gdiplus::Metafile(filename));
 		if (!m_pMetafile)
@@ -400,7 +400,7 @@ public:
 		return true;
 	}
 
-	void render(Image& img, int page, float zoom)
+	virtual void render(Image& img, int page, float zoom) override
 	{
 		HBITMAP hBitmap = nullptr;
 		Gdiplus::Bitmap bitmap(static_cast<unsigned>(m_imageWidth * zoom), static_cast<unsigned>(m_imageHeight * zoom));
@@ -412,7 +412,7 @@ public:
 		DeleteObject(hBitmap);
 	}
 
-	unsigned getPageCount() const { return 1; }
+	virtual unsigned getPageCount() const override { return 1; }
 
 private:
 	std::unique_ptr<Gdiplus::Metafile> m_pMetafile;
