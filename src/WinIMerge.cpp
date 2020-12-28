@@ -191,7 +191,6 @@ void SaveImageAs(HWND hWnd, int pane)
 	ofn.nMaxFile = MAX_PATH;
 	ofn.nMaxFileTitle = sizeof(szFile);
 	ofn.Flags = OFN_HIDEREADONLY;
-	std::wstring filename;
 	wchar_t title[256];
 	wsprintfW(title, L"Save %s As",
 		(pane == 0 ? L"Left" : (pane == m_pImgMergeWindow->GetPaneCount() - 1) ? L"Right" : L"Middle"));
