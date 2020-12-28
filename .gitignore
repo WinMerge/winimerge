@@ -11,3 +11,4 @@ Dist/
 *.bak
 *.aps
 *.*~
+winimerge-cppcheck-build-dir/
