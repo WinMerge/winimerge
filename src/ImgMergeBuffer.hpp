@@ -276,7 +276,7 @@ public:
 		// insert or delete lines
 		if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_VERTICAL)
 		{
-			for (auto& it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
+			for (auto it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
 			{
 				if (static_cast<int>(rc.top * m_diffBlockSize) <= it->dbegin &&
 				    it->dend[srcPane] < static_cast<int>(rc.bottom * m_diffBlockSize))
@@ -299,7 +299,7 @@ public:
 		}
 		else if (m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_HORIZONTAL)
 		{
-			for (auto& it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
+			for (auto it = m_lineDiffInfos.crbegin(); it != m_lineDiffInfos.crend(); ++it)
 			{
 				if (static_cast<int>(rc.left * m_diffBlockSize) <= it->dbegin &&
 				    it->dend[srcPane] < static_cast<int>(rc.right * m_diffBlockSize))
