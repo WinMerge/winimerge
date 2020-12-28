@@ -630,7 +630,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				cc.Flags = CC_RGBINIT;
 				if (ChooseColorW(&cc) != 0)
 				{
-					RGBQUAD backColor = {GetBValue(cc.rgbResult), GetGValue(cc.rgbResult), GetRValue(cc.rgbResult)};
+					backColor = {GetBValue(cc.rgbResult), GetGValue(cc.rgbResult), GetRValue(cc.rgbResult)};
 					m_pImgMergeWindow->SetBackColor(backColor);
 					m_pImgMergeWindow->SetUseBackColor(useBackColor);
 				}
