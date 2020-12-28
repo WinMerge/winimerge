@@ -635,7 +635,7 @@ public:
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
 			return false;
 		Image image;
-		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection());
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
 		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
 		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 	}
@@ -646,7 +646,7 @@ public:
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
 			return false;
 		Image image;
-		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection());
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
 		m_buffer.GetOriginalImage(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
 		bool result = !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 		if (result)
@@ -662,7 +662,7 @@ public:
 		int pane = GetActivePane();
 		if (pane < 0 || !m_imgWindow[pane].IsRectanlgeSelectionVisible())
 			return false;
-		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection());
+		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
 		Cancel();
 		bool result = m_buffer.DeleteRectangle(pane, rc.left, rc.top, rc.right, rc.bottom);
 		if (result)
@@ -1232,7 +1232,7 @@ private:
 			OnSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_KEYDOWN:
-			OnKeyDown(wParam, (int)(short)LOWORD(lParam), (UINT)HIWORD(lParam));
+			OnKeyDown((UINT)wParam, (int)(short)LOWORD(lParam), (UINT)HIWORD(lParam));
 			break;
 		case WM_LBUTTONDOWN:
 			OnLButtonDown((UINT)(wParam), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
@@ -1282,13 +1282,13 @@ private:
 		return lResult;
 	}
 
-	RECT ConvertToRealRect(int pane, const RECT& rc)
+	RECT ConvertToRealRect(int pane, const RECT& rc, bool clamp = true)
 	{
 		Point<int> ptRealStart, ptRealEnd;
 		m_buffer.ConvertToRealPos(pane, rc.left, rc.top,
-			ptRealStart.x, ptRealStart.y);
+			ptRealStart.x, ptRealStart.y, clamp);
 		m_buffer.ConvertToRealPos(pane, rc.right, rc.bottom,
-			ptRealEnd.x, ptRealEnd.y);
+			ptRealEnd.x, ptRealEnd.y, clamp);
 		return { ptRealStart.x, ptRealStart.y, ptRealEnd.x, ptRealEnd.y };
 	}
 
@@ -1297,7 +1297,7 @@ private:
 		CImgWindow& imgWindow = m_imgWindow[pane];
 		if (!imgWindow.GetOverlappedImage().isValid())
 			return;
-		RECT rcOverlapeedImage = ConvertToRealRect(pane, imgWindow.GetOverlappedImageRect());
+		RECT rcOverlapeedImage = ConvertToRealRect(pane, imgWindow.GetOverlappedImageRect(), false);
 		Image image(imgWindow.GetOverlappedImage());
 		m_buffer.PasteImage(pane, rcOverlapeedImage.left, rcOverlapeedImage.top, image);
 		Invalidate();
@@ -1321,13 +1321,13 @@ private:
 	RECT GetRightBoxRect(int pane) const
 	{
 		RECT rc = GetPreprocessedImageRect(pane);
-		return { rc.right, (rc.bottom + rc.top) / 2 - 4, rc.right + 8, (rc.bottom + rc.top) / 2 + 4 };
+		return { rc.right, rc.top, rc.right + 8, rc.bottom };
 	}
 
 	RECT GetBottomBoxRect(int pane) const
 	{
 		RECT rc = GetPreprocessedImageRect(pane);
-		return { (rc.right + rc.top) / 2 - 4, rc.bottom, (rc.right + rc.left) / 2 + 4, rc.bottom + 8 };
+		return { rc.left, rc.bottom, rc.right, rc.bottom + 8 };
 	}
 
 	RECT GetRightBottomBoxRect(int pane) const
@@ -1364,8 +1364,6 @@ private:
 		if (imgWindow.IsRectanlgeSelectionVisible() && !PtInRect(&rcSelection, pt))
 			imgWindow.DeleteRectangleSelection();
 
-		bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
-
 		if (PtInRect(&GetRightBottomBoxRect(evt.pane), pt))
 		{
 			imgWindow.SetRectangleSelection(
@@ -1389,6 +1387,7 @@ private:
 		}
 		else if (imgWindow.GetOverlappedImage().isValid() && PtInRect(&rcOverlapeedImage, pt))
 		{
+			bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
 			if (controlKeyPressed)
 				PasteOverlappedImage(evt.pane);
 			imgWindow.RestartDraggingOverlappedImage(pt);
@@ -1396,12 +1395,6 @@ private:
 		}
 		else if ((imgWindow.IsRectanlgeSelectionVisible() && PtInRect(&rcSelection, pt)))
 		{
-			if (!controlKeyPressed)
-			{
-				RECT rcReal = ConvertToRealRect(evt.pane, rcSelection);
-				m_buffer.DeleteRectangle(evt.pane,
-					rcReal.left, rcReal.top, rcReal.right, rcReal.bottom);
-			}
 			m_draggingModeCurrent = DRAGGING_MODE::MOVE_IMAGE;
 		}
 		else if (m_draggingModeCurrent == DRAGGING_MODE::VERTICAL_WIPE)
@@ -1560,8 +1553,14 @@ private:
 			if (imgWindow.IsRectanlgeSelectionVisible())
 			{
 				RECT rcSelect = imgWindow.GetRectangleSelection();
-				RECT rcSelectReal = ConvertToRealRect(evt.pane, rcSelect);
-					
+				RECT rcSelectReal = ConvertToRealRect(evt.pane, rcSelect, false);
+				bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+				if (!controlKeyPressed)
+				{
+					m_buffer.DeleteRectangle(evt.pane,
+						rcSelectReal.left, rcSelectReal.top,
+						rcSelectReal.right, rcSelectReal.bottom);
+				}
 				Image image;
 				const Image* pImage = m_buffer.GetOriginalImage(evt.pane);
 				pImage->copySubImage(image, rcSelectReal.left, rcSelectReal.top,
@@ -1603,6 +1602,11 @@ private:
 			SelectDiff(diffIndex);
 		else
 			SelectDiff(-1);
+	}
+
+	void ChildWnd_OnKillFocus(HWND hwnd, const Event& evt)
+	{
+		PasteAndDeleteOverlappedImage(evt.pane);
 	}
 
 	void ChildWnd_OnHVScroll(HWND hwnd, int iMsg, WPARAM wParam, LPARAM lParam, const Event& evt)
@@ -1705,6 +1709,9 @@ private:
 			break;
 		case WM_LBUTTONDBLCLK:
 			pImgWnd->ChildWnd_OnLButtonDblClk(hwnd, evt);
+			break;
+		case WM_KILLFOCUS:
+			pImgWnd->ChildWnd_OnKillFocus(hwnd, evt);
 			break;
 		case WM_HSCROLL:
 		case WM_VSCROLL:

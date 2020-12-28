@@ -1341,7 +1341,7 @@ public:
 		RefreshImages();
 	}
 
-	bool ConvertToRealPos(int pane, int x, int y, int& rx, int& ry) const
+	bool ConvertToRealPos(int pane, int x, int y, int& rx, int& ry, bool clamp = true) const
 	{
 		x -= m_offset[pane].x;
 		y -= m_offset[pane].y;
@@ -1352,24 +1352,24 @@ public:
 		{
 			if (x < 0)
 			{
-				rx = 0;
+				rx = clamp ? 0 : x;
 				inside = false;
 			}
 			else if (x >= static_cast<int>(m_imgPreprocessed[pane].width()))
 			{
-				rx = m_imgPreprocessed[pane].width() - 1;
+				rx = clamp ? (m_imgPreprocessed[pane].width() - 1) : x;
 				inside = false;
 			}
 			else
 				rx = x;
 			if (y < 0)
 			{
-				ry = 0;
+				ry = clamp ? 0 : y;
 				inside = false;
 			}
 			else if (y >= static_cast<int>(m_imgPreprocessed[pane].height()))
 			{
-				ry = m_imgPreprocessed[pane].height() - 1;
+				ry = clamp ? (m_imgPreprocessed[pane].height() - 1) : y;
 				inside = false;
 			}
 			else
@@ -1381,12 +1381,12 @@ public:
 		{
 			if (x < 0)
 			{
-				rx = 0;
+				rx = clamp ? 0 : x;
 				inside = false;
 			}
 			else if (x >= static_cast<int>(m_imgPreprocessed[pane].width()))
 			{
-				rx = m_imgPreprocessed[pane].width() - 1;
+				rx = clamp ? (m_imgPreprocessed[pane].width() - 1) : x;
 				inside = false;
 			}
 			else
@@ -1397,7 +1397,7 @@ public:
 				{
 					if (y < 0)
 					{
-						ry = 0;
+						ry = clamp ? 0 : y;
 						inside = false;
 					}
 					else
@@ -1414,7 +1414,8 @@ public:
 			ry = y - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
 			if (ry >= static_cast<int>(m_imgOrig32[pane].height()))
 			{
-				ry = m_imgOrig32[pane].height() - 1;
+				if (clamp)
+					ry = m_imgOrig32[pane].height() - 1;
 				inside = false;
 			}
 			return inside;
@@ -1423,12 +1424,12 @@ public:
 		{
 			if (y < 0)
 			{
-				ry = 0;
+				ry = clamp ? 0 : y;
 				inside = false;
 			}
 			else if (y >= static_cast<int>(m_imgPreprocessed[pane].height()))
 			{
-				ry = m_imgPreprocessed[pane].height() - 1;
+				ry = clamp ? (m_imgPreprocessed[pane].height() - 1) : y;
 				inside = false;
 			}
 			else
@@ -1439,7 +1440,7 @@ public:
 				{
 					if (x < 0)
 					{
-						rx = 0;
+						rx = clamp ? 0 : x;
 						inside = false;
 					}
 					else
@@ -1456,7 +1457,8 @@ public:
 			rx = x - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
 			if (rx >= static_cast<int>(m_imgOrig32[pane].width()))
 			{
-				rx = m_imgOrig32[pane].width() - 1;
+				if (clamp)
+					rx = m_imgOrig32[pane].width() - 1;
 				inside = false;
 			}
 			return inside;
