@@ -618,6 +618,20 @@ public:
 		return cancellable;
 	}
 
+	bool IsRectangleSelectionVisible(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return false;
+		return m_imgWindow[pane].IsRectanlgeSelectionVisible();
+	}
+
+	RECT GetRectangleSelection(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return {};
+		return ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
+	}
+
 	bool SelectAll()
 	{
 		int pane = GetActivePane();
@@ -1282,7 +1296,7 @@ private:
 		return lResult;
 	}
 
-	RECT ConvertToRealRect(int pane, const RECT& rc, bool clamp = true)
+	RECT ConvertToRealRect(int pane, const RECT& rc, bool clamp = true) const
 	{
 		Point<int> ptRealStart, ptRealEnd;
 		m_buffer.ConvertToRealPos(pane, rc.left, rc.top,

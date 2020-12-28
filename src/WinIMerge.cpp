@@ -273,6 +273,11 @@ void UpdateStatusBar()
 			else
 				p += swprintf_s(p, buf + sizeof(buf)/sizeof(wchar_t) - p, L"Dist:%g ", colorDistance01);
 		}
+		if (m_pImgMergeWindow->IsRectangleSelectionVisible(pane))
+		{
+			RECT rc = m_pImgMergeWindow->GetRectangleSelection(pane);
+			p += wsprintfW(p, L"Rc:(%d,%d) ", rc.right - rc.left, rc.bottom - rc.top);
+		}
 		p += wsprintfW(p, L"Page:%d/%d Zoom:%d%% Diff:%d/%d %dx%dpx %dbpp", 
 			m_pImgMergeWindow->GetCurrentPage(pane) + 1,
 			m_pImgMergeWindow->GetPageCount(pane),
