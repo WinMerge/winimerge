@@ -20,6 +20,7 @@
 
 #include "FreeImagePlus.h"
 #include <vector>
+#include <algorithm>
 
 class CImgWindow
 {
@@ -287,7 +288,8 @@ public:
 	{
 		m_fip = pfip;
 		m_visibleRectangleSelection = false;
-		m_rcSelection = {};
+		m_ptSelectionStart = {};
+		m_ptSelectionEnd   = {};
 		CalcScrollBarRange();
 	}
 
@@ -296,52 +298,64 @@ public:
 		m_hCursor = hCursor;
 	}
 
-	void DrawFocusRectangle(int left, int top, int width, int height)
+	POINT GetRectangleSelectionStart() const
 	{
-		HDC hdc = GetDC(m_hWnd);
-		POINT pt = ConvertLPtoDP(left, top);
-		RECT rc = { pt.x, pt.y };
-		rc.right = rc.left + static_cast<int>(width * m_zoom);
-		rc.bottom = rc.top + static_cast<int>(height * m_zoom);
-		::DrawFocusRect(hdc, &rc);
-		ReleaseDC(m_hWnd, hdc);
+		return m_ptSelectionStart;
 	}
 
-	bool SelectAll()
+	bool SetRectangleSelectionStart(int x, int y, bool clamp = true)
 	{
 		if (!m_fip)
 			return false;
-		return SetRectangleSelection(0, 0, m_fip->getWidth(), m_fip->getHeight());
-	}
-
-	bool SetRectangleSelection(int left, int top, int right, int bottom)
-	{
-		if (!m_fip)
-			return false;
-		m_rcSelection = RECT{ left, top, right, bottom };
-		if (m_rcSelection.left < 0)
-			m_rcSelection.left = 0;
-		if (m_rcSelection.top < 0)
-			m_rcSelection.top = 0;
-		if (m_rcSelection.right < 0)
-			m_rcSelection.right = 0;
-		if (m_rcSelection.bottom < 0)
-			m_rcSelection.bottom = 0;
-		if (m_rcSelection.left > static_cast<int>(m_fip->getWidth()))
-			m_rcSelection.left = m_fip->getWidth();
-		if (m_rcSelection.top > static_cast<int>(m_fip->getHeight()))
-			m_rcSelection.top = m_fip->getHeight();
-		if (m_rcSelection.right > static_cast<int>(m_fip->getWidth()))
-			m_rcSelection.right = m_fip->getWidth();
-		if (m_rcSelection.bottom > static_cast<int>(m_fip->getHeight()))
-			m_rcSelection.bottom = m_fip->getHeight();
+		if (clamp)
+		{
+			m_ptSelectionStart.x = std::clamp(x, 0, static_cast<int>(m_fip->getWidth()));
+			m_ptSelectionStart.y = std::clamp(y, 0, static_cast<int>(m_fip->getHeight()));
+		}
+		else
+		{
+			m_ptSelectionStart.x = x;
+			m_ptSelectionStart.y = y;
+		}
 		m_visibleRectangleSelection = true;
 		return true;
 	}
 
+	POINT GetRectangleSelectionEnd() const
+	{
+		return m_ptSelectionEnd;
+	}
+
+	bool SetRectangleSelectionEnd(int x, int y, bool clamp = true)
+	{
+		if (!m_fip)
+			return false;
+		if (clamp)
+		{
+			m_ptSelectionEnd.x = std::clamp(x, 0, static_cast<int>(m_fip->getWidth()));
+			m_ptSelectionEnd.y = std::clamp(y, 0, static_cast<int>(m_fip->getHeight()));
+		}
+		else
+		{
+			m_ptSelectionEnd.x = x;
+			m_ptSelectionEnd.y = y;
+		}
+		return true;
+	}
+
+	bool SetRectangleSelection(int left, int top, int right, int bottom, bool clamp = true)
+	{
+		SetRectangleSelectionStart(left, top, clamp);
+		return SetRectangleSelectionEnd(right, bottom, clamp);
+	}
+
 	RECT GetRectangleSelection() const
 	{
-		return m_rcSelection;
+		int left    = (std::min)(m_ptSelectionStart.x, m_ptSelectionEnd.x);
+		int top     = (std::min)(m_ptSelectionStart.y, m_ptSelectionEnd.y);
+		int right   = (std::max)(m_ptSelectionStart.x, m_ptSelectionEnd.x);
+		int bottom  = (std::max)(m_ptSelectionStart.y, m_ptSelectionEnd.y);
+		return { left, top, right, bottom };
 	}
 
 	bool IsRectanlgeSelectionVisible() const
@@ -351,7 +365,8 @@ public:
 
 	void DeleteRectangleSelection()
 	{
-		m_rcSelection = {};
+		m_ptSelectionStart = {};
+		m_ptSelectionEnd   = {};
 		m_visibleRectangleSelection = false;
 	}
 
@@ -363,6 +378,8 @@ public:
 	void SetOverlappedImage(const fipWinImage& image)
 	{
 		m_fipOverlappedImage = image;
+		m_ptOverlappedImage = {};
+		m_ptOverlappedImageCursor = {};
 	}
 
 	void StartDraggingOverlappedImage(const fipWinImage& image, const POINT& ptImage, const POINT& ptCursor)
@@ -470,8 +487,9 @@ private:
 			
 			if (m_visibleRectangleSelection)
 			{
-				POINT ptLT = ConvertLPtoDP(m_rcSelection.left, m_rcSelection.top);
-				POINT ptRB = ConvertLPtoDP(m_rcSelection.right, m_rcSelection.bottom);
+				RECT rcSelectionL = GetRectangleSelection();
+				POINT ptLT = ConvertLPtoDP(rcSelectionL.left, rcSelectionL.top);
+				POINT ptRB = ConvertLPtoDP(rcSelectionL.right, rcSelectionL.bottom);
 				RECT rcSelection = { ptLT.x, ptLT.y, ptRB.x, ptRB.y };
 				if (rcSelection.left == rcSelection.right || rcSelection.top == rcSelection.bottom)
 				{
@@ -738,6 +756,7 @@ private:
 	bool m_useBackColor;
 	RGBQUAD m_backColor;
 	bool m_visibleRectangleSelection;
-	RECT m_rcSelection;
+	POINT m_ptSelectionStart;
+	POINT m_ptSelectionEnd;
 	HCURSOR m_hCursor;
 };

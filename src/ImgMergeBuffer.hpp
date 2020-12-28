@@ -167,6 +167,25 @@ public:
 		return true;
 	}
 
+	bool Resize(int pane, int width, int height)
+	{
+		if (width == m_imgOrig32[pane].width() && height == m_imgOrig32[pane].height())
+			return false;
+
+		Image *oldbitmap = new Image(m_imgOrig32[pane]);
+
+		m_imgOrig32[pane].setSize(width, height);
+		PasteImageInternal(pane, 0, 0, *oldbitmap, false);
+
+		Image *newbitmap = new Image(m_imgOrig32[pane]);
+
+		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+
+		CompareImages();
+
+		return true;
+	}
+
 	bool GetReadOnly(int pane) const
 	{
 		if (pane < 0 || pane >= m_nImages)
@@ -507,16 +526,7 @@ public:
 
 	void PasteImage(int pane, int x, int y, const Image& image)
 	{
-		if (pane < 0 || pane >= m_nImages)
-			return;
-
-		Image *oldbitmap = new Image(m_imgOrig32[pane]);
-
-		m_imgOrig32[pane].pasteSubImage(image, x, y);
-
-		Image *newbitmap = new Image(m_imgOrig32[pane]);
-		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
-
+		PasteImageInternal(pane, x, y, image, true);
 		CompareImages();
 	}
 
@@ -560,6 +570,40 @@ protected:
 		{
 			memcpy(m_imgOrig32[pane].scanLine(i), tmpImage.scanLine(i), x * 4);
 			memcpy(m_imgOrig32[pane].scanLine(i) + x * 4, tmpImage.scanLine(i) + (x + columns) * 4, (tmpImage.width() - x - columns) * 4);
+		}
+	}
+
+	void PasteImageInternal(int pane, int x, int y, const Image& image, bool history)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+
+		int width = m_imgOrig32[pane].width();
+		int height = m_imgOrig32[pane].height();
+		if (width == 0 || height == 0)
+			return;
+
+		int left = std::clamp(x, 0, width - 1);
+		int top = std::clamp(y, 0, height - 1);
+		int right = std::clamp(static_cast<int>(x + image.width()), 0, width);
+		int bottom = std::clamp(static_cast<int>(y + image.height()), 0, height);
+		if (right - left <= 0)
+			return;
+		if (bottom - top <= 0)
+			return;
+
+		Image *oldbitmap = nullptr;
+		if (history)
+			oldbitmap = new Image(m_imgOrig32[pane]);
+
+		for (int i = top; i < bottom; ++i)
+			memcpy(m_imgOrig32[pane].scanLine(i) + left * 4, 
+				image.scanLine(i - y) + (left - x) * 4, (right - left) * 4);
+
+		if (history)
+		{
+			Image *newbitmap = new Image(m_imgOrig32[pane]);
+			m_undoRecords.push_back(pane, oldbitmap, newbitmap);
 		}
 	}
 

@@ -1188,6 +1188,20 @@ public:
 		return m_imgOrig32[pane].height();
 	}
 
+	int  GetPreprocessedImageWidth(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return -1;
+		return m_imgPreprocessed[pane].width();
+	}
+
+	int  GetPreprocessedImageHeight(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return -1;
+		return m_imgPreprocessed[pane].height();
+	}
+
 	int  GetDiffImageWidth() const
 	{
 		if (m_nImages <= 0)
@@ -1232,6 +1246,13 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return NULL;
 		return &m_imgDiff[pane];
+	}
+
+	const Image *GetPreprocessedImage(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return NULL;
+		return &m_imgPreprocessed[pane];
 	}
 
 	const Image *GetOriginalImage(int pane) const
