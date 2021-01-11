@@ -45,6 +45,29 @@ namespace Win78Libraries
 		if (hLibraryD2D1)
 			FreeLibrary(hLibraryD2D1);
 	}
+
+	HRESULT await(ABI::Windows::Foundation::IAsyncAction* pAsync)
+	{
+		Microsoft::WRL::Wrappers::Event event(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+		HRESULT hr = event.IsValid() ? S_OK : HRESULT_FROM_WIN32(GetLastError());
+		if (FAILED(hr))
+			return false;
+
+		HRESULT hrCallback = E_FAIL;
+		hr = pAsync->put_Completed(
+			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncActionCompletedHandler>(
+				[&event, &hrCallback](_In_ ABI::Windows::Foundation::IAsyncAction* pAsync, AsyncStatus status)
+		{
+			hrCallback = (status == AsyncStatus::Completed) ? S_OK : E_FAIL;
+			SetEvent(event.Get());
+			return hrCallback;
+		}).Get());
+		if (FAILED(hr))
+			return false;
+
+		WaitForSingleObjectEx(event.Get(), INFINITE, FALSE);
+		return SUCCEEDED(hrCallback);
+	}
 }
 
 STDAPI CreateRandomAccessStreamOnFile(_In_ PCWSTR filePath, _In_ DWORD accessMode, _In_ REFIID riid, _COM_Outptr_ void **ppv)

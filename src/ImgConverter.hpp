@@ -141,25 +141,7 @@ private:
 		if (FAILED(hr))
 			return false;
 
-		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
-		hr = loadCompleted.IsValid() ? S_OK : HRESULT_FROM_WIN32(GetLastError());
-		if (FAILED(hr))
-			return false;
-
-		HRESULT hrCallback = E_FAIL;
-		hr = pAsync->put_Completed(
-			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncOperationCompletedHandler<ABI::Windows::Data::Pdf::PdfDocument*>>(
-				[&ppPdfDocument, &loadCompleted, &hrCallback](_In_ ABI::Windows::Foundation::IAsyncOperation<ABI::Windows::Data::Pdf::PdfDocument*>* pAsync, AsyncStatus status)
-				{
-					hrCallback = (status == AsyncStatus::Completed) ? pAsync->GetResults(ppPdfDocument) : E_FAIL;
-					SetEvent(loadCompleted.Get());
-					return hrCallback;
-				}).Get());
-		if (FAILED(hr))
-			return false;
-
-		WaitForSingleObjectEx(loadCompleted.Get(), INFINITE, FALSE);
-		return SUCCEEDED(hrCallback);
+		return SUCCEEDED(Win78Libraries::await(pAsync.Get(), ppPdfDocument));
 	}
 
 	static bool RenderPdfPage(ABI::Windows::Data::Pdf::IPdfDocument *pPdfDocument, int page, float zoom, const wchar_t *filename)
@@ -200,24 +182,7 @@ private:
 		if (FAILED(hr))
 			return false;
 
-		Microsoft::WRL::Wrappers::Event loadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
-		if (!loadCompleted.IsValid())
-			return false;
-
-		HRESULT hrCallback = E_FAIL;
-		hr = pAsyncAction->put_Completed(
-			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncActionCompletedHandler>(
-			[&loadCompleted, &hrCallback](ABI::Windows::Foundation::IAsyncAction* async, AsyncStatus status)
-			{
-				hrCallback = (status != AsyncStatus::Completed) ? E_FAIL : S_OK;
-				SetEvent(loadCompleted.Get());
-				return hrCallback;
-			}).Get());
-		if (FAILED(hr))
-			return false;
-
-		WaitForSingleObjectEx(loadCompleted.Get(), INFINITE, FALSE);
-		return SUCCEEDED(hrCallback);
+		return SUCCEEDED(Win78Libraries::await(pAsyncAction.Get()));
 	}
 
 	static DWORD WINAPI PdfRendererWorkerThread(LPVOID lpParam)

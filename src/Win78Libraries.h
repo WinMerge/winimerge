@@ -4,6 +4,8 @@
 
 #include <d2d1.h>
 #include <roapi.h>
+#include <windows.foundation.h>
+#include <wrl.h>
 
 namespace Win78Libraries
 {
@@ -20,6 +22,32 @@ namespace Win78Libraries
 
 	void load();
 	void unload();
+
+	template <class T, class R>
+	HRESULT await(ABI::Windows::Foundation::IAsyncOperation<T*> *pAsync, R **ppResult)
+	{
+		Microsoft::WRL::Wrappers::Event event(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+		HRESULT hr = event.IsValid() ? S_OK : HRESULT_FROM_WIN32(GetLastError());
+		if (FAILED(hr))
+			return false;
+
+		HRESULT hrCallback = E_FAIL;
+		hr = pAsync->put_Completed(
+			Microsoft::WRL::Callback<ABI::Windows::Foundation::IAsyncOperationCompletedHandler<T*>>(
+				[&event, &hrCallback, ppResult](_In_ ABI::Windows::Foundation::IAsyncOperation<T*>* pAsync, AsyncStatus status)
+		{
+			hrCallback = (status == AsyncStatus::Completed) ? pAsync->GetResults(ppResult) : E_FAIL;
+			SetEvent(event.Get());
+			return hrCallback;
+		}).Get());
+		if (FAILED(hr))
+			return false;
+
+		WaitForSingleObjectEx(event.Get(), INFINITE, FALSE);
+		return SUCCEEDED(hrCallback);
+	}
+
+	HRESULT await(ABI::Windows::Foundation::IAsyncAction* pAsync);
 };
 
 #endif
