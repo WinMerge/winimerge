@@ -51,7 +51,7 @@ namespace Win78Libraries
 		Microsoft::WRL::Wrappers::Event event(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
 		HRESULT hr = event.IsValid() ? S_OK : HRESULT_FROM_WIN32(GetLastError());
 		if (FAILED(hr))
-			return false;
+			return hr;
 
 		HRESULT hrCallback = E_FAIL;
 		hr = pAsync->put_Completed(
@@ -63,10 +63,10 @@ namespace Win78Libraries
 			return hrCallback;
 		}).Get());
 		if (FAILED(hr))
-			return false;
+			return hr;
 
 		WaitForSingleObjectEx(event.Get(), INFINITE, FALSE);
-		return SUCCEEDED(hrCallback);
+		return hrCallback;
 	}
 }
 
