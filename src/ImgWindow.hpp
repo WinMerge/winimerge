@@ -422,6 +422,11 @@ public:
 		m_ptOverlappedImage = pt;
 	}
 
+	void UpdateScrollBars()
+	{
+		CalcScrollBarRange();
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)

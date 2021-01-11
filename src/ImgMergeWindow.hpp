@@ -706,7 +706,10 @@ public:
 		Cancel();
 		bool result = m_buffer.Undo();
 		if (result)
+		{
+			UpdateScrollBars();
 			Invalidate();
+		}
 		return result;
 	}
 
@@ -715,7 +718,10 @@ public:
 		Cancel();
 		bool result = m_buffer.Redo();
 		if (result)
+		{
+			UpdateScrollBars();
 			Invalidate();
+		}
 		return result;
 	}
 
@@ -1306,6 +1312,12 @@ private:
 		return { ptRealStart.x, ptRealStart.y, ptRealEnd.x, ptRealEnd.y };
 	}
 
+	void UpdateScrollBars()
+	{
+		for (int i = 0; i < m_nImages; ++i)
+			m_imgWindow[i].UpdateScrollBars();
+	}
+
 	void PasteOverlappedImage(int pane)
 	{
 		const CImgWindow& imgWindow = m_imgWindow[pane];
@@ -1314,6 +1326,7 @@ private:
 		RECT rcOverlapeedImage = ConvertToRealRect(pane, imgWindow.GetOverlappedImageRect(), false);
 		Image image(imgWindow.GetOverlappedImage());
 		m_buffer.PasteImage(pane, rcOverlapeedImage.left, rcOverlapeedImage.top, image);
+		UpdateScrollBars();
 		Invalidate();
 	}
 
