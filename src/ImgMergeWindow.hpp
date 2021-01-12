@@ -23,6 +23,7 @@
 #include "FreeImagePlus.h"
 #include "ImgWindow.hpp"
 #include "ImgMergeBuffer.hpp"
+#include "Ocr.hpp"
 #include "WinIMergeLib.h"
 
 
@@ -998,7 +999,32 @@ public:
 		return metadatastr.length() + 1;
 	}
 
+	BSTR ExtractTextFromImage(int pane, int page) override
+	{
+		if (!m_pOcr)
+			m_pOcr.reset(new COcr());
+		if (!m_pOcr ||
+			pane < 0 || pane >= m_buffer.GetPaneCount() ||
+			page < 0 || page >= m_buffer.GetPageCount(pane))
+			return nullptr;
 
+		wchar_t filename[MAX_PATH] = {};
+		_snwprintf_s(filename, _TRUNCATE, L"%s/WinIMerge_%d_%d_%d.png",
+			_wgetenv(L"TEMP"), GetCurrentProcessId(), pane, page);
+		int oldCurrentPage = m_buffer.GetCurrentPage(pane);
+		m_buffer.SetCurrentPage(pane, page);
+		m_buffer.SaveImageAs(pane, filename);
+
+		m_pOcr->load(filename);
+
+		m_buffer.SetCurrentPage(pane, oldCurrentPage);
+		DeleteFile(filename);
+
+		std::wstring text;
+		m_pOcr->extractText(text);
+
+		return SysAllocStringLen(text.c_str(), static_cast<unsigned>(text.size()));
+	}
 
 private:
 
@@ -1766,5 +1792,5 @@ private:
 	DRAGGING_MODE m_draggingModeCurrent;
 	CImgMergeBuffer m_buffer;
 	ULONG_PTR m_gdiplusToken;
-
+	std::unique_ptr<COcr> m_pOcr;
 };

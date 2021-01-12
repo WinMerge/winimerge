@@ -6,6 +6,8 @@ namespace Win78Libraries
 {
 	CreateRandomAccessStreamOnFileType CreateRandomAccessStreamOnFile;
 	WindowsCreateStringReferenceType WindowsCreateStringReference;
+	WindowsDeleteStringType WindowsDeleteString;
+	WindowsGetStringRawBufferType WindowsGetStringRawBuffer;
 	RoGetActivationFactoryType RoGetActivationFactory;
 	RoActivateInstanceType RoActivateInstance;
 	D2D1CreateFactoryType D2D1CreateFactory;
@@ -25,6 +27,8 @@ namespace Win78Libraries
 		if (hLibraryCombase != nullptr)
 		{
 			WindowsCreateStringReference = reinterpret_cast<WindowsCreateStringReferenceType>(GetProcAddress(hLibraryCombase, "WindowsCreateStringReference"));
+			WindowsDeleteString  = reinterpret_cast<WindowsDeleteStringType>(GetProcAddress(hLibraryCombase, "WindowsDeleteString"));
+			WindowsGetStringRawBuffer = reinterpret_cast<WindowsGetStringRawBufferType>(GetProcAddress(hLibraryCombase, "WindowsGetStringRawBuffer"));
 			RoGetActivationFactory = reinterpret_cast<RoGetActivationFactoryType>(GetProcAddress(hLibraryCombase, "RoGetActivationFactory"));
 			RoActivateInstance = reinterpret_cast<RoActivateInstanceType>(GetProcAddress(hLibraryCombase, "RoActivateInstance"));
 		}
@@ -82,6 +86,20 @@ STDAPI WindowsCreateStringReference(_In_reads_opt_(length + 1) PCWSTR sourceStri
 	if (Win78Libraries::WindowsCreateStringReference == nullptr)
 		return E_FAIL;
 	return Win78Libraries::WindowsCreateStringReference(sourceString, length, hstringHeader, string);
+}
+
+STDAPI WindowsDeleteString(_In_opt_ HSTRING string)
+{
+	if (Win78Libraries::WindowsDeleteString == nullptr)
+		return E_FAIL;
+	return Win78Libraries::WindowsDeleteString(string);
+}
+
+STDAPI_(PCWSTR) WindowsGetStringRawBuffer(_In_opt_ HSTRING string, _Out_opt_ UINT32* length)
+{
+	if (Win78Libraries::WindowsGetStringRawBuffer == nullptr)
+		return nullptr;
+	return Win78Libraries::WindowsGetStringRawBuffer(string, length);
 }
 
 HRESULT WINAPI D2D1CreateFactory(_In_ D2D1_FACTORY_TYPE factoryType, _In_ REFIID riid, _In_opt_ CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, _Out_ void **ppIFactory)

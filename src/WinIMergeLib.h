@@ -164,6 +164,7 @@ struct IImgMergeWindow
 	virtual bool IsPastable() const = 0;
 	virtual bool IsCancellable() const = 0;
 	virtual bool IsRectangleSelectionVisible(int pane) const = 0;
+	virtual BSTR ExtractTextFromImage(int pane, int page) = 0;
 };
 
 struct IImgToolWindow

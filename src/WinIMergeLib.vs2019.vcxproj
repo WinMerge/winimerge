@@ -221,6 +221,7 @@
     <ClInclude Include="ImgToolWindow.hpp" />
     <ClInclude Include="ImgWindow.hpp" />
     <ClInclude Include="image.hpp" />
+    <ClInclude Include="Ocr.hpp" />
     <ClInclude Include="Win78Libraries.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="WinIMergeLib.h" />

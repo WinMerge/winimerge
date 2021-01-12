@@ -168,6 +168,8 @@ BEGIN
             MENUITEM "50%",                         ID_VIEW_VECTORIMAGESCALING_50
             MENUITEM "25%",                         ID_VIEW_VECTORIMAGESCALING_25
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Extract &Text",               ID_VIEW_EXTRACTTEXT
     END
     POPUP "&Merge"
     BEGIN

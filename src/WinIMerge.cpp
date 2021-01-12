@@ -648,6 +648,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_VECTORIMAGESCALING_25:
 			m_pImgMergeWindow->SetVectorImageZoomRatio(static_cast<float>(pow(2.0, (wmId - ID_VIEW_VECTORIMAGESCALING_100))));
 			break;
+		case ID_VIEW_EXTRACTTEXT:
+		{
+			int pane = m_pImgMergeWindow->GetActivePane();
+			if (pane < 0)
+				pane = 0;
+			BSTR bstrText = m_pImgMergeWindow->ExtractTextFromImage(pane, m_pImgMergeWindow->GetCurrentPage(pane));
+			MessageBoxW(nullptr, bstrText, nullptr, MB_OK);
+			SysFreeString(bstrText);
+			break;
+		}
 		case ID_MERGE_NEXTDIFFERENCE:
 			m_pImgMergeWindow->NextDiff();
 			break;
