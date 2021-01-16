@@ -694,6 +694,7 @@ public:
 		CImgWindow& imgWindow = m_imgWindow[pane];
 		fipImageEx image;
 		image.pasteFromClipboard();
+		image.convertTo32Bits();
 		int maxwidth  = (std::max)(m_buffer.GetImageWidth(pane), static_cast<int>(image.getWidth()));
 		int maxheight = (std::max)(m_buffer.GetImageHeight(pane), static_cast<int>(image.getHeight()));
 		m_buffer.Resize(pane, maxwidth, maxheight);
