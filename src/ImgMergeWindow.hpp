@@ -984,7 +984,22 @@ public:
 		std::map<std::string, std::string> metadata = m_buffer.GetOriginalImage(pane)->getMetadata();
 		std::string metadatastr;
 		for (auto& it : metadata)
-			metadatastr += it.first + ": " + it.second + "\r\n";
+		{
+			std::string value = it.second;
+			wchar_t c = value.front();
+			if ((c == '\'' || c == '"' || c == '>' || c == '|' || c == ':' || c == '{' || c == '\r' || c == '\n')
+				|| value.find_first_of("\r\n") != std::string::npos || value.find(": ") != std::string::npos)
+			{
+				for (int i = static_cast<int>(value.length() - 1); i >= 0; --i)
+				{
+					if (value[i] == '\n' || (i < static_cast<int>(value.length()) - 1 && value[i] == '\r' && value[i + 1] != '\n'))
+						value.insert(i + 1, "  ");
+				}
+				metadatastr += it.first + ": |\n  " + value + "\n";
+			}
+			else
+				metadatastr += it.first + ": " + value + "\n";
+		}
 		if (buf)
 		{
 			if (bufsize >= metadatastr.length() + 1)
@@ -1000,29 +1015,93 @@ public:
 		return metadatastr.length() + 1;
 	}
 
-	BSTR ExtractTextFromImage(int pane, int page) override
+	BSTR ExtractTextFromImage(int pane, int page, OCR_RESULT_TYPE resultType) override
 	{
 		if (!m_pOcr)
-			m_pOcr.reset(new COcr());
+			m_pOcr.reset(new ocr::COcr());
 		if (!m_pOcr ||
 			pane < 0 || pane >= m_buffer.GetPaneCount() ||
-			page < 0 || page >= m_buffer.GetPageCount(pane))
+			page >= m_buffer.GetPageCount(pane))
 			return nullptr;
 
-		wchar_t filename[MAX_PATH] = {};
-		_snwprintf_s(filename, _TRUNCATE, L"%s/WinIMerge_%d_%d_%d.png",
-			_wgetenv(L"TEMP"), GetCurrentProcessId(), pane, page);
+		std::wstring text;
 		int oldCurrentPage = m_buffer.GetCurrentPage(pane);
-		m_buffer.SetCurrentPage(pane, page);
-		m_buffer.SaveImageAs(pane, filename);
+		int minpage, maxpage;
+		if (page == -1)
+		{
+			minpage = 0;
+			maxpage = m_buffer.GetPageCount(pane) - 1;
+		}
+		else
+		{
+			minpage = page;
+			maxpage = page;
+		}
+		for (int p = minpage; p <= maxpage; ++p)
+		{
+			wchar_t filename[MAX_PATH] = {};
+			_snwprintf_s(filename, _TRUNCATE, L"%s/WinIMerge_ocr_%d_%d_%d.png",
+				_wgetenv(L"TEMP"), GetCurrentProcessId(), pane, p);
+			m_buffer.SetCurrentPage(pane, p);
+			const_cast<Image *>(m_buffer.GetOriginalImage32(pane))->save(filename);
 
-		m_pOcr->load(filename);
+			m_pOcr->load(filename);
+
+			DeleteFile(filename);
+
+			ocr::Result result;
+			m_pOcr->extractText(result);
+
+			wchar_t buf[256];
+
+			if (resultType != OCR_RESULT_TYPE::TEXT_ONLY)
+			{
+				_snwprintf_s(buf, _TRUNCATE, L"- page: %d\n  content:\n", p + 1);
+				text.append(buf);
+			}
+			for (auto&& line : result.lines)
+			{
+				switch (resultType)
+				{
+				case OCR_RESULT_TYPE::TEXT_ONLY:
+					text.append(line.text);
+					text.append(L"\n");
+					break;
+				case OCR_RESULT_TYPE::TEXT_PER_LINE_YAML:
+				{
+					ocr::Word& lastWord = line.words[line.words.size() - 1];
+					auto minXi = std::min_element(line.words.begin(), line.words.end(),
+						[](const ocr::Word& a, const ocr::Word& b) { return a.rect.x < b.rect.x; });
+					auto minYi = std::min_element(line.words.begin(), line.words.end(),
+						[](const ocr::Word& a, const ocr::Word& b) { return a.rect.y < b.rect.y; });
+					auto maxYi = std::max_element(line.words.begin(), line.words.end(),
+						[](const ocr::Word& a, const ocr::Word& b) { return a.rect.y + a.rect.height < b.rect.y + b.rect.height; });
+					_snwprintf_s(buf, _TRUNCATE, L"  - rect: {x: %.0f, y: %.0f, w: %.0f, h: %.0f}\n    text: |\n      ",
+						minXi->rect.x, minYi->rect.y,
+						lastWord.rect.x + lastWord.rect.width - line.words[0].rect.x,
+						maxYi->rect.y + maxYi->rect.height - minYi->rect.y);
+					text.append(buf);
+					text.append(line.text);
+					text.append(L"\n");
+					break;
+				}
+				case OCR_RESULT_TYPE::TEXT_PER_WORD_YAML:
+					text.append(L"  -\n");
+					for (auto&& word : line.words)
+					{
+						_snwprintf_s(buf, _TRUNCATE, L"    - rect: {x: %.0f, y: %.0f, w: %.0f, h: %.0f}\n      text: |\n        ",
+							word.rect.x, word.rect.y,
+							word.rect.width, word.rect.height);
+						text.append(buf);
+						text.append(word.text);
+						text.append(L"\n");
+					}
+					break;
+				}
+			}
+		}
 
 		m_buffer.SetCurrentPage(pane, oldCurrentPage);
-		DeleteFile(filename);
-
-		std::wstring text;
-		m_pOcr->extractText(text);
 
 		return SysAllocStringLen(text.c_str(), static_cast<unsigned>(text.size()));
 	}
@@ -1793,5 +1872,5 @@ private:
 	DRAGGING_MODE m_draggingModeCurrent;
 	CImgMergeBuffer m_buffer;
 	ULONG_PTR m_gdiplusToken;
-	std::unique_ptr<COcr> m_pOcr;
+	std::unique_ptr<ocr::COcr> m_pOcr;
 };
