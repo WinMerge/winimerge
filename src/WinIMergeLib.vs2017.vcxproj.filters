@@ -45,6 +45,9 @@
     <ClInclude Include="Win78Libraries.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Ocr.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinIMergeLib.cpp">

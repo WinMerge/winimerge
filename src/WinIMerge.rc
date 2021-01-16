@@ -168,6 +168,9 @@ BEGIN
             MENUITEM "50%",                         ID_VIEW_VECTORIMAGESCALING_50
             MENUITEM "25%",                         ID_VIEW_VECTORIMAGESCALING_25
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Extract &Text",               ID_VIEW_EXTRACTTEXT
+        MENUITEM "Show &Metadata",              ID_VIEW_SHOWMETADATA
     END
     POPUP "&Merge"
     BEGIN
@@ -272,7 +275,7 @@ BEGIN
             VALUE "FileDescription", "WinIMerge"
             VALUE "FileVersion", STRFILEVER
             VALUE "InternalName", "WinIMerge.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2014-2020 sdottaka@users.sourceforge.net"
+            VALUE "LegalCopyright", "Copyright (C) 2014-2021 sdottaka@users.sourceforge.net"
             VALUE "OriginalFilename", "WinIMerge.exe"
             VALUE "ProductName", "WinIMerge"
             VALUE "ProductVersion", STRPRODUCTVER

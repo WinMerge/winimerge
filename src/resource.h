@@ -133,6 +133,8 @@
 #define ID_VIEW_VECTORIMAGESCALING_100  32862
 #define ID_VIEW_VECTORIMAGESCALING_200  32863
 #define ID_VIEW_VECTORIMAGESCALING_400  32864
+#define ID_VIEW_EXTRACTTEXT             32870
+#define ID_VIEW_SHOWMETADATA            32871
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -141,7 +143,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32870
+#define _APS_NEXT_COMMAND_VALUE         32872
 #define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           111
 #endif

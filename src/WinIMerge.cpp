@@ -648,6 +648,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_VECTORIMAGESCALING_25:
 			m_pImgMergeWindow->SetVectorImageZoomRatio(static_cast<float>(pow(2.0, (wmId - ID_VIEW_VECTORIMAGESCALING_100))));
 			break;
+		case ID_VIEW_EXTRACTTEXT:
+		{
+			int pane = m_pImgMergeWindow->GetActivePane();
+			if (pane < 0)
+				pane = 0;
+			BSTR bstrText = m_pImgMergeWindow->ExtractTextFromImage(
+				pane, m_pImgMergeWindow->GetCurrentPage(pane), IImgMergeWindow::OCR_RESULT_TYPE::TEXT_PER_WORD_YAML);
+			MessageBoxW(nullptr, bstrText, L"", MB_OK);
+			SysFreeString(bstrText);
+			break;
+		}
+		case ID_VIEW_SHOWMETADATA:
+		{
+			int pane = m_pImgMergeWindow->GetActivePane();
+			if (pane < 0)
+				pane = 0;
+			char buf[65536];
+			m_pImgMergeWindow->GetMetadata(pane, buf, sizeof buf);
+			MessageBoxA(nullptr, buf, "", MB_OK);
+			break;
+		}
 		case ID_MERGE_NEXTDIFFERENCE:
 			m_pImgMergeWindow->NextDiff();
 			break;
@@ -741,7 +762,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_HELP_ABOUT:
 			MessageBoxW(hWnd, 
 				L"WinIMerge\n\n"
-				L"(c) 2014-2020 sdottaka@users.sourceforge.net All rights reserved.\n\n"
+				L"(c) 2014-2021 sdottaka@users.sourceforge.net All rights reserved.\n\n"
 				L"This software uses the FreeImage open source image library. \n"
 				L"See http://freeimage.sourceforge.net for details.\n"
 				L"FreeImage is used under the GNU GPL version.\n", L"WinIMerge", MB_OK | MB_ICONINFORMATION);
