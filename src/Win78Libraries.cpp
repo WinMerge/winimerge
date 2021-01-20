@@ -17,15 +17,15 @@ namespace Win78Libraries
 
 	void load()
 	{
-		hLibraryShcore = LoadLibrary(L"Shcore.dll");
-		if (hLibraryShcore != nullptr)
+		if (HMODULE const h = hLibraryShcore ? nullptr : LoadLibrary(L"Shcore.dll"))
 		{
+			hLibraryShcore = h;
 			CreateRandomAccessStreamOnFile = reinterpret_cast<CreateRandomAccessStreamOnFileType>(GetProcAddress(hLibraryShcore, "CreateRandomAccessStreamOnFile"));
 		}
 
-		hLibraryCombase = LoadLibrary(L"combase.dll");
-		if (hLibraryCombase != nullptr)
+		if (HMODULE const h = hLibraryCombase ? nullptr : LoadLibrary(L"combase.dll"))
 		{
+			hLibraryCombase = h;
 			WindowsCreateStringReference = reinterpret_cast<WindowsCreateStringReferenceType>(GetProcAddress(hLibraryCombase, "WindowsCreateStringReference"));
 			WindowsDeleteString  = reinterpret_cast<WindowsDeleteStringType>(GetProcAddress(hLibraryCombase, "WindowsDeleteString"));
 			WindowsGetStringRawBuffer = reinterpret_cast<WindowsGetStringRawBufferType>(GetProcAddress(hLibraryCombase, "WindowsGetStringRawBuffer"));
@@ -33,9 +33,9 @@ namespace Win78Libraries
 			RoActivateInstance = reinterpret_cast<RoActivateInstanceType>(GetProcAddress(hLibraryCombase, "RoActivateInstance"));
 		}
 
-		hLibraryD2D1 = LoadLibrary(L"D2D1.dll");
-		if (hLibraryD2D1 != nullptr)
+		if (HMODULE const h = hLibraryD2D1 ? nullptr : LoadLibrary(L"D2D1.dll"))
 		{
+			hLibraryD2D1 = h;
 			D2D1CreateFactory = reinterpret_cast<D2D1CreateFactoryType>(GetProcAddress(hLibraryD2D1, "D2D1CreateFactory"));
 		}
 	}
@@ -43,11 +43,20 @@ namespace Win78Libraries
 	void unload()
 	{
 		if (hLibraryShcore)
+		{
 			FreeLibrary(hLibraryShcore);
+			hLibraryShcore = nullptr;
+		}
 		if (hLibraryCombase)
+		{
 			FreeLibrary(hLibraryCombase);
+			hLibraryCombase = nullptr;
+		}
 		if (hLibraryD2D1)
+		{
 			FreeLibrary(hLibraryD2D1);
+			hLibraryD2D1 = nullptr;
+		}
 	}
 
 	HRESULT await(ABI::Windows::Foundation::IAsyncAction* pAsync)
