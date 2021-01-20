@@ -100,6 +100,9 @@ public:
 
 		if (!m_thread.IsValid())
 		{
+			Win78Libraries::load();
+			if (Win78Libraries::RoGetActivationFactory == nullptr)
+				return false;
 			m_thread.Attach(CreateThread(nullptr, 0, OcrWorkerThread, &params, 0, &m_dwThreadId));
 			if (!m_thread.IsValid())
 				return false;
@@ -307,9 +310,6 @@ private:
 
 	static DWORD WINAPI OcrWorkerThread(LPVOID lpParam)
 	{
-		if (Win78Libraries::RoGetActivationFactory == nullptr)
-			Win78Libraries::load();
-
 		HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 		{
 			ComPtr<ISoftwareBitmap> pBitmap;
