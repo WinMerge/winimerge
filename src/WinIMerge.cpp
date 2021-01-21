@@ -654,7 +654,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (pane < 0)
 				pane = 0;
 			BSTR bstrText = m_pImgMergeWindow->ExtractTextFromImage(
-				pane, m_pImgMergeWindow->GetCurrentPage(pane), IImgMergeWindow::OCR_RESULT_TYPE::TEXT_PER_WORD_YAML);
+				pane, m_pImgMergeWindow->GetCurrentPage(pane), IImgMergeWindow::OCR_RESULT_TYPE::TEXT_PER_LINE_YAML);
 			MessageBoxW(nullptr, bstrText, L"", MB_OK);
 			SysFreeString(bstrText);
 			break;

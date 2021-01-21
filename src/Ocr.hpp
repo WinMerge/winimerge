@@ -7,10 +7,10 @@ namespace ocr
 {
 struct Rect
 {
-	float x;
-	float y;
-	float width;
-	float height;
+	float x = 0.0f;
+	float y = 0.0f;
+	float width = 0.0f;
+	float height = 0.0f;
 };
 
 struct Word
@@ -119,21 +119,35 @@ public:
 
 	bool extractText(Result& result)
 	{
-		if (!isValid())
-			return false;
+		bool succeeded = false;
+		if (isValid())
+		{
+			Event recognizeCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
 
-		Event recognizeCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+			OcrThreadParams params{};
+			params.hEvent = recognizeCompleted.Get();
+			params.type = 1;
 
-		OcrThreadParams params{};
-		params.hEvent = recognizeCompleted.Get();
-		params.type = 1;
+			PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
 
-		PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
+			WaitForSingleObject(params.hEvent, INFINITE);
 
-		WaitForSingleObject(params.hEvent, INFINITE);
-
-		result = std::move(params.ocrResult);
-		return params.result;
+			result = std::move(params.ocrResult);
+			
+			succeeded = params.result;
+		}
+		if (!succeeded)
+		{
+			const std::wstring msg = L"This function is not supported on Windows 8.1 or earlier.";
+			result.text = msg;
+			Line line;
+			line.text = msg;
+			Word word;
+			word.text = msg;
+			line.words.emplace_back(word);
+			result.lines.emplace_back(line);
+		}
+		return succeeded;
 	}
 
 private:
