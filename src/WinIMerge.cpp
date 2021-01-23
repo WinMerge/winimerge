@@ -48,6 +48,9 @@ wchar_t m_szWindowClass[256] = L"WinIMergeClass";
 IImgMergeWindow *m_pImgMergeWindow = NULL;
 IImgToolWindow *m_pImgToolWindow = NULL;
 
+#define IMAGES_FILE_FILTER_WILDCARDS L"*.jpg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf"
+static wchar_t const ImagesFileFilter[] = L"Images (" IMAGES_FILE_FILTER_WILDCARDS L")\0" IMAGES_FILE_FILTER_WILDCARDS L"\0";
+
 struct CmdLineInfo
 {
 	explicit CmdLineInfo(const wchar_t *cmdline) : nImages(0)
@@ -185,7 +188,7 @@ void SaveImageAs(HWND hWnd, int pane)
 	lstrcpyW(szFileName, m_pImgMergeWindow->GetFileName(pane));
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = hWnd;
-	ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf\0\0";
+	ofn.lpstrFilter = ImagesFileFilter;
 	ofn.lpstrFile = szFileName;
 	ofn.lpstrFileTitle = szFile;
 	ofn.nMaxFile = MAX_PATH;
@@ -444,7 +447,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			OPENFILENAMEW ofn = {0};
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = hWnd;
-			ofn.lpstrFilter = L"Images (*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf)\0*.jpg;*.png;*.bmp;*.gif;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf\0\0";
+			ofn.lpstrFilter = ImagesFileFilter;
 			ofn.lpstrFile = szFileName;
 			ofn.lpstrFileTitle = szFile;
 			ofn.nMaxFile = MAX_PATH;
