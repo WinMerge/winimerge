@@ -153,21 +153,81 @@ public:
 class fipMultiPageEx : public fipMultiPage
 {
 public:
-	explicit fipMultiPageEx(BOOL keep_cache_in_memory = FALSE) : fipMultiPage(keep_cache_in_memory) {}
-   
+	explicit fipMultiPageEx(BOOL keep_cache_in_memory = FALSE)
+		: fipMultiPage(keep_cache_in_memory)
+		, m_handle(NULL)
+	{
+	}
+
 	BOOL openU(const wchar_t* lpszPathName, BOOL create_new, BOOL read_only, int flags = 0)
 	{
-		char filename[260];
+		FILE *fp = NULL;
 #ifdef _WIN32
-		wchar_t shortname[260] = {0};
-		GetShortPathNameW(lpszPathName, shortname, sizeof(shortname)/sizeof(shortname[0]));
-		wsprintfA(filename, "%S", shortname);
+		_wfopen_s(&fp, lpszPathName, L"r+b");
+		if (fp != NULL && !read_only)
+		{
+			WCHAR szTempPathName[MAX_PATH];
+			DWORD cchTempPath = GetTempPathW(_countof(szTempPathName), szTempPathName);
+			if (cchTempPath <= MAX_PATH - 40)
+			{
+				GUID guid;
+				CoCreateGuid(&guid);
+				StringFromGUID2(guid, szTempPathName + cchTempPath, 40);
+				FILE *fpTmp = NULL;
+				// Create file with "D" option so it vanishes when closed
+				_wfopen_s(&fpTmp, szTempPathName, L"w+bD");
+				if (fpTmp != NULL)
+				{
+					char buffer[16384];
+					while (size_t bytes = fread(buffer, 1, sizeof buffer, fp))
+					{
+						if (fwrite(buffer, 1, bytes, fpTmp) != bytes)
+						{
+							fclose(fpTmp);
+							fpTmp = NULL;
+							break;
+						}
+					}
+					fclose(fp);
+					fp = fpTmp;
+				}
+			}
+		}
 #else
+		char filename[260];
 		snprintf(filename, sizeof(filename), "%ls", lpszPathName);
-		
+		fp = fopen(filename, "r+b");
 #endif
-		BOOL result = open(filename, create_new, read_only, flags);
-		return result;
+		if (fp != NULL)
+		{
+			FreeImageIO io;
+			io.read_proc = myReadProc;
+			io.write_proc = myWriteProc;
+			io.seek_proc = mySeekProc;
+			io.tell_proc = myTellProc;
+			FREE_IMAGE_FORMAT fif = fipImage::identifyFIFU(lpszPathName);
+			_mpage = FreeImage_OpenMultiBitmapFromHandle(fif, &io, fp, flags);
+			if (_mpage != NULL)
+			{
+				m_handle = fp;
+			}
+			else
+			{
+				fclose(fp);
+			}
+		}
+		return _mpage != NULL;
+	}
+
+	BOOL close(int flags = 0)
+	{
+		BOOL bSuccess = fipMultiPage::close(flags);
+		if (m_handle != NULL)
+		{
+			fclose(m_handle);
+			m_handle = NULL;
+		}
+		return bSuccess;
 	}
 
 	bool saveU(const wchar_t* lpszPathName, int flag = 0) const
@@ -194,6 +254,8 @@ public:
 	}
 
 private:
+	FILE *m_handle; // Refers to temporary copy of original file
+
 	static unsigned DLL_CALLCONV myReadProc(void *buffer, unsigned size, unsigned count, fi_handle handle) {
 		return (unsigned)fread(buffer, size, count, (FILE *)handle);
 	}
