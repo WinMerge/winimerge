@@ -224,6 +224,10 @@
     <None Include="WinIMerge.ico" />
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="..\.git\FETCH_HEAD">
+      <Command>"$(SolutionDir)GIT-VS-VERSION-GEN.bat" "$(IntDir)\" "$(SolutionDir)gen-versioninfo.h"</Command>
+      <Outputs>$(SolutionDir)gen-versioninfo.h</Outputs>
+    </CustomBuild>
     <ResourceCompile Include="WinIMerge.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
