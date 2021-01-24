@@ -23,12 +23,6 @@ SET DEFAULT_VERSION=v1.0.0-rc0
 ::                   fix   - count from earliest Major.Minor.Fix tag.
 SET COUNT_PATCHES_FROM=fix
 
-:: USES_PRERELEASE_TAGS - numeric bool value to determine if GET_GIT_PATCHES
-::                function should read the number of patches in the format of
-::                  (Default) 1 - Major.Minor.Fix-Stage#-'CommitCount'
-::                            0 - Major.Minor.Fix-'CommitCount'
-SET USE_PRERELEASE_TAGS=1
-
 :: --------------------
 :CHECK_ARGS
 :: --------------------
@@ -283,16 +277,13 @@ SET git_cmd=%git_cmd% --sort=taggerdate refs/tags/%tmp%
 FOR /F "tokens=* usebackq" %%A IN (`"%git_cmd%"`) DO SET tmp=%%A
 SET git_cmd=
 
-:: Full version releases have the Git patch count at the first '-' while
-:: pre-release versions have it at the second.
-IF [%USE_PRERELEASE_TAGS%] == [0] (
-  FOR /F "tokens=2 delims=-" %%A IN ('"git describe --match %tmp%"') DO (
-    SET nbPATCHES_PART=%%A
-  )
-) ELSE (
-  FOR /F "tokens=3 delims=-" %%A IN ('"git describe --match %tmp%"') DO (
-    SET nbPATCHES_PART=%%A
-  )
+:: The Git patch count is at the last but one '-' no matter what.
+:: Get the index of the last but one token into %tokens%, then read that token.
+FOR /F %%A IN ('"git describe --match %tmp%"') DO SET desc=%%A
+SET tokens=-1
+FOR %%A IN (%desc:-= %) DO SET /A tokens=tokens+1
+FOR /F "tokens=%tokens% delims=-" %%A IN ('"git describe --match %tmp%"') DO (
+  SET nbPATCHES_PART=%%A
 )
 IF NOT DEFINED nbPATCHES_PART SET nbPATCHES_PART=0
 SET tmp=
