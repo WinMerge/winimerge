@@ -235,7 +235,7 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\.git\FETCH_HEAD">
-      <Command>"$(SolutionDir)GIT-VS-VERSION-GEN.bat" "$(IntDir)\" "$(SolutionDir)gen-versioninfo.h"</Command>
+      <Command>"$(SolutionDir)GIT-VS-VERSION-GEN.bat" --force "$(IntDir)\" "$(SolutionDir)gen-versioninfo.h"</Command>
       <Outputs>$(SolutionDir)gen-versioninfo.h</Outputs>
     </CustomBuild>
     <ResourceCompile Include="WinIMergeLib.rc" />
