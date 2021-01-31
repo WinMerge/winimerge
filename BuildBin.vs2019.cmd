@@ -14,9 +14,9 @@ if exist "%InstallDir%\Common7\Tools\vsdevcmd.bat" (
 for %%i in ( ^
   ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2019.vcxproj ^
   ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2019.vcxproj ^
-  src\WinIMergeLib.vs2019.vcxproj ^
-  src\WinIMerge.vs2019.vcxproj ^
-  src\cidiff.vs2019.vcxproj ^
+  src\WinIMergeLib.vcxproj ^
+  src\WinIMerge.vcxproj ^
+  src\cidiff.vcxproj ^
   ) do (
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v142 || goto :eof
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v142 || goto :eof
