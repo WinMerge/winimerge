@@ -12,8 +12,8 @@ if exist "%InstallDir%\Common7\Tools\vsdevcmd.bat" (
 )
 
 for %%i in ( ^
-  ..\freeimage\Source\FreeImageLib\FreeImageLib.vs2019.vcxproj ^
-  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vs2019.vcxproj ^
+  ..\freeimage\Source\FreeImageLib\FreeImageLib.vcxproj ^
+  ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vcxproj ^
   src\WinIMergeLib.vcxproj ^
   src\WinIMerge.vcxproj ^
   src\cidiff.vcxproj ^
