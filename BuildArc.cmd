@@ -1,6 +1,5 @@
 cd /d "%~dp0"
 
-call SetVersion.cmd
 set DISTDIR=.\Dist
 set path="%ProgramFiles%\7-zip";"%ProgramFiles(x86)%\7-zip";%path%
 
@@ -24,5 +23,18 @@ copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.OpenMP\vcomp14
 copy GPL.txt "%DISTDIR%\WinIMerge"
 copy freeimage-license-gplv2.txt "%DISTDIR%\WinIMerge"
 
-7z.exe a -tzip "%DISTDIR%\winimerge-%MAJOR%-%MINOR%-%REVISION%-%PATCHLEVEL%-exe.zip" "%DISTDIR%\WinIMerge\"
+call :GET_EXE_VERSION %~dp0Build\X64\Release\WinIMerge.exe
+
+7z.exe a -tzip "%DISTDIR%\winimerge-%EXE_VERSION%-exe.zip" "%DISTDIR%\WinIMerge\"
+
+goto :eof
+
+:GET_EXE_VERSION
+
+SET EXE_PATH=%1
+WMIC Path CIM_DataFile WHERE Name='%EXE_PATH:\=\\%' Get Version | findstr /v Version > _tmp_.txt
+set /P EXE_VERSIONTMP=<_tmp_.txt
+set EXE_VERSION=%EXE_VERSIONTMP: =%
+del _tmp_.txt
+goto :eof
 
