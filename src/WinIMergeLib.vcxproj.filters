@@ -67,4 +67,7 @@
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\.git\FETCH_HEAD" />
+  </ItemGroup>
 </Project>
