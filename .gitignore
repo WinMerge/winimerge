@@ -12,3 +12,4 @@ Dist/
 *.aps
 *.*~
 winimerge-cppcheck-build-dir/
+gen-versioninfo.h
