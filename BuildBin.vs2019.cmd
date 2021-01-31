@@ -3,8 +3,6 @@ cd /d "%~dp0"
 del /s Build\*.exe
 del /s BuildTmp\*.res
 
-call SetVersion.cmd
-
 setlocal
 for /f "usebackq tokens=*" %%i in (`"%programfiles(x86)%\microsoft visual studio\installer\vswhere.exe" -version [16.0^,17.0^) -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
   set InstallDir=%%i

@@ -69,7 +69,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Batch Files", "Batch Files"
 	ProjectSection(SolutionItems) = preProject
 		BuildArc.cmd = BuildArc.cmd
 		BuildBin.vs2019.cmd = BuildBin.vs2019.cmd
-		SetVersion.cmd = SetVersion.cmd
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VBS Scripts", "VBS Scripts", "{0AB212AD-1F11-4BAB-BAD5-8BFC4435F453}"
