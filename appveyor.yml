@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image: Visual Studio 2019
 clone_folder: c:\projects\winimerge\winimerge
 shallow_clone: true
 install:
@@ -12,7 +12,7 @@ build_script:
 - cmd: >-
     cd c:\projects\winimerge\winimerge
 
-    BuildBin.vs2017.cmd
+    BuildBin.vs2019.cmd
 
     BuildArc.cmd
 artifacts:
