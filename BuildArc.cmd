@@ -10,6 +10,7 @@ for /f "usebackq tokens=*" %%i in (`"%programfiles(x86)%\microsoft visual studio
 mkdir "%DISTDIR%\WinIMerge" 2> NUL
 mkdir "%DISTDIR%\WinIMerge\bin" 2> NUL
 mkdir "%DISTDIR%\WinIMerge\bin64" 2> NUL
+mkdir "%DISTDIR%\WinIMerge\binARM64" 2> NUL
 
 copy Build\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\bin"
 copy Build\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\bin"
@@ -17,6 +18,9 @@ copy Build\Release\cidiff.exe "%DISTDIR%\WinIMerge\bin"
 copy Build\x64\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\bin64"
 copy Build\x64\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\bin64"
 copy Build\x64\Release\cidiff.exe "%DISTDIR%\WinIMerge\bin64"
+copy Build\ARM64\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\binARM64"
+copy Build\ARM64\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\binARM64"
+copy Build\ARM64\Release\cidiff.exe "%DISTDIR%\WinIMerge\binARM64"
 copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x86\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin"
 copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin64"
 

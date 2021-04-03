@@ -20,6 +20,7 @@ for %%i in ( ^
   ) do (
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v142 || goto :eof
   MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v142 || goto :eof
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="ARM64" /p:PlatformToolset=v142 || goto :eof
 )
 
 if exist "%SIGNBAT_PATH%" (
@@ -29,6 +30,9 @@ if exist "%SIGNBAT_PATH%" (
   "%SIGNBAT_PATH%" Build\x64\Release\WinIMerge.exe
   "%SIGNBAT_PATH%" Build\x64\Release\WinIMergeLib.dll
   "%SIGNBAT_PATH%" Build\x64\Release\cidiff.exe
+  "%SIGNBAT_PATH%" Build\ARM64\Release\WinIMerge.exe
+  "%SIGNBAT_PATH%" Build\ARM64\Release\WinIMergeLib.dll
+  "%SIGNBAT_PATH%" Build\ARM64\Release\cidiff.exe
 )
 
 endlocal
