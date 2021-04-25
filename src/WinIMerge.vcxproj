@@ -330,7 +330,7 @@
     <None Include="WinIMerge.ico" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\.git\FETCH_HEAD">
+    <CustomBuild Include="..\GIT-VS-VERSION-GEN.bat">
       <Command>"$(ProjectDir)..\GIT-VS-VERSION-GEN.bat" --force "$(IntDir)\" "$(ProjectDir)..\gen-versioninfo.h"</Command>
       <Outputs>$(ProjectDir)..\gen-versioninfo.h</Outputs>
     </CustomBuild>

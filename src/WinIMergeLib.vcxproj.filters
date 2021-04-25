@@ -68,6 +68,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\.git\FETCH_HEAD" />
+    <CustomBuild Include="..\GIT-VS-VERSION-GEN.bat" />
   </ItemGroup>
 </Project>
