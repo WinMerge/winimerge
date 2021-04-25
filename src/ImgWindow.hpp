@@ -37,6 +37,7 @@ public:
 		, m_visibleRectangleSelection(false)
 		, m_ptOverlappedImage{}
 		, m_ptOverlappedImageCursor{}
+		, m_wBar{SB_BOTH}
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -83,6 +84,18 @@ public:
 	void SetWindowRect(const RECT& rc)
 	{
 		MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
+		if (m_wBar == SB_BOTH)
+			::ShowScrollBar(m_hWnd, m_wBar, true);
+		else if (m_wBar == SB_HORZ)
+		{
+			::ShowScrollBar(m_hWnd, SB_HORZ, true);
+			::ShowScrollBar(m_hWnd, SB_VERT, false);
+		}
+		else if (m_wBar == SB_VERT)
+		{
+			::ShowScrollBar(m_hWnd, SB_HORZ, false);
+			::ShowScrollBar(m_hWnd, SB_VERT, true);
+		}
 	}
 
 	void SetFocus()
@@ -427,6 +440,11 @@ public:
 		CalcScrollBarRange();
 	}
 
+	void SetScrollBar(int wBar)
+	{
+		m_wBar = wBar;
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -763,4 +781,5 @@ private:
 	POINT m_ptSelectionStart;
 	POINT m_ptSelectionEnd;
 	HCURSOR m_hCursor;
+	int m_wBar;
 };

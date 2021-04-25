@@ -212,7 +212,11 @@ public:
 		m_bHorizontalSplit = horizontalSplit;
 		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
 		for (int i = 0; i < m_nImages; ++i)
+		{
+			if (i < m_nImages - 1)
+				m_imgWindow[i].SetScrollBar(m_bHorizontalSplit ? SB_VERT : SB_HORZ);
 			m_imgWindow[i].SetWindowRect(rects[i]);
+		}
 	}
 
 	COLORREF GetDiffColor() const override
@@ -808,6 +812,8 @@ public:
 			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
 			for (int i = 0; i < nImages; ++i)
 			{
+				if (i < nImages - 1)
+					m_imgWindow[i].SetScrollBar(m_bHorizontalSplit ? SB_VERT : SB_HORZ);
 				m_imgWindow[i].SetWindowRect(rects[i]);
 				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
 			}
@@ -838,6 +844,8 @@ public:
 			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
 			for (int i = 0; i < nImages; ++i)
 			{
+				if (i < nImages - 1)
+					m_imgWindow[i].SetScrollBar(m_bHorizontalSplit ? SB_VERT : SB_HORZ);
 				m_imgWindow[i].SetWindowRect(rects[i]);
 				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
 			}
@@ -1129,35 +1137,40 @@ private:
 		RECT rcParent;
 		GetClientRect(hWnd, &rcParent);
 		RECT rc = rcParent;
-		if (!bHorizontalSplit)
+		if (nImages > 0)
 		{
-			int width = (rcParent.left + rcParent.right) / (nImages > 0 ? nImages : 1) - 2;
-			rc.left = 0;
-			rc.right = rc.left + width;
-			for (int i = 0; i < nImages - 1; ++i)
+			if (!bHorizontalSplit)
 			{
+				int cx = GetSystemMetrics(SM_CXVSCROLL);
+				int width = (rcParent.left + rcParent.right - cx) / nImages - 2;
+				rc.left = 0;
+				rc.right = rc.left + width;
+				for (int i = 0; i < nImages - 1; ++i)
+				{
+					childrects.push_back(rc);
+					rc.left = rc.right + 2 * 2;
+					rc.right = rc.left + width;
+				}
+				rc.right = rcParent.right;
+				rc.left = rc.right - width - cx;
 				childrects.push_back(rc);
-				rc.left  = rc.right + 2 * 2;
-				rc.right = rc.left  + width;
 			}
-			rc.right = rcParent.right;
-			rc.left  = rc.right - width;
-			childrects.push_back(rc);
-		}
-		else
-		{
-			int height = (rcParent.top + rcParent.bottom) / (nImages > 0 ? nImages : 1) - 2;
-			rc.top = 0;
-			rc.bottom = rc.top + height;
-			for (int i = 0; i < nImages - 1; ++i)
+			else
 			{
+				int cy = GetSystemMetrics(SM_CXVSCROLL);
+				int height = (rcParent.top + rcParent.bottom - cy) / nImages - 2;
+				rc.top = 0;
+				rc.bottom = rc.top + height;
+				for (int i = 0; i < nImages - 1; ++i)
+				{
+					childrects.push_back(rc);
+					rc.top = rc.bottom + 2 * 2;
+					rc.bottom = rc.top + height;
+				}
+				rc.bottom = rcParent.bottom;
+				rc.top = rc.bottom - height - cy;
 				childrects.push_back(rc);
-				rc.top    = rc.bottom + 2 * 2;
-				rc.bottom = rc.top    + height;
 			}
-			rc.bottom = rcParent.bottom;
-			rc.top    = rc.bottom - height;
-			childrects.push_back(rc);
 		}
 		return childrects;
 	}
@@ -1371,6 +1384,9 @@ private:
 			break;
 		case WM_MOUSEWHEEL:
 			PostMessage(m_imgWindow[0].GetHWND(), iMsg, wParam, lParam);
+			break;
+		case WM_SETCURSOR:
+			SetCursor(::LoadCursor(nullptr, !m_bHorizontalSplit ? IDC_SIZEWE : IDC_SIZENS));
 			break;
 		case WM_TIMER:
 			m_buffer.RefreshImages();
