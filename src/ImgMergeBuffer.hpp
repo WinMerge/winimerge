@@ -118,6 +118,16 @@ struct UndoRecords
 		}
 	}
 
+	int get_savepoint(int pane) const
+	{
+		return m_modcountonsave[pane];
+	}
+
+	void set_savepoint(int pane, int pos)
+	{
+		m_modcountonsave[pane] = pos;
+	}
+
 	std::vector<UndoRecord> m_undoBuf;
 	int m_currentUndoBufIndex;
 	int m_modcount[3];
@@ -472,6 +482,20 @@ public:
 		m_imgOrig32[rec.pane] = *rec.newbitmap;
 		CompareImages();
 		return true;
+	}
+
+	int GetSavePoint(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return 0;
+		return m_undoRecords.get_savepoint(pane);
+	}
+
+	void SetSavePoint(int pane, int pos)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+		m_undoRecords.set_savepoint(pane, pos);
 	}
 
 	bool SaveImage(int pane)

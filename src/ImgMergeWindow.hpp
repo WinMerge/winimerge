@@ -1114,6 +1114,16 @@ public:
 		return SysAllocStringLen(text.c_str(), static_cast<unsigned>(text.size()));
 	}
 
+	int GetSavePoint(int pane) const override
+	{
+		return m_buffer.GetSavePoint(pane);
+	}
+
+	void SetSavePoint(int pane, int pos) override
+	{
+		m_buffer.SetSavePoint(pane, pos);
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
