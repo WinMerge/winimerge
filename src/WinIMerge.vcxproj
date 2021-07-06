@@ -121,7 +121,6 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\FreeImage\Dist\x32;..\..\FreeImage\Wrapper\FreeImagePlus\dist\x32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>

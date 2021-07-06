@@ -128,7 +128,6 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\FreeImage\Dist\x32;..\..\FreeImage\Wrapper\FreeImagePlus\dist\x32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_UNICODE;UNICODE;FREEIMAGE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
@@ -168,7 +167,6 @@
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
-      <MinimalRebuild>false</MinimalRebuild>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <StringPooling>true</StringPooling>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -198,7 +196,6 @@
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
-      <MinimalRebuild>false</MinimalRebuild>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <StringPooling>true</StringPooling>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -230,7 +227,6 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <MinimalRebuild>false</MinimalRebuild>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -267,7 +263,6 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <MinimalRebuild>false</MinimalRebuild>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -304,7 +299,6 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <MinimalRebuild>false</MinimalRebuild>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
