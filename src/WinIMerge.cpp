@@ -280,7 +280,7 @@ void UpdateStatusBar()
 			RECT rc = m_pImgMergeWindow->GetRectangleSelection(pane);
 			p += wsprintfW(p, L"Rc:(%d,%d) ", rc.right - rc.left, rc.bottom - rc.top);
 		}
-		p += wsprintfW(p, L"Page:%d/%d Zoom:%d%% Diff:%d/%d %dx%dpx %dbpp", 
+		p += wsprintfW(p, L"Page:%d/%d Zoom:%d%% Diff:%d/%d %dx%dpx %dbpp ", 
 			m_pImgMergeWindow->GetCurrentPage(pane) + 1,
 			m_pImgMergeWindow->GetPageCount(pane),
 			static_cast<int>(m_pImgMergeWindow->GetZoom() * 100),
@@ -290,6 +290,16 @@ void UpdateStatusBar()
 			m_pImgMergeWindow->GetImageHeight(pane),
 			m_pImgMergeWindow->GetImageBitsPerPixel(pane)
 			);
+		if (m_pImgMergeWindow->GetVerticalFlip(pane) || m_pImgMergeWindow->GetHorizontalFlip(pane))
+			p += wsprintfW(p, L"Flipped:");
+		if (m_pImgMergeWindow->GetVerticalFlip(pane))
+			p += wsprintfW(p, L"V");
+		if (m_pImgMergeWindow->GetHorizontalFlip(pane))
+			p += wsprintfW(p, L"H");
+		if (m_pImgMergeWindow->GetVerticalFlip(pane) || m_pImgMergeWindow->GetHorizontalFlip(pane))
+			p += wsprintfW(p, L" ");
+		if (m_pImgMergeWindow->GetRotation(pane) > 0)
+			p += wsprintfW(p, L"Rotated:%d ", static_cast<int>(m_pImgMergeWindow->GetRotation(pane)));
 		SendMessage(m_hwndStatusBar, SB_SETTEXT, (WPARAM)pane | 0, (LPARAM)buf);
 	}
 }
@@ -780,6 +790,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			int nActivePane = m_pImgMergeWindow->GetActivePane();
 			m_pImgMergeWindow->SetCurrentPage(nActivePane, m_pImgMergeWindow->GetCurrentPage(nActivePane) + 1);
+			break;
+		}
+		case ID_POPUP_CURPANE_ROTATE_RIGHT_90:
+		{
+			int nActivePane = m_pImgMergeWindow->GetActivePane();
+			m_pImgMergeWindow->SetRotation(nActivePane, m_pImgMergeWindow->GetRotation(nActivePane) - 90.f);
+			break;
+		}
+		case ID_POPUP_CURPANE_ROTATE_LEFT_90:
+		{
+			int nActivePane = m_pImgMergeWindow->GetActivePane();
+			m_pImgMergeWindow->SetRotation(nActivePane, m_pImgMergeWindow->GetRotation(nActivePane) + 90.f);
+			break;
+		}
+		case ID_POPUP_CURPANE_FLIP_VERTICALLY:
+		{
+			int nActivePane = m_pImgMergeWindow->GetActivePane();
+			m_pImgMergeWindow->SetVerticalFlip(nActivePane, !m_pImgMergeWindow->GetVerticalFlip(nActivePane));
+			break;
+		}
+		case ID_POPUP_CURPANE_FLIP_HORIZONTALLY:
+		{
+			int nActivePane = m_pImgMergeWindow->GetActivePane();
+			m_pImgMergeWindow->SetHorizontalFlip(nActivePane, !m_pImgMergeWindow->GetHorizontalFlip(nActivePane));
 			break;
 		}
 		default:

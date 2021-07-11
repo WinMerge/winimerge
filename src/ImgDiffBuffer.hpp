@@ -566,6 +566,7 @@ private:
 
 class CImgDiffBuffer
 {
+	friend class TemporaryTransformation;
 	typedef Array2D<int> DiffBlocks;
 
 public:
@@ -601,6 +602,10 @@ public:
 		, m_colorDistanceThreshold(0.0)
 		, m_currentDiffIndex(-1)
 		, m_diffCount(0)
+		, m_angle{}
+		, m_horizontalFlip{}
+		, m_verticalFlip{}
+		, m_temporarilyTransformed(false)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_currentPage[i] = 0;
@@ -881,6 +886,56 @@ public:
 			if (m_imgConverter[pane].isValid())
 				ChangePage(pane, m_currentPage[pane]);
 		}
+		CompareImages();
+	}
+
+	float GetRotation(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return 0.f;
+		return m_angle[pane];
+	}
+
+	void SetRotation(int pane, float angle)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+		if (angle >= 360.f)
+			m_angle[pane] = angle - 360.f * (static_cast<int>(angle) / 360);
+		else if (angle < 0.f)
+			m_angle[pane] = angle + 360.f * (1 + (static_cast<int>(-angle) / 360));
+		else
+			m_angle[pane] = angle;
+		CompareImages();
+	}
+
+	bool GetHorizontalFlip(int pane) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return false;
+		return m_horizontalFlip[pane];
+	}
+
+	void SetHorizontalFlip(int pane, bool flip)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+		m_horizontalFlip[pane] = flip;
+		CompareImages();
+	}
+
+	bool GetVerticalFlip(int pane ) const
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return false;
+		return m_verticalFlip[pane];
+	}
+
+	void SetVerticalFlip(int pane, bool flip)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return;
+		m_verticalFlip[pane] = flip;
 		CompareImages();
 	}
 
@@ -1178,14 +1233,20 @@ public:
 	{
 		if (pane < 0 || pane >= m_nImages)
 			return -1;
-		return m_imgOrig32[pane].width();
+		if (m_angle[pane] == 0.f || m_angle[pane] == 180.f)
+			return m_imgOrig32[pane].width();
+		else
+			return m_imgOrig32[pane].height();
 	}
 
 	int  GetImageHeight(int pane) const
 	{
 		if (pane < 0 || pane >= m_nImages)
 			return -1;
-		return m_imgOrig32[pane].height();
+		if (m_angle[pane] == 0.f || m_angle[pane] == 180.f)
+			return m_imgOrig32[pane].height();
+		else
+			return m_imgOrig32[pane].width();
 	}
 
 	int  GetPreprocessedImageWidth(int pane) const
@@ -1260,13 +1321,6 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return NULL;
 		return &m_imgOrig[pane];
-	}
-
-	const Image *GetOriginalImage32(int pane) const
-	{
-		if (pane < 0 || pane >= m_nImages)
-			return NULL;
-		return &m_imgOrig32[pane];
 	}
 
 	Image *GetDiffMapImage(unsigned w, unsigned h)
@@ -1419,10 +1473,10 @@ public:
 				}
 			}
 			ry = y - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
-			if (ry >= static_cast<int>(m_imgOrig32[pane].height()))
+			if (ry >= GetImageHeight(pane))
 			{
 				if (clamp)
-					ry = m_imgOrig32[pane].height() - 1;
+					ry = GetImageHeight(pane) - 1;
 				inside = false;
 			}
 			return inside;
@@ -1462,14 +1516,20 @@ public:
 				}
 			}
 			rx = x - m_lineDiffInfos.back().dendmax + m_lineDiffInfos.back().end[pane];
-			if (rx >= static_cast<int>(m_imgOrig32[pane].width()))
+			if (rx >= GetImageWidth(pane))
 			{
 				if (clamp)
-					rx = m_imgOrig32[pane].width() - 1;
+					rx = GetImageWidth(pane) - 1;
 				inside = false;
 			}
 			return inside;
 		}
+	}
+
+	void CopySubImage(int pane, int x, int y, int x2, int y2, Image& image)
+	{
+		TemporaryTransformation tmp(*this);
+		m_imgOrig32[pane].copySubImage(image, x, y, x2, y2);
 	}
 
 protected:
@@ -1500,6 +1560,31 @@ protected:
 						bSucceeded = false;
 				}
 				m_imgOrig32[i] = m_imgOrig[i];
+				std::map<std::string, std::string> meta = m_imgOrig[i].getMetadata();
+				m_horizontalFlip[i] = false;
+				m_verticalFlip[i] = false;
+				m_angle[i] = 0.f;
+				std::string orientation = meta["EXIF_MAIN/Orientation"];
+				if (orientation == "top, right side") // 2
+					m_horizontalFlip[i] = true;
+				else if (orientation == "bottom, right side") // 3
+					m_angle[i] = 180.f;
+				else if (orientation == "bottom, left side") // 4
+					m_verticalFlip[i] = true;
+				else if (orientation == "left side, top") // 5
+				{
+					m_angle[i] = 90.f;
+					m_verticalFlip[i] = true;
+				}
+				else if (orientation == "right side, top") // 6
+					m_angle[i] = 270.f;
+				else if (orientation == "right side, bottom") // 7
+				{
+					m_angle[i] = 270.f;
+					m_verticalFlip[i] = true;
+				}
+				else if (orientation == "left side, bottom") // 8
+					m_angle[i] = 90.f;
 			}
 			m_imgOrig32[i].convertTo32Bits();
 		}
@@ -2083,6 +2168,49 @@ protected:
 		return dlines;
 	}
 
+	class TemporaryTransformation
+	{
+	public:
+		TemporaryTransformation(CImgDiffBuffer& buffer)
+			: m_buffer(buffer)
+		{
+			m_buffer.TransformImages(false);
+		}
+
+		~TemporaryTransformation()
+		{
+			m_buffer.TransformImages(true);
+		}
+	private:
+		CImgDiffBuffer& m_buffer;
+	};
+
+	void TransformImages(bool reverse)
+	{
+		m_temporarilyTransformed = !reverse;
+		for (int pane = 0; pane < m_nImages; ++pane)
+		{
+			if (!reverse)
+			{
+				if (m_horizontalFlip[pane])
+					m_imgOrig32[pane].flipHorizontal();
+				if (m_verticalFlip[pane])
+					m_imgOrig32[pane].flipVertical();
+				if (m_angle[pane])
+					m_imgOrig32[pane].rotate(m_angle[pane]);
+			}
+			else
+			{
+				if (m_angle[pane])
+					m_imgOrig32[pane].rotate(-m_angle[pane]);
+				if (m_horizontalFlip[pane])
+					m_imgOrig32[pane].flipHorizontal();
+				if (m_verticalFlip[pane])
+					m_imgOrig32[pane].flipVertical();
+			}
+		}
+	}
+
 	void PreprocessImages()
 	{
 		auto compfunc02 = [&](const LineDiffInfo & wd3) {
@@ -2100,6 +2228,9 @@ protected:
 			}
 			return true;
 		};
+		
+		TemporaryTransformation tmp(*this);
+
 		std::vector<LineDiffInfo> lineDiffInfos10, lineDiffInfos12;
 		switch (m_insertionDeletionDetectionMode)
 		{
@@ -2126,8 +2257,8 @@ protected:
 				m_lineDiffInfos = MakeLineDiff(imgTransposed[0], imgTransposed[1]);
 			else
 			{
-				lineDiffInfos10 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[0]);
-				lineDiffInfos12 = MakeLineDiff(m_imgOrig32[1], m_imgOrig32[2]);
+				lineDiffInfos10 = MakeLineDiff(imgTransposed[1], imgTransposed[0]);
+				lineDiffInfos12 = MakeLineDiff(imgTransposed[1], imgTransposed[2]);
 				m_lineDiffInfos = ::Make3WayLineDiff(lineDiffInfos10, lineDiffInfos12, compfunc02);
 			}
 			PrimeLineDiffInfos(m_lineDiffInfos, m_nImages, m_imgOrig32[0].height());
@@ -2169,10 +2300,14 @@ protected:
 	Image::Color m_diffDeletedColor;
 	double m_diffColorAlpha;
 	double m_colorDistanceThreshold;
+	float m_angle[3];
+	bool m_horizontalFlip[3];
+	bool m_verticalFlip[3];
 	int m_currentPage[3];
 	int m_currentDiffIndex;
 	int m_diffCount;
 	DiffBlocks m_diff, m_diff01, m_diff21, m_diff02;
 	std::vector<DiffInfo> m_diffInfos;
 	std::vector<LineDiffInfo> m_lineDiffInfos;
+	bool m_temporarilyTransformed;
 };

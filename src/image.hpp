@@ -329,6 +329,14 @@ public:
 	{
 		return !!image_.rotate(angle);
 	}
+	bool flipHorizontal()
+	{
+		return !!image_.flipHorizontal();
+	}
+	bool flipVertical()
+	{
+		return !!image_.flipVertical();
+	}
 	bool pullImageKeepingBPP(const Image& other)
 	{
 		unsigned bpp =  image_.getBitsPerPixel();

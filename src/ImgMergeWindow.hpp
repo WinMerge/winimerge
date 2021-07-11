@@ -446,6 +446,39 @@ public:
 		Invalidate();
 	}
 
+	float GetRotation(int pane) const override
+	{
+		return m_buffer.GetRotation(pane);
+	}
+
+	void SetRotation(int pane, float angle) override
+	{
+		m_buffer.SetRotation(pane, angle);
+		Invalidate();
+	}
+
+	bool GetHorizontalFlip(int pane) const override
+	{
+		return m_buffer.GetHorizontalFlip(pane);
+	}
+
+	void SetHorizontalFlip(int pane, bool flip) override
+	{
+		m_buffer.SetHorizontalFlip(pane, flip);
+		Invalidate();
+	}
+
+	bool GetVerticalFlip(int pane) const override
+	{
+		return m_buffer.GetVerticalFlip(pane);
+	}
+
+	void SetVerticalFlip(int pane, bool flip) override
+	{
+		m_buffer.SetVerticalFlip(pane, flip);
+		Invalidate();
+	}
+
 	int  GetDiffCount() const override
 	{
 		return m_buffer.GetDiffCount();
@@ -655,7 +688,7 @@ public:
 			return false;
 		Image image;
 		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
-		m_buffer.GetOriginalImage32(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		m_buffer.CopySubImage(pane, rc.left, rc.top, rc.right, rc.bottom, image);
 		return !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 	}
 
@@ -666,7 +699,7 @@ public:
 			return false;
 		Image image;
 		RECT rc = ConvertToRealRect(pane, m_imgWindow[pane].GetRectangleSelection(), false);
-		m_buffer.GetOriginalImage32(pane)->copySubImage(image, rc.left, rc.top, rc.right, rc.bottom);
+		m_buffer.CopySubImage(pane, rc.left, rc.top, rc.right, rc.bottom, image);
 		bool result = !!image.getImage()->copyToClipboard(m_imgWindow[pane].GetHWND());
 		if (result)
 		{
@@ -1051,7 +1084,9 @@ public:
 			_snwprintf_s(filename, _TRUNCATE, L"%s/WinIMerge_ocr_%d_%d_%d.png",
 				_wgetenv(L"TEMP"), GetCurrentProcessId(), pane, p);
 			m_buffer.SetCurrentPage(pane, p);
-			const_cast<Image *>(m_buffer.GetOriginalImage32(pane))->save(filename);
+			Image image;
+			m_buffer.CopySubImage(pane, 0, 0, m_buffer.GetImageWidth(pane), m_buffer.GetImageHeight(pane), image);
+			image.save(filename);
 
 			m_pOcr->load(filename);
 
@@ -1715,9 +1750,8 @@ private:
 				RECT rcSelectReal = ConvertToRealRect(evt.pane, rcSelect, false);
 				bool controlKeyPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
 				Image image;
-				const Image* pImage = m_buffer.GetOriginalImage32(evt.pane);
-				pImage->copySubImage(image, rcSelectReal.left, rcSelectReal.top,
-					rcSelectReal.right, rcSelectReal.bottom);
+				m_buffer.CopySubImage(evt.pane, rcSelectReal.left, rcSelectReal.top,
+					rcSelectReal.right, rcSelectReal.bottom, image);
 				imgWindow.DeleteRectangleSelection();
 				imgWindow.StartDraggingOverlappedImage(*image.getFipImage(),
 					{ rcSelect.left, rcSelect.top }, pt);

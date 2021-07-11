@@ -128,6 +128,10 @@ BEGIN
         MENUITEM "&Next Page",                  ID_VIEW_PAGE_NEXTPAGE
         POPUP "&Active Pane"
         BEGIN
+            MENUITEM "Rotate &Right 90deg",         ID_POPUP_CURPANE_ROTATE_RIGHT_90
+            MENUITEM "Rotate &Left 90deg",          ID_POPUP_CURPANE_ROTATE_LEFT_90
+            MENUITEM "Flip &Vertically",            ID_POPUP_CURPANE_FLIP_VERTICALLY
+            MENUITEM "Flip &Horizontally",          ID_POPUP_CURPANE_FLIP_HORIZONTALLY
             MENUITEM "&Previous Page",              ID_POPUP_CURPANE_PREVIOUSPAGE
             MENUITEM "&Next Page",                  ID_POPUP_CURPANE_NEXTPAGE
         END
@@ -204,8 +208,19 @@ IDR_POPUPMENU MENU
 BEGIN
     POPUP "popup"
     BEGIN
+        MENUITEM "Current Pane: Rotate &Right 90deg", ID_POPUP_CURPANE_ROTATE_RIGHT_90
+        MENUITEM "Current Pane: Rotate &Left 90deg", ID_POPUP_CURPANE_ROTATE_LEFT_90
+        MENUITEM "Current Pane: Flip &Vertically", ID_POPUP_CURPANE_FLIP_VERTICALLY
+        MENUITEM "Current Pane: Flip &Horizontally", ID_POPUP_CURPANE_FLIP_HORIZONTALLY
         MENUITEM "Current Pane: &Previous Page", ID_POPUP_CURPANE_PREVIOUSPAGE
         MENUITEM "Current Pane: &Next Page",    ID_POPUP_CURPANE_NEXTPAGE
+        MENUITEM SEPARATOR
+        MENUITEM "&None",                       ID_VIEW_DRAGGINGMODE_NONE
+        MENUITEM "&Move",                       ID_VIEW_DRAGGINGMODE_MOVE
+        MENUITEM "&Adjust Offset",              ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET
+        MENUITEM "&Vertical Wipe",              ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE
+        MENUITEM "&Horizontal Wipe",            ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE
+        MENUITEM "&Rectangle Select",           ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT
     END
 END
 
