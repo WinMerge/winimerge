@@ -1928,7 +1928,7 @@ protected:
 					memcpy(scanline2, tmp, w * 4);
 				}
 			}
-			delete tmp;
+			delete[] tmp;
 		}
 		else if (m_wipeMode = WIPE_HORIZONTAL)
 		{
