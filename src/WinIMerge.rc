@@ -130,8 +130,8 @@ BEGIN
         BEGIN
             MENUITEM "Rotate &Right 90deg",         ID_POPUP_CURPANE_ROTATE_RIGHT_90
             MENUITEM "Rotate &Left 90deg",          ID_POPUP_CURPANE_ROTATE_LEFT_90
-            MENUITEM "Flip &Vertically",            ID_POPUP_CURPANE_FLIP_VERTICALLY
-            MENUITEM "Flip &Horizontally",          ID_POPUP_CURPANE_FLIP_HORIZONTALLY
+            MENUITEM "Flip V&ertically",            ID_POPUP_CURPANE_FLIP_VERTICALLY
+            MENUITEM "Flip H&orizontally",          ID_POPUP_CURPANE_FLIP_HORIZONTALLY
             MENUITEM "&Previous Page",              ID_POPUP_CURPANE_PREVIOUSPAGE
             MENUITEM "&Next Page",                  ID_POPUP_CURPANE_NEXTPAGE
         END
@@ -160,7 +160,7 @@ BEGIN
             MENUITEM "&Adjust Offset",              ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET
             MENUITEM "&Vertical Wipe",              ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE
             MENUITEM "&Horizontal Wipe",            ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE
-            MENUITEM "&Rectangle Select",           ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT
+            MENUITEM "Rectangle &Select",           ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT
         END
         MENUITEM "Split &Horizontally",         ID_VIEW_SPLITHORIZONTALLY
         MENUITEM "&Set Background Color",       ID_VIEW_USEBACKCOLOR
@@ -210,8 +210,8 @@ BEGIN
     BEGIN
         MENUITEM "Current Pane: Rotate &Right 90deg", ID_POPUP_CURPANE_ROTATE_RIGHT_90
         MENUITEM "Current Pane: Rotate &Left 90deg", ID_POPUP_CURPANE_ROTATE_LEFT_90
-        MENUITEM "Current Pane: Flip &Vertically", ID_POPUP_CURPANE_FLIP_VERTICALLY
-        MENUITEM "Current Pane: Flip &Horizontally", ID_POPUP_CURPANE_FLIP_HORIZONTALLY
+        MENUITEM "Current Pane: Flip V&ertically", ID_POPUP_CURPANE_FLIP_VERTICALLY
+        MENUITEM "Current Pane: Flip H&orizontally", ID_POPUP_CURPANE_FLIP_HORIZONTALLY
         MENUITEM "Current Pane: &Previous Page", ID_POPUP_CURPANE_PREVIOUSPAGE
         MENUITEM "Current Pane: &Next Page",    ID_POPUP_CURPANE_NEXTPAGE
         MENUITEM SEPARATOR
@@ -220,7 +220,7 @@ BEGIN
         MENUITEM "&Adjust Offset",              ID_VIEW_DRAGGINGMODE_ADJUST_OFFSET
         MENUITEM "&Vertical Wipe",              ID_VIEW_DRAGGINGMODE_VERTICAL_WIPE
         MENUITEM "&Horizontal Wipe",            ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE
-        MENUITEM "&Rectangle Select",           ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT
+        MENUITEM "Rectangle &Select",           ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT
     END
 END
 

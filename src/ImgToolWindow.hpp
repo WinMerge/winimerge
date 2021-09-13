@@ -252,18 +252,26 @@ private:
 	{
 		static const int nIDs[] = {
 			IDC_DIFF_GROUP,
+			IDC_DIFF_HIGHLIGHT,
+			IDC_DIFF_BLINK,
 			IDC_OVERLAY_GROUP,
 			IDC_VIEW_GROUP,
+			IDC_DIFF_BLOCKSIZE,
+			IDC_DIFF_BLOCKALPHA,
 			IDC_DIFF_BLOCKALPHA_SLIDER,
 			IDC_DIFF_BLOCKSIZE_SLIDER,
+			IDC_DIFF_CDTHRESHOLD,
 			IDC_DIFF_CDTHRESHOLD_SLIDER,
 			IDC_DIFF_INSERTION_DELETION_DETECTION,
 			IDC_DIFF_INSERTION_DELETION_DETECTION_MODE,
+			IDC_OVERLAY_ALPHA,
 			IDC_OVERLAY_ALPHA_SLIDER,
 			IDC_OVERLAY_MODE,
-			IDC_ZOOM_SLIDER
+			IDC_ZOOM,
+			IDC_ZOOM_SLIDER,
+			IDC_PAGE,
 		};
-
+		HDWP hdwp = BeginDeferWindowPos(static_cast<int>(std::size(nIDs)));
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
 		for (int id: nIDs)
@@ -273,8 +281,9 @@ private:
 			GetWindowRect(hwndCtrl, &rcCtrl);
 			POINT pt = { rcCtrl.left, rcCtrl.top };
 			ScreenToClient(m_hWnd, &pt);
-			MoveWindow(hwndCtrl, pt.x, pt.y, rc.right - pt.x * 2, rcCtrl.bottom - rcCtrl.top, TRUE);
+			DeferWindowPos(hdwp, hwndCtrl, nullptr, pt.x, pt.y, rc.right - pt.x * 2, rcCtrl.bottom - rcCtrl.top, SWP_NOMOVE | SWP_NOZORDER);
 		}
+		EndDeferWindowPos(hdwp);
 
 		static const int nID2s[] = {
 			IDC_DIFF_BLOCKSIZE_STATIC,
@@ -282,8 +291,9 @@ private:
 			IDC_DIFF_CDTHRESHOLD_STATIC,
 			IDC_OVERLAY_ALPHA_STATIC,
 			IDC_ZOOM_STATIC,
+			IDC_PAGE_SPIN,
 		};
-
+		hdwp = BeginDeferWindowPos(static_cast<int>(std::size(nID2s)));
 		RECT rcSlider;
 		GetWindowRect(GetDlgItem(m_hWnd, IDC_DIFF_BLOCKALPHA_SLIDER), &rcSlider);
 		for (int id: nID2s)
@@ -293,22 +303,26 @@ private:
 			GetWindowRect(hwndCtrl, &rcCtrl);
 			POINT pt = { rcSlider.right - (rcCtrl.right - rcCtrl.left), rcCtrl.top };
 			ScreenToClient(m_hWnd, &pt);
-			MoveWindow(hwndCtrl, pt.x, pt.y, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top, TRUE);
+			DeferWindowPos(hdwp, hwndCtrl, nullptr, pt.x, pt.y, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top, SWP_NOSIZE | SWP_NOZORDER);
 		}
+		EndDeferWindowPos(hdwp);
 
 		static const int nID3s[] = {
-			IDC_DIFF_BLINK,
+			IDC_PAGE_EDIT,
 		};
-
+		hdwp = BeginDeferWindowPos(static_cast<int>(std::size(nID3s)));
+		RECT rcSpin;
+		GetWindowRect(GetDlgItem(m_hWnd, IDC_PAGE_SPIN), &rcSpin);
 		for (int id: nID3s)
 		{
 			RECT rcCtrl;
 			HWND hwndCtrl = GetDlgItem(m_hWnd, id);
 			GetWindowRect(hwndCtrl, &rcCtrl);
-			POINT pt = { rcCtrl.left, rcCtrl.top };
+			POINT pt = { rcSpin.left - (rcCtrl.right - rcCtrl.left), rcCtrl.top };
 			ScreenToClient(m_hWnd, &pt);
-			MoveWindow(hwndCtrl, pt.x, pt.y, rc.right - pt.x - 5, rcCtrl.bottom - rcCtrl.top, TRUE);
+			DeferWindowPos(hdwp, hwndCtrl, nullptr, pt.x, pt.y, rcCtrl.right - rcCtrl.left, rcCtrl.bottom - rcCtrl.top, SWP_NOSIZE | SWP_NOZORDER);
 		}
+		EndDeferWindowPos(hdwp);
 
 		Sync();
 	}
