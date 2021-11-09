@@ -68,7 +68,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Batch Files", "Batch Files", "{A9E83C9D-8AD6-4C87-888D-3F91B5656CD1}"
 	ProjectSection(SolutionItems) = preProject
 		BuildArc.cmd = BuildArc.cmd
+		BuildBin.vs2017.cmd = BuildBin.vs2017.cmd
 		BuildBin.vs2019.cmd = BuildBin.vs2019.cmd
+		BuildBin.vs2022.cmd = BuildBin.vs2022.cmd
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VBS Scripts", "VBS Scripts", "{0AB212AD-1F11-4BAB-BAD5-8BFC4435F453}"
