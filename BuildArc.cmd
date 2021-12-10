@@ -8,26 +8,22 @@ for /f "usebackq tokens=*" %%i in (`"%programfiles(x86)%\microsoft visual studio
 )
 
 mkdir "%DISTDIR%\WinIMerge" 2> NUL
-mkdir "%DISTDIR%\WinIMerge\bin" 2> NUL
-mkdir "%DISTDIR%\WinIMerge\bin64" 2> NUL
-mkdir "%DISTDIR%\WinIMerge\binARM64" 2> NUL
-
-copy Build\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\bin"
-copy Build\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\bin"
-copy Build\Release\cidiff.exe "%DISTDIR%\WinIMerge\bin"
-copy Build\x64\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\bin64"
-copy Build\x64\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\bin64"
-copy Build\x64\Release\cidiff.exe "%DISTDIR%\WinIMerge\bin64"
-copy Build\ARM64\Release\WinIMerge.exe "%DISTDIR%\WinIMerge\binARM64"
-copy Build\ARM64\Release\WinIMergeLib.dll "%DISTDIR%\WinIMerge\binARM64"
-copy Build\ARM64\Release\cidiff.exe "%DISTDIR%\WinIMerge\binARM64"
-copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x86\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin"
-copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin64"
+for %%t in (bin!Release bin64!x64\Release binARM!ARM\Release binARM64!ARM64\Release) do (
+  for /F "tokens=1,2 delims=!" %%u in ("%%t") do (
+    if exist Build\%%v\WinIMerge.exe  (
+      mkdir "%DISTDIR%\WinIMerge\%%u\" 2> NUL
+      copy Build\%%v\WinIMerge.exe "%DISTDIR%\WinIMerge\%%u\"
+      copy Build\%%v\WinIMergeLib.dll "%DISTDIR%\WinIMerge\%%u\"
+      copy Build\%%v\Release\cidiff.exe "%DISTDIR%\WinIMerge\%%u\"
+      call :GET_EXE_VERSION %~dp0Build\%%v\WinIMerge.exe
+    )
+  )
+)
+copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x86\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin\"
+copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin64\"
 
 copy GPL.txt "%DISTDIR%\WinIMerge"
 copy freeimage-license-gplv2.txt "%DISTDIR%\WinIMerge"
-
-call :GET_EXE_VERSION %~dp0Build\X64\Release\WinIMerge.exe
 
 7z.exe a -tzip "%DISTDIR%\winimerge-%EXE_VERSION%-exe.zip" "%DISTDIR%\WinIMerge\"
 

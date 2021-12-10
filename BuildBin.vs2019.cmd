@@ -1,6 +1,5 @@
 cd /d "%~dp0"
 
-del /s Build\*.exe
 del /s BuildTmp\*.res
 del gen-versioninfo.h
 
@@ -12,6 +11,26 @@ if exist "%InstallDir%\Common7\Tools\vsdevcmd.bat" (
   call "%InstallDir%\Common7\Tools\vsdevcmd.bat
 )
 
+if "%1" == "" (
+  call :BuildBin Win32 || goto :eof
+  call :BuildBin ARM64 || goto :eof
+  call :BuildBin x64 || goto :eof
+) else (
+  call :BuildBin %1 || goto :eof
+)
+
+endlocal
+
+goto :eof
+
+:BuildBin
+
+if "%1" == "Win32" (
+  del /s Build\Release\*.exe
+) else (
+  del /s Build\%1\Release\*.exe
+)
+
 for %%i in ( ^
   ..\freeimage\Source\FreeImageLib\FreeImageLib.vcxproj ^
   ..\freeimage\Wrapper\FreeImagePlus\FreeImagePlus.vcxproj ^
@@ -19,22 +38,18 @@ for %%i in ( ^
   src\WinIMerge.vcxproj ^
   src\cidiff.vcxproj ^
   ) do (
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="Win32" /p:PlatformToolset=v142 || goto :eof
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="x64" /p:PlatformToolset=v142 || goto :eof
-  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="ARM64" /p:PlatformToolset=v142 || goto :eof
+  MSBuild %%i /t:build /p:Configuration=Release /p:Platform="%1" /p:PlatformToolset=v142 || goto :eof
 )
 
 if exist "%SIGNBAT_PATH%" (
-  "%SIGNBAT_PATH%" Build\Release\WinIMerge.exe
-  "%SIGNBAT_PATH%" Build\Release\WinIMergeLib.dll
-  "%SIGNBAT_PATH%" Build\Release\cidiff.exe
-  "%SIGNBAT_PATH%" Build\x64\Release\WinIMerge.exe
-  "%SIGNBAT_PATH%" Build\x64\Release\WinIMergeLib.dll
-  "%SIGNBAT_PATH%" Build\x64\Release\cidiff.exe
-  "%SIGNBAT_PATH%" Build\ARM64\Release\WinIMerge.exe
-  "%SIGNBAT_PATH%" Build\ARM64\Release\WinIMergeLib.dll
-  "%SIGNBAT_PATH%" Build\ARM64\Release\cidiff.exe
+  if "%1" == "Win32" (
+    call "%SIGNBAT_PATH%" Build\Release\WinIMerge.exe
+    call "%SIGNBAT_PATH%" Build\Release\WinIMergeLib.dll
+    call "%SIGNBAT_PATH%" Build\Release\cidiff.exe
+  ) else (
+    call "%SIGNBAT_PATH%" Build\%1\Release\WinIMerge.exe
+    call "%SIGNBAT_PATH%" Build\%1\Release\WinIMergeLib.dll
+    call "%SIGNBAT_PATH%" Build\%1\Release\cidiff.exe
+  )
 )
-
-endlocal
-
+goto :eof
