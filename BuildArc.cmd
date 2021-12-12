@@ -7,25 +7,30 @@ for /f "usebackq tokens=*" %%i in (`"%programfiles(x86)%\microsoft visual studio
   set InstallDir=%%i
 )
 
-mkdir "%DISTDIR%\WinIMerge" 2> NUL
-for %%t in (bin!Release bin64!x64\Release binARM!ARM\Release binARM64!ARM64\Release) do (
-  for /F "tokens=1,2 delims=!" %%u in ("%%t") do (
-    if exist Build\%%v\WinIMerge.exe  (
-      mkdir "%DISTDIR%\WinIMerge\%%u\" 2> NUL
-      copy Build\%%v\WinIMerge.exe "%DISTDIR%\WinIMerge\%%u\"
-      copy Build\%%v\WinIMergeLib.dll "%DISTDIR%\WinIMerge\%%u\"
-      copy Build\%%v\Release\cidiff.exe "%DISTDIR%\WinIMerge\%%u\"
-      call :GET_EXE_VERSION %~dp0Build\%%v\WinIMerge.exe
-    )
-  )
+if "%1" == "" (
+  call :BuildArc x86 || goto :eof
+  call :BuildArc x64 || goto :eof
+  call :BuildArc ARM || goto :eof
+  call :BuildArc ARM64 || goto :eof
+) else (
+  call :BuildArc %1 || goto :eof
 )
-copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x86\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin\"
-copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\WinIMerge\bin64\"
 
-copy GPL.txt "%DISTDIR%\WinIMerge"
-copy freeimage-license-gplv2.txt "%DISTDIR%\WinIMerge"
+goto :eof
 
-7z.exe a -tzip "%DISTDIR%\winimerge-%EXE_VERSION%-exe.zip" "%DISTDIR%\WinIMerge\"
+:BuildArc
+
+mkdir "%DISTDIR%\%1\WinIMerge\" 2> NUL
+
+copy Build\%1\Release\WinIMerge\WinIMerge.exe "%DISTDIR%\%1\WinIMerge\"
+copy Build\%1\Release\WinIMerge\WinIMergeLib.dll "%DISTDIR%\%1\WinIMerge\"
+copy Build\%1\Release\WinIMerge\cidiff.exe "%DISTDIR%\%1\WinIMerge\"
+call :GET_EXE_VERSION %~dp0Build\%1\Release\WinIMerge\WinIMerge.exe
+copy GPL.txt "%DISTDIR%\%1\WinIMerge"
+copy freeimage-license-gplv2.txt "%DISTDIR%\%1\WinIMerge"
+copy "%InstallDir%\VC\Redist\MSVC\14.16.27012\%1\Microsoft.VC141.OpenMP\vcomp140.dll" "%DISTDIR%\%1\WinIMerge\"
+
+7z.exe a -tzip "%DISTDIR%\winimerge-%EXE_VERSION%-%1.zip" "%DISTDIR%\%1\WinIMerge"
 
 goto :eof
 
