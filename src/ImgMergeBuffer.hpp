@@ -187,8 +187,8 @@ public:
 		{
 			TemporaryTransformation tmp(*this);
 			m_imgOrig32[pane].setSize(width, height);
+			PasteImageInternal(pane, 0, 0, *oldbitmap);
 		}
-		PasteImageInternal(pane, 0, 0, *oldbitmap);
 
 		Image *newbitmap = new Image(m_imgOrig32[pane]);
 
