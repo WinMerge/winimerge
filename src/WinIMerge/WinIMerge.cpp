@@ -23,7 +23,7 @@
 #include <iostream>
 #include <fstream>
 #include "resource.h"
-#include "WinIMergeLib.h"
+#include "../WinIMergeLib/WinIMergeLib.h"
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shlwapi.lib")

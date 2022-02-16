@@ -1,6 +1,6 @@
 #ifdef USE_WINIMERGELIB
 #include <Windows.h>
-#include "WinIMergeLib.h"
+#include "../WinIMergeLib/WinIMergeLib.h"
 #else
 #include "ImgDiffBuffer.hpp"
 #endif
