@@ -83,9 +83,6 @@ LRESULT CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
-	MSG msg;
-	HACCEL hAccelTable;
-
 	InitCommonControls();
 	MyRegisterClass(hInstance);
 	hInstDLL = GetModuleHandleW(L"WinIMergeLib.dll");
@@ -93,12 +90,13 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 	if (!InitInstance (hInstance, nCmdShow)) 
 		return FALSE;
 
-	hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_WINIMERGE);
+	HACCEL hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_WINIMERGE);
 
 	CmdLineInfo cmdline(lpCmdLine);
 	if (cmdline.nImages > 0)
 		OpenImages(m_hWnd, cmdline.nImages, cmdline.sFileName);
 
+	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0)) 
 	{
 		if (!TranslateAccelerator(m_hWnd, hAccelTable, &msg) && m_hwndImgToolWindow == 0 || !IsDialogMessage(m_hwndImgToolWindow, &msg))
@@ -113,8 +111,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-	WNDCLASSEX wcex = {0};
-	wcex.cbSize         = sizeof(WNDCLASSEX); 
+	WNDCLASSEXW wcex{ sizeof(WNDCLASSEX) };
 	wcex.style          = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc    = (WNDPROC)WndProc;
 	wcex.cbClsExtra     = 0;
