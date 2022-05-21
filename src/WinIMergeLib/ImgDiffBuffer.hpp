@@ -19,6 +19,7 @@
 
 #include "image.hpp"
 #include "ImgConverter.hpp"
+#include "Diff.hpp"
 #include <string>
 #include <algorithm>
 #include <cstdio>
@@ -368,16 +369,14 @@ namespace
 		return diff3;
 	}
 
-	bool alineEquals(const Image& img1, const Image& img2,
-		unsigned y1, unsigned y2, double colorDistanceThreshold)
+	bool alineEquals(const unsigned char* scanline1, unsigned width1,
+		const unsigned char* scanline2, unsigned width2, double colorDistanceThreshold)
 	{
-		if (img1.width() != img2.width())
+		if (width1 != width2)
 			return false;
-		const unsigned char* scanline1 = img1.scanLine(y1);
-		const unsigned char* scanline2 = img2.scanLine(y2);
 		if (colorDistanceThreshold > 0)
 		{
-			for (unsigned x = 0; x < img1.width(); ++x)
+			for (unsigned x = 0; x < width1; ++x)
 			{
 				int bdist = scanline1[x * 4 + 0] - scanline2[x * 4 + 0];
 				int gdist = scanline1[x * 4 + 1] - scanline2[x * 4 + 1];
@@ -391,177 +390,73 @@ namespace
 		}
 		else
 		{
-			return (memcmp(img1.scanLine(y1), img2.scanLine(y2), img1.width() * 4) == 0);
+			return (memcmp(scanline1, scanline2, width1 * 4) == 0);
 		}
+	}
+
+	bool alineEquals(const Image& img1, const Image& img2,
+		unsigned y1, unsigned y2, double colorDistanceThreshold)
+	{
+		return alineEquals(img1.scanLine(y1), img1.width(), img2.scanLine(y2), img2.width(), colorDistanceThreshold);
 	}
 }
 
-class DataForONPDiff
+class DataForDiff
 {
-	struct DatumForONPDiff
-	{
-		DatumForONPDiff(DataForONPDiff& data, int index) : 
-			m_data(data), m_index(index) { }
-
-		bool operator==(const DatumForONPDiff& other)
-		{
-			return alineEquals(
-				m_data.m_img, other.m_data.m_img,
-				m_index, other.m_index, m_data.m_colorDistanceThreshold);
-		}
-
-		DataForONPDiff& m_data;
-		int m_index;
-	};
-
-	friend DatumForONPDiff;
-
 public:
-	DataForONPDiff(const Image& img, double colorDistanceThreshold) :
-		m_img(img), m_colorDistanceThreshold(colorDistanceThreshold) { }
-	DatumForONPDiff operator[](int index) { return { *this, index }; }
-	unsigned size() const { return m_img.height(); }
+	DataForDiff(const Image& img, double colorDistanceThreshold)
+		: m_colorDistanceThreshold(colorDistanceThreshold)
+		, m_recsize(img.width() * 4)
+		, m_recnum(img.height())
+	{
+		m_data.resize(m_recsize * m_recnum);
+		for (unsigned i = 0; i < m_recnum; i++)
+			memcpy(m_data.data() + i * m_recsize, img.scanLine(i), m_recsize);
+	}
+	unsigned size() const { return m_recsize * m_recnum; }
+	const char* data() const { return m_data.data(); }
+	const char* next(const char* scanline) const
+	{
+		return scanline + m_recsize;
+	}
+	bool equals(const char* scanline1, unsigned size1,
+		const char* scanline2, unsigned size2) const
+	{
+		return alineEquals(reinterpret_cast<const unsigned char *>(scanline1), size1 / 4, reinterpret_cast<const unsigned char*>(scanline2), size2 / 4, m_colorDistanceThreshold);
+	}
+	unsigned long hash(const char* scanline) const
+	{
+		unsigned long ha = 5381;
+		const char* begin = scanline;
+		const char* end = begin + m_recsize;
+
+		if (m_colorDistanceThreshold > 0.0)
+		{
+			int w = static_cast<int>(sqrt((m_colorDistanceThreshold * m_colorDistanceThreshold) / 3.0)) * 2;
+			if (w == 0)
+				w = 1;
+			for (const auto* ptr = begin; ptr < end; ptr++)
+			{
+				ha += (ha << 5);
+				ha ^= ((*ptr / w) * w) & 0xFF;
+			}
+		}
+		else
+		{
+			for (const auto* ptr = begin; ptr < end; ptr++)
+			{
+				ha += (ha << 5);
+				ha ^= *ptr & 0xFF;
+			}
+		}
+		return ha;
+	}
+
 private:
-	const Image& m_img;
+	unsigned m_recnum;
+	unsigned m_recsize;
+	std::vector<char> m_data;
 	double m_colorDistanceThreshold;
-};
-
-template <class Data> class ONPDiffAlgorithm
-{
-public:
-	ONPDiffAlgorithm(Data& data1, Data& data2)
-		: m_data1(data1), m_data2(data2) { }
-
-	/**
-	 * @ brief An O(NP) Sequence Comparison Algorithm. Sun Wu, Udi Manber, Gene Myers
-	 */
-	int diff(std::vector<char>& edscript)
-	{
-		int M = static_cast<int>(m_data1.size());
-		int N = static_cast<int>(m_data2.size());
-		bool exchanged = false;
-		if (M > N)
-		{
-			M = static_cast<int>(m_data2.size());
-			N = static_cast<int>(m_data1.size());
-			exchanged = true;
-		}
-		int* fp = (new int[(M + 1) + 1 + (N + 1)]) + (M + 1);
-		struct EditScriptElem { int op; int neq; int pk; int pi; };
-		std::vector<EditScriptElem>* es = (new std::vector<EditScriptElem>[(M + 1) + 1 + (N + 1)]) + (M + 1);
-		int DELTA = N - M;
-
-		auto addEditScriptElem = [&es, &fp](int k) {
-			EditScriptElem ese;
-			if (fp[k - 1] + 1 > fp[k + 1])
-			{
-				ese.op = '+';
-				ese.neq = fp[k] - (fp[k - 1] + 1);
-				ese.pk = k - 1;
-			}
-			else
-			{
-				ese.op = '-';
-				ese.neq = fp[k] - fp[k + 1];
-				ese.pk = k + 1;
-			}
-			ese.pi = static_cast<int>(es[ese.pk].size() - 1);
-			es[k].push_back(ese);
-		};
-
-		int k;
-		for (k = -(M + 1); k <= (N + 1); k++)
-			fp[k] = -1;
-		int p = -1;
-		do
-		{
-			p = p + 1;
-			for (k = -p; k <= DELTA - 1; k++)
-			{
-				fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
-				addEditScriptElem(k);
-			}
-			for (k = DELTA + p; k >= DELTA + 1; k--)
-			{
-				fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
-				addEditScriptElem(k);
-			}
-			k = DELTA;
-			fp[k] = snake(k, (std::max)(fp[k - 1] + 1, fp[k + 1]), exchanged);
-			addEditScriptElem(k);
-		} while (fp[k] != N);
-
-		edscript.clear();
-
-		std::vector<char> ses;
-		int i;
-		for (k = DELTA, i = static_cast<int>(es[DELTA].size() - 1); i >= 0;)
-		{
-			EditScriptElem& esi = es[k][i];
-			for (int j = 0; j < esi.neq; ++j)
-				ses.push_back('=');
-			ses.push_back(static_cast<char>(esi.op));
-			i = esi.pi;
-			k = esi.pk;
-		}
-		std::reverse(ses.begin(), ses.end());
-
-		int D = 0;
-		for (size_t i = 1; i < ses.size(); i++)
-		{
-			switch (ses[i])
-			{
-			case '+':
-				if (i + 1 < ses.size() && ses[i + 1] == '-')
-				{
-					edscript.push_back('!');
-					i++;
-					D++;
-				}
-				else
-				{
-					edscript.push_back(exchanged ? '-' : '+');
-					D++;
-				}
-				break;
-			case '-':
-				if (i + 1 < ses.size() && ses[i + 1] == '+')
-				{
-					edscript.push_back('!');
-					i++;
-					D++;
-				}
-				else
-				{
-					edscript.push_back(exchanged ? '+' : '-');
-					D++;
-				}
-				break;
-			default:
-				edscript.push_back('=');
-			}
-		}
-
-		delete[](es - (M + 1));
-		delete[](fp - (M + 1));
-
-		return D;
-	}
-
-private:
-	int snake(int k, int y, bool exchanged)
-	{
-		int M = static_cast<int>(exchanged ? m_data2.size() : m_data1.size());
-		int N = static_cast<int>(exchanged ? m_data1.size() : m_data2.size());
-		int x = y - k;
-		while (x < M && y < N && (exchanged ? m_data1[y] == m_data2[x] : m_data1[x] == m_data2[y])) {
-			x = x + 1; y = y + 1;
-		}
-		return y;
-	}
-
-	Data& m_data1;
-	Data& m_data2;
 };
 
 class CImgDiffBuffer
@@ -578,6 +473,9 @@ public:
 	};
 	enum WIPE_MODE {
 		WIPE_NONE = 0, WIPE_VERTICAL, WIPE_HORIZONTAL
+	};
+	enum DIFF_ALGORITHM {
+		MYERS_DIFF, MINIMAL_DIFF, PATIENCE_DIFF, HISTOGRAM_DIFF, NONE_DIFF
 	};
 	
 	enum { BLINK_TIME = 800 };
@@ -606,6 +504,7 @@ public:
 		, m_horizontalFlip{}
 		, m_verticalFlip{}
 		, m_temporarilyTransformed(false)
+		, m_diffAlgorithm(MYERS_DIFF)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_currentPage[i] = 0;
@@ -936,6 +835,19 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return;
 		m_verticalFlip[pane] = flip;
+		CompareImages();
+	}
+
+	DIFF_ALGORITHM GetDiffAlgorithm() const
+	{
+		return m_diffAlgorithm;
+	}
+
+	void SetDiffAlgorithm(DIFF_ALGORITHM diffAlgorithm)
+	{
+		if (m_diffAlgorithm == diffAlgorithm)
+			return;
+		m_diffAlgorithm = diffAlgorithm;
 		CompareImages();
 	}
 
@@ -2082,14 +1994,14 @@ protected:
 
 	std::vector<LineDiffInfo> MakeLineDiff(const Image& img1, const Image& img2)
 	{
-		DataForONPDiff data1(img1, m_colorDistanceThreshold);
-		DataForONPDiff data2(img2, m_colorDistanceThreshold);
-		ONPDiffAlgorithm<DataForONPDiff> diff(data1, data2);
+		DataForDiff data1(img1, m_colorDistanceThreshold);
+		DataForDiff data2(img2, m_colorDistanceThreshold);
+		Diff<DataForDiff> diff(data1, data2);
 		std::vector<char> edscript;
 		std::vector<LineDiffInfo> lineDiffInfosTmp;
 		std::vector<LineDiffInfo> lineDiffInfos;
 
-		diff.diff(edscript);
+		diff.diff(static_cast<Diff<DataForDiff>::Algorithm>(m_diffAlgorithm), edscript);
 
 		int i = 0, j = 0;
 		for (auto ed : edscript)
@@ -2310,4 +2222,5 @@ protected:
 	std::vector<DiffInfo> m_diffInfos;
 	std::vector<LineDiffInfo> m_lineDiffInfos;
 	bool m_temporarilyTransformed;
+	DIFF_ALGORITHM m_diffAlgorithm;
 };

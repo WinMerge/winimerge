@@ -111,6 +111,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -425,6 +426,7 @@
     <ClInclude Include="Win78Libraries.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="WinIMergeLib.h" />
+    <ClInclude Include="Diff.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win78Libraries.cpp" />

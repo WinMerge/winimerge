@@ -479,6 +479,17 @@ public:
 		Invalidate();
 	}
 
+	DIFF_ALGORITHM GetDiffAlgorithm() const
+	{
+		return static_cast<DIFF_ALGORITHM>(m_buffer.GetDiffAlgorithm());
+	}
+
+	void SetDiffAlgorithm(DIFF_ALGORITHM diffAlgorithm)
+	{
+		m_buffer.SetDiffAlgorithm(static_cast<CImgMergeBuffer::DIFF_ALGORITHM>(diffAlgorithm));
+		Invalidate();
+	}
+
 	int  GetDiffCount() const override
 	{
 		return m_buffer.GetDiffCount();

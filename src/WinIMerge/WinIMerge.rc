@@ -122,6 +122,14 @@ BEGIN
             MENUITEM "&None",                       ID_VIEW_INSERTIONDELETIONDETECTION_NONE
             MENUITEM "&Vertical",                   ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL
             MENUITEM "&Horizontal",                 ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL
+			POPUP "Diff Algorithm"
+			BEGIN
+				MENUITEM "&Myers",                      ID_VIEW_DIFF_ALGORITHM_MYERS
+				MENUITEM "&Minimal",                    ID_VIEW_DIFF_ALGORITHM_MINIMAL
+				MENUITEM "&Patience",                   ID_VIEW_DIFF_ALGORITHM_PATIENCE
+				MENUITEM "&Histogram",                  ID_VIEW_DIFF_ALGORITHM_HISTOGRAM
+				MENUITEM "&None",                       ID_VIEW_DIFF_ALGORITHM_NONE
+			END
         END
         MENUITEM SEPARATOR
         MENUITEM "&Prev Page",                  ID_VIEW_PAGE_PREVPAGE
