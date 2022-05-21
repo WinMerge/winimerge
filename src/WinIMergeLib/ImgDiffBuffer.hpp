@@ -545,6 +545,8 @@ public:
 
 	void SetDiffColor(Image::Color clrDiffColor)
 	{
+		if (memcmp(&m_diffColor, &clrDiffColor, sizeof(m_diffColor)) == 0)
+			return;
 		m_diffColor = clrDiffColor;
 		RefreshImages();
 	}
@@ -556,6 +558,8 @@ public:
 
 	void SetDiffDeletedColor(Image::Color clrDiffDeletedColor)
 	{
+		if (memcmp(&m_diffDeletedColor, &clrDiffDeletedColor, sizeof(m_diffDeletedColor)) == 0)
+			return;
 		m_diffDeletedColor = clrDiffDeletedColor;
 		RefreshImages();
 	}
@@ -567,6 +571,8 @@ public:
 
 	void SetSelDiffColor(Image::Color clrSelDiffColor)
 	{
+		if (memcmp(&m_selDiffColor, &clrSelDiffColor, sizeof(m_selDiffColor)) == 0)
+			return;
 		m_selDiffColor = clrSelDiffColor;
 		RefreshImages();
 	}
@@ -578,6 +584,8 @@ public:
 
 	void SetSelDiffDeletedColor(Image::Color clrSelDiffDeletedColor)
 	{
+		if (memcmp(&m_selDiffDeletedColor, &clrSelDiffDeletedColor, sizeof(m_selDiffDeletedColor)) == 0)
+			return;
 		m_selDiffDeletedColor = clrSelDiffDeletedColor;
 		RefreshImages();
 	}
@@ -589,6 +597,8 @@ public:
 
 	void SetDiffColorAlpha(double diffColorAlpha)
 	{
+		if (m_diffColorAlpha == diffColorAlpha)
+			return;
 		m_diffColorAlpha = diffColorAlpha;
 		RefreshImages();
 	}
@@ -604,7 +614,8 @@ public:
 	{
 		if (page >= 0 && page < GetPageCount(pane))
 		{
-			if (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid())
+			if (m_currentPage[pane] != page &&
+			    (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid()))
 			{
 				m_currentPage[pane] = page;
 				ChangePage(pane, page);
@@ -620,7 +631,8 @@ public:
 		{
 			if (page >= 0 && page < GetPageCount(pane))
 			{
-				if (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid())
+				if (m_currentPage[pane] != page &&
+				    (m_imgOrigMultiPage[pane].isValid() || m_imgConverter[pane].isValid()))
 				{
 					m_currentPage[pane] = page;
 					ChangePage(pane, page);
@@ -673,6 +685,8 @@ public:
 
 	void SetColorDistanceThreshold(double threshold)
 	{
+		if (m_colorDistanceThreshold == threshold)
+			return;
 		m_colorDistanceThreshold = threshold;
 		CompareImages();
 	}
@@ -684,6 +698,8 @@ public:
 	
 	void SetDiffBlockSize(int blockSize)
 	{
+		if (m_diffBlockSize == blockSize)
+			return;
 		m_diffBlockSize = blockSize;
 		CompareImages();
 	}
@@ -695,6 +711,8 @@ public:
 
 	void SetInsertionDeletionDetectionMode(INSERTION_DELETION_DETECTION_MODE insertionDeletionDetectionMode)
 	{
+		if (m_insertionDeletionDetectionMode == insertionDeletionDetectionMode)
+			return;
 		m_insertionDeletionDetectionMode = insertionDeletionDetectionMode;
 		CompareImages();
 	}
@@ -706,6 +724,8 @@ public:
 
 	void SetOverlayMode(OVERLAY_MODE overlayMode)
 	{
+		if (m_overlayMode == overlayMode)
+			return;
 		m_overlayMode = overlayMode;
 		RefreshImages();
 	}
@@ -717,6 +737,8 @@ public:
 
 	void SetOverlayAlpha(double overlayAlpha)
 	{
+		if (m_overlayAlpha == overlayAlpha)
+			return;
 		m_overlayAlpha = overlayAlpha;
 		RefreshImages();
 	}
@@ -728,6 +750,8 @@ public:
 
 	void SetWipeMode(WIPE_MODE wipeMode)
 	{
+		if (m_wipeMode == wipeMode)
+			return;
 		m_wipeMode = wipeMode;
 		RefreshImages();
 	}
@@ -739,12 +763,16 @@ public:
 
 	void SetWipePosition(int pos)
 	{
+		if (m_wipePosition == pos)
+			return;
 		m_wipePosition = pos;
 		RefreshImages();
 	}
 
 	void SetWipeModePosition(WIPE_MODE wipeMode, int pos)
 	{
+		if (m_wipeMode == wipeMode && m_wipePosition == pos)
+			return;
 		m_wipeMode = wipeMode;
 		m_wipePosition = pos;
 		RefreshImages();
@@ -757,6 +785,8 @@ public:
 
 	void SetShowDifferences(bool visible)
 	{
+		if (m_showDifferences == visible)
+			return;
 		m_showDifferences = visible;
 		CompareImages();
 	}
@@ -768,6 +798,8 @@ public:
 
 	void SetBlinkDifferences(bool blink)
 	{
+		if (m_blinkDifferences == blink)
+			return;
 		m_blinkDifferences = blink;
 		RefreshImages();
 	}
@@ -779,6 +811,8 @@ public:
 
 	void SetVectorImageZoomRatio(float zoom)
 	{
+		if (m_vectorImageZoomRatio == zoom)
+			return;
 		m_vectorImageZoomRatio = zoom;
 		for (int pane = 0; pane < m_nImages; ++pane)
 		{
@@ -800,11 +834,12 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return;
 		if (angle >= 360.f)
-			m_angle[pane] = angle - 360.f * (static_cast<int>(angle) / 360);
+			angle = angle - 360.f * (static_cast<int>(angle) / 360);
 		else if (angle < 0.f)
-			m_angle[pane] = angle + 360.f * (1 + (static_cast<int>(-angle) / 360));
-		else
-			m_angle[pane] = angle;
+			angle = angle + 360.f * (1 + (static_cast<int>(-angle) / 360));
+		if (m_angle[pane] == angle)
+			return;
+		m_angle[pane] = angle;
 		CompareImages();
 	}
 
@@ -818,6 +853,8 @@ public:
 	void SetHorizontalFlip(int pane, bool flip)
 	{
 		if (pane < 0 || pane >= m_nImages)
+			return;
+		if (m_horizontalFlip[pane] == flip)
 			return;
 		m_horizontalFlip[pane] = flip;
 		CompareImages();
@@ -833,6 +870,8 @@ public:
 	void SetVerticalFlip(int pane, bool flip)
 	{
 		if (pane < 0 || pane >= m_nImages)
+			return;
+		if (m_verticalFlip[pane] == flip)
 			return;
 		m_verticalFlip[pane] = flip;
 		CompareImages();
