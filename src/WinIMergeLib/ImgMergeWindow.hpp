@@ -1080,9 +1080,13 @@ public:
 		}
 		for (int p = minpage; p <= maxpage; ++p)
 		{
+			wchar_t* tmppath = nullptr;
+			size_t bufsize = 0;
+			_wdupenv_s(&tmppath, &bufsize, L"TEMP");
 			wchar_t filename[MAX_PATH] = {};
 			_snwprintf_s(filename, _TRUNCATE, L"%s/WinIMerge_ocr_%d_%d_%d.png",
-				_wgetenv(L"TEMP"), GetCurrentProcessId(), pane, p);
+				tmppath, GetCurrentProcessId(), pane, p);
+			free(tmppath);
 			m_buffer.SetCurrentPage(pane, p);
 			Image image;
 			m_buffer.CopySubImage(pane, 0, 0, m_buffer.GetImageWidth(pane), m_buffer.GetImageHeight(pane), image);
