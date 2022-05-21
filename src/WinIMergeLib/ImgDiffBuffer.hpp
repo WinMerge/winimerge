@@ -405,30 +405,43 @@ class DataForDiff
 {
 public:
 	DataForDiff(const Image& img, double colorDistanceThreshold)
-		: m_colorDistanceThreshold(colorDistanceThreshold)
-		, m_recsize(img.width() * 4)
-		, m_recnum(img.height())
+		: m_img(img), m_colorDistanceThreshold(colorDistanceThreshold)
 	{
-		m_data.resize(m_recsize * m_recnum);
-		for (unsigned i = 0; i < m_recnum; i++)
-			memcpy(m_data.data() + i * m_recsize, img.scanLine(i), m_recsize);
+		reverse();
 	}
-	unsigned size() const { return m_recsize * m_recnum; }
-	const char* data() const { return m_data.data(); }
+	~DataForDiff()
+	{
+		reverse();
+	}
+	void reverse()
+	{
+		unsigned w = m_img.width();
+		unsigned h = m_img.height();
+		std::vector<BYTE> tmp(w * 4);
+		for (unsigned i = 0; i < h / 2; ++i)
+		{
+			memcpy(tmp.data(), m_img.scanLine(i), w * 4);
+			memcpy(const_cast<BYTE *>(m_img.scanLine(i)), m_img.scanLine(h - i - 1), w * 4);
+			memcpy(const_cast<BYTE *>(m_img.scanLine(h - i - 1)), tmp.data(), w * 4);
+		}
+	}
+	unsigned size() const { return m_img.height() * m_img.width() * 4; }
+	const char* data() const { return reinterpret_cast<const char *>(m_img.scanLine(m_img.height() - 1)); }
 	const char* next(const char* scanline) const
 	{
-		return scanline + m_recsize;
+		return scanline + m_img.width() * 4;
 	}
 	bool equals(const char* scanline1, unsigned size1,
 		const char* scanline2, unsigned size2) const
 	{
-		return alineEquals(reinterpret_cast<const unsigned char *>(scanline1), size1 / 4, reinterpret_cast<const unsigned char*>(scanline2), size2 / 4, m_colorDistanceThreshold);
+		return alineEquals(reinterpret_cast<const unsigned char *>(scanline1), size1 / 4, 
+			reinterpret_cast<const unsigned char *>(scanline2), size2 / 4, m_colorDistanceThreshold);
 	}
 	unsigned long hash(const char* scanline) const
 	{
 		unsigned long ha = 5381;
 		const char* begin = scanline;
-		const char* end = begin + m_recsize;
+		const char* end = begin + m_img.width() * 4;
 
 		if (m_colorDistanceThreshold > 0.0)
 		{
@@ -453,9 +466,7 @@ public:
 	}
 
 private:
-	unsigned m_recnum;
-	unsigned m_recsize;
-	std::vector<char> m_data;
+	const Image& m_img;
 	double m_colorDistanceThreshold;
 };
 
