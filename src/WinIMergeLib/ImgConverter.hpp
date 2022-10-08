@@ -21,6 +21,7 @@
 
 struct ImageRenderer
 {
+	virtual ~ImageRenderer() {};
 	virtual bool load(const wchar_t *filename) = 0;
 	virtual bool isValid() const = 0;
 	virtual void render(Image& img, int page, float zoom) = 0;
@@ -32,7 +33,7 @@ struct ImageRenderer
 class PdfRenderer: public ImageRenderer
 {
 public:
-	~PdfRenderer()
+	virtual ~PdfRenderer()
 	{
 		if (m_thread.Get())
 		{
@@ -66,7 +67,8 @@ public:
 		}
 		else
 		{
-			PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
+			if(!PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
+				return false;
 		}
 
 		WaitForSingleObject(params.hEvent, INFINITE);
@@ -95,7 +97,8 @@ public:
 		params.zoom = zoom;
 		params.type = 1;
 			
-		PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params));
+		if (!PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
+			return;
 
 		WaitForSingleObject(params.hEvent, INFINITE);
 
