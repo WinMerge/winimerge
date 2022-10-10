@@ -14,6 +14,7 @@ namespace Win78Libraries
 	HMODULE hLibraryShcore;
 	HMODULE hLibraryCombase;
 	HMODULE hLibraryD2D1;
+	CRITICAL_SECTION CriticalSection;
 
 	void load()
 	{

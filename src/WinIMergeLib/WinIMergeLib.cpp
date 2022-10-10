@@ -69,12 +69,14 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID)
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
 		FreeImage_Initialise();
+		InitializeCriticalSection(&Win78Libraries::CriticalSection);
 		return TRUE;
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 #ifdef _WIN64
 		Win78Libraries::unload();
+		DeleteCriticalSection(&Win78Libraries::CriticalSection);
 #endif
 		FreeImage_DeInitialise();
 	}

@@ -23,6 +23,7 @@ namespace Win78Libraries
 	extern RoGetActivationFactoryType RoGetActivationFactory;
 	extern RoActivateInstanceType RoActivateInstance;
 	extern D2D1CreateFactoryType D2D1CreateFactory;
+	extern CRITICAL_SECTION CriticalSection;
 
 	void load();
 	void unload();

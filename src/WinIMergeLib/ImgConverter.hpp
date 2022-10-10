@@ -35,15 +35,23 @@ class PdfRenderer: public ImageRenderer
 public:
 	virtual ~PdfRenderer()
 	{
-		if (m_thread.Get())
+		if (s_dwThreadId)
 		{
-			PostThreadMessage(m_dwThreadId, WM_QUIT, 0, 0);
+			PdfRendererThreadParams params{};
+			Microsoft::WRL::Wrappers::Event unloadCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, WRITE_OWNER | EVENT_ALL_ACCESS));
+			params.hEvent = unloadCompleted.Get();
+			params.type = PdfRendererThreadParams::Close;
+			params.result = false;
+			params.docId = m_docId;
+			if (!PostThreadMessage(s_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
+				return;
+			WaitForSingleObject(params.hEvent, INFINITE);
 		}
 	}
 
 	virtual bool isValid() const override
 	{
-		return m_thread.IsValid();
+		return s_thread.IsValid();
 	}
 
 	virtual bool load(const wchar_t *filename) override
@@ -53,27 +61,37 @@ public:
 		PdfRendererThreadParams params{};
 		params.filename = filename;
 		params.hEvent = loadCompleted.Get();
-		params.type = 0;
+		params.type = PdfRendererThreadParams::Open;
 		params.result = false;
 
-		if (!m_thread.IsValid())
+		auto CreatePdfRendererWorkerThreadIfNeeded = [&params]()
 		{
-			Win78Libraries::load();
-			if (Win78Libraries::RoGetActivationFactory == nullptr)
-				return false;
-			m_thread.Attach(CreateThread(nullptr, 0, PdfRendererWorkerThread, &params, 0, &m_dwThreadId));
-			if (!m_thread.IsValid())
-				return false;
-		}
-		else
-		{
-			if(!PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
-				return false;
-		}
-
-		WaitForSingleObject(params.hEvent, INFINITE);
+			if (!s_thread.IsValid())
+			{
+				Win78Libraries::load();
+				if (Win78Libraries::RoGetActivationFactory == nullptr)
+					return false;
+				s_thread.Attach(CreateThread(nullptr, 0, PdfRendererWorkerThread, &params, 0, &s_dwThreadId));
+				if (!s_thread.IsValid())
+					return false;
+			}
+			else
+			{
+				if (!PostThreadMessage(s_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
+					return false;
+			}
+			return true;
+		};
+		EnterCriticalSection(&Win78Libraries::CriticalSection);
+		bool result = CreatePdfRendererWorkerThreadIfNeeded();
+		if (result)
+			WaitForSingleObject(params.hEvent, INFINITE);
+		LeaveCriticalSection(&Win78Libraries::CriticalSection);
+		if (!result)
+			return false;
 
 		m_pageCount = params.pageCount;
+		m_docId = params.docId;
 
 		return params.result;
 	}
@@ -95,9 +113,10 @@ public:
 		params.hEvent = renderCompleted.Get();
 		params.page = page;
 		params.zoom = zoom;
-		params.type = 1;
+		params.type = PdfRendererThreadParams::Render;
+		params.docId = m_docId;
 			
-		if (!PostThreadMessage(m_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
+		if (!PostThreadMessage(s_dwThreadId, WM_USER, 0, reinterpret_cast<LPARAM>(&params)))
 			return;
 
 		WaitForSingleObject(params.hEvent, INFINITE);
@@ -116,13 +135,15 @@ private:
 
 	struct PdfRendererThreadParams
 	{
+		enum Type { Open, Render, Close };
 		const wchar_t *filename;
-		int type;
+		Type type;
 		int page;
 		float zoom;
 		unsigned pageCount;
 		HANDLE hEvent;
 		bool result;
+		int docId;
 	};
 
 	static bool LoadPdf(const wchar_t *filename, ABI::Windows::Data::Pdf::IPdfDocument **ppPdfDocument)
@@ -193,39 +214,62 @@ private:
 
 	static DWORD WINAPI PdfRendererWorkerThread(LPVOID lpParam)
 	{
-		HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-		Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfDocument> pPdfDocument;
-		PdfRendererThreadParams *pParam = reinterpret_cast<PdfRendererThreadParams *>(lpParam);
-		for (;;)
+		if (SUCCEEDED(CoInitializeEx(0, COINIT_MULTITHREADED)))
 		{
-			if (pParam->type == 0)
+			int docId = 0;
+			Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfDocument> pPdfDocumentLast;
+			std::map<int, Microsoft::WRL::ComPtr<ABI::Windows::Data::Pdf::IPdfDocument>> mapPdfDocument;
+			PdfRendererThreadParams* pParam = reinterpret_cast<PdfRendererThreadParams*>(lpParam);
+			for (;;)
 			{
-				pParam->result = LoadPdf(pParam->filename, &pPdfDocument);
-				if (pPdfDocument)
-					pPdfDocument->get_PageCount(&pParam->pageCount);
+				if (pParam->type == PdfRendererThreadParams::Open)
+				{
+					mapPdfDocument.insert_or_assign(docId, nullptr);
+					pParam->docId = docId++;
+					pParam->result = LoadPdf(pParam->filename, &mapPdfDocument.at(pParam->docId));
+					if (mapPdfDocument.at(pParam->docId))
+						mapPdfDocument.at(pParam->docId)->get_PageCount(&pParam->pageCount);
+				}
+				else if (pParam->type == PdfRendererThreadParams::Render)
+				{
+					if (mapPdfDocument.find(pParam->docId) != mapPdfDocument.end())
+						pParam->result = RenderPdfPage(mapPdfDocument.at(pParam->docId).Get(), pParam->page, pParam->zoom, pParam->filename);
+				}
+				else
+				{
+					if (mapPdfDocument.find(pParam->docId) != mapPdfDocument.end())
+					{
+						if (mapPdfDocument.size() == 1)
+							pPdfDocumentLast = mapPdfDocument.at(pParam->docId); // Workaround to avoid crashes on process exit
+						mapPdfDocument.erase(pParam->docId);
+						pParam->result = true;
+					}
+					else
+					{
+						pParam->result = false;
+					}
+				}
+				SetEvent(pParam->hEvent);
+
+				MSG msg;
+				BOOL bRet = GetMessage(&msg, nullptr, 0, 0);
+				if (bRet == 0 || bRet == -1)
+					break;
+				pParam = reinterpret_cast<PdfRendererThreadParams*>(msg.lParam);
 			}
-			else
-				pParam->result = RenderPdfPage(pPdfDocument.Get(), pParam->page, pParam->zoom, pParam->filename);
-			SetEvent(pParam->hEvent);
-
-			MSG msg;
-			BOOL bRet = GetMessage(&msg, nullptr, 0, 0);
-			if (bRet == 0 || bRet == -1)
-				break;
-			pParam = reinterpret_cast<PdfRendererThreadParams *>(msg.lParam);
+			CoUninitialize();
 		}
-
-		CoUninitialize();
 		return true;
 	}
 
 private:
 	using Thread = Microsoft::WRL::Wrappers::HandleT<Microsoft::WRL::Wrappers::HandleTraits::HANDLENullTraits>;
-	Thread m_thread;
-	DWORD m_dwThreadId = 0;
+	inline static Thread s_thread;
+	inline static DWORD s_dwThreadId;
 	float m_imageWidth = 0.0f;
 	float m_imageHeight = 0.0f;
 	unsigned m_pageCount = 0;
+	int m_docId = 0;
 };
 
 class SvgRenderer: public ImageRenderer
