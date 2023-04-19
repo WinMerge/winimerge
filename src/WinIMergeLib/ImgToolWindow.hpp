@@ -53,7 +53,7 @@ public:
 		SetDlgItemText(m_hWnd, IDC_DIFF_BLOCKSIZE_STATIC, buf);
 		wsprintf(buf, _T("(%d)"), static_cast<int>(m_pImgMergeWindow->GetDiffColorAlpha() * 100));
 		SetDlgItemText(m_hWnd, IDC_DIFF_BLOCKALPHA_STATIC, buf);
-		wsprintf(buf, _T("(%d)"), static_cast<int>(m_pImgMergeWindow->GetColorDistanceThreshold()));
+		wsprintf(buf, _T("(%d)"), static_cast<int>(m_pImgMergeWindow->GetColorDistanceThreshold() + 0.5));
 		SetDlgItemText(m_hWnd, IDC_DIFF_CDTHRESHOLD_STATIC, buf);
 		wsprintf(buf, _T("(%d)"), static_cast<int>(m_pImgMergeWindow->GetOverlayAlpha() * 100));
 		SetDlgItemText(m_hWnd, IDC_OVERLAY_ALPHA_STATIC, buf);
@@ -63,7 +63,7 @@ public:
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_HIGHLIGHT, BM_SETCHECK, m_pImgMergeWindow->GetShowDifferences() ? BST_CHECKED : BST_UNCHECKED, 0);
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_BLOCKSIZE_SLIDER, TBM_SETPOS, TRUE, m_pImgMergeWindow->GetDiffBlockSize());
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_BLOCKALPHA_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetDiffColorAlpha() * 100));
-		SendDlgItemMessage(m_hWnd, IDC_DIFF_CDTHRESHOLD_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetColorDistanceThreshold()));
+		SendDlgItemMessage(m_hWnd, IDC_DIFF_CDTHRESHOLD_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(ColorDistanceToSliderValue(m_pImgMergeWindow->GetColorDistanceThreshold())));
 		SendDlgItemMessage(m_hWnd, IDC_OVERLAY_ALPHA_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetOverlayAlpha() * 100));
 		SendDlgItemMessage(m_hWnd, IDC_ZOOM_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetZoom() * 8 - 8));
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_INSERTION_DELETION_DETECTION_MODE, CB_SETCURSEL, m_pImgMergeWindow->GetInsertionDeletionDetectionMode(), 0);
@@ -224,6 +224,22 @@ private:
 		}
 	}
 
+	double SliderValueToColorDistance(int val)
+	{
+		if (val < 80)
+			return val * 100.0 / 80;
+		const double a = (sqrt(255 * 255 + 255 * 255 + 255 * 255) - 100) / pow(100 - 80, 2);
+		return 100.0 + a * pow(val - 80, 2);
+	}
+
+	int ColorDistanceToSliderValue(double val)
+	{
+		if (val < 100)
+			return static_cast<int>(val * 80 / 100);
+		const double a = (sqrt(255 * 255 + 255 * 255 + 255 * 255) - 100) / pow(100 - 80, 2);
+		return static_cast<int>(sqrt((val - 100) / a) + 80);
+	}
+
 	void OnHScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos)
 	{
 		int val = static_cast<int>(SendMessage(hwndCtl, TBM_GETPOS, 0, 0));
@@ -236,7 +252,7 @@ private:
 			m_pImgMergeWindow->SetDiffBlockSize(val);
 			break;
 		case IDC_DIFF_CDTHRESHOLD_SLIDER:
-			m_pImgMergeWindow->SetColorDistanceThreshold(val);
+			m_pImgMergeWindow->SetColorDistanceThreshold(SliderValueToColorDistance(val));
 			break;
 		case IDC_OVERLAY_ALPHA_SLIDER:
 			m_pImgMergeWindow->SetOverlayAlpha(val / 100.0);
