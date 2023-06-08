@@ -14,6 +14,12 @@ See http://freeimage.sourceforge.net for details.
 
 FreeImage is used under the the GNU GPL version.
 
+This software uses the OpenImageIO library.
+
+See https://github.com/OpenImageIO/oiio for details.
+
+OpenImageIO is distributed under the BSD-3-Clause license.
+
 ## How to build (Visual Studio 2019)
 
 Download [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager,
