@@ -13,3 +13,4 @@ Dist/
 *.*~
 winimerge-cppcheck-build-dir/
 gen-versioninfo.h
+/vcpkg_installed/x64-windows

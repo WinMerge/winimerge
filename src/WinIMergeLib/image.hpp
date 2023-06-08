@@ -23,6 +23,16 @@
 #include <string>
 #include <map>
 
+#ifdef min
+  #undef min
+#endif
+#ifdef max
+  #undef max
+#endif
+#include <OpenImageIO/imageio.h>
+
+using namespace OIIO;
+
 #ifndef _WIN32
 typedef fipImage fipWinImage;
 #endif
@@ -292,7 +302,51 @@ public:
 			return true;
 		return image_.convertTo8Bits() && image_.convertTo32Bits();
 	}
-	bool load(const std::wstring& filename) { return !!image_.loadU(filename.c_str()); }
+	bool load(const std::wstring& filename)
+	{
+		bool img_loaded = !!image_.loadU(filename.c_str());
+		img_loaded = false;
+		// Not supported by FreeImage or read error
+		// Try with Openimageio
+		if (img_loaded == false)
+		{
+			auto inp = OIIO::ImageInput::open(filename);
+			if (!inp)
+				return false;
+			const ImageSpec& spec = inp->spec();
+			int width = spec.width;
+			int height = spec.height;
+			int channels = spec.nchannels;
+			int size_in_bytes = spec.image_bytes(true);
+			unsigned char* image_pixels = new unsigned char[size_in_bytes];
+			inp->read_image(OIIO::TypeDesc::UINT8, image_pixels);
+			inp->close();
+
+			int bits_per_pixel = channels * 8;
+			int linesize = channels * width;
+
+			if ((channels == 3) || (channels == 4))
+			{
+				// Convert RGB(A) to BGR(A) since FreeImage expects BGR(A)
+				unsigned char* line = image_pixels;
+				const unsigned bytesperpixel = bits_per_pixel / 8;
+				for (unsigned y = 0; y < height; ++y, line += linesize)
+				{
+					for (unsigned char* pixel = line; pixel < line + linesize; pixel += bytesperpixel)
+					{
+						//INPLACESWAP byte 0 and 2
+						pixel[0] ^= pixel[2];
+						pixel[2] ^= pixel[0];
+						pixel[0] ^= pixel[2];
+					}
+				}
+			}
+
+			image_ = FreeImage_ConvertFromRawBits(image_pixels, width, height, linesize, bits_per_pixel, FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK, FI_RGBA_BLUE_MASK, true);
+
+		}
+		return img_loaded;
+	}
 	bool save(const std::wstring& filename)
 	{
 #ifdef _WIN32
