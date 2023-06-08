@@ -15,12 +15,25 @@ See http://freeimage.sourceforge.net for details.
 FreeImage is used under the the GNU GPL version.
 
 ## How to build (Visual Studio 2019)
-~~~
-git clone https://github.com/winmerge/winimerge
-git clone https://github.com/winmerge/freeimage
-cd winimerge
-buildbin.vs2019.cmd
-~~~
+
+Download [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager,
+e.g. by using git:
+```
+  git clone https://github.com/Microsoft/vcpkg.git
+```
+Install [vcpkg](https://github.com/Microsoft/vcpkg):
+```
+  cd vcpkg
+  ./bootstrap-vcpkg.bat
+  ./vcpkg integrate install
+```
+Download and open winimerge
+```
+  git clone https://github.com/winmerge/winimerge
+  git clone https://github.com/winmerge/freeimage
+  cd winimerge
+  buildbin.vs2019.cmd
+```
 
 ## License
 

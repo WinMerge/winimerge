@@ -327,7 +327,7 @@ public:
 
 			if ((channels == 3) || (channels == 4))
 			{
-				// Convert RGB(A) to BGR(A) since FreeImage expects BGR(A)
+				// Convert RGB to BGR
 				unsigned char* line = image_pixels;
 				const unsigned bytesperpixel = bits_per_pixel / 8;
 				for (unsigned y = 0; y < height; ++y, line += linesize)
