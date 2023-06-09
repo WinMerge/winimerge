@@ -29,6 +29,7 @@
 #ifdef max
   #undef max
 #endif
+#define OIIO_STATIC_DEFINE 1
 #include <OpenImageIO/imageio.h>
 
 using namespace OIIO;
