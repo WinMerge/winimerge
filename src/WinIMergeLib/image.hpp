@@ -305,7 +305,7 @@ public:
 	bool load(const std::wstring& filename)
 	{
 		bool img_loaded = !!image_.loadU(filename.c_str());
-		img_loaded = false;
+
 		// Not supported by FreeImage or read error
 		// Try with Openimageio
 		if (img_loaded == false)
