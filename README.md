@@ -27,7 +27,7 @@ e.g. by using git:
 ```
   git clone https://github.com/Microsoft/vcpkg.git
 ```
-Install [vcpkg](https://github.com/Microsoft/vcpkg):
+Open Powershell(Admin) and install [vcpkg](https://github.com/Microsoft/vcpkg):
 ```
   cd vcpkg
   ./bootstrap-vcpkg.bat
