@@ -6,7 +6,7 @@
     {
       "name": "openimageio",
       "features": [
-        "libheif"
+        "libheif", "libraw", "openjpeg"
       ]
     }
   ]
