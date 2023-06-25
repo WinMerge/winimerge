@@ -153,7 +153,10 @@
     <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
-    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgEnableManifest Condition="'$(Platform)'=='ARM'">false</VcpkgEnableManifest>
+    <VcpkgEnableManifest Condition="'$(Platform)'=='ARM64'">false</VcpkgEnableManifest>
+    <VcpkgEnableManifest Condition="'$(Platform)'=='x64'">true</VcpkgEnableManifest>
+    <VcpkgEnableManifest Condition="'$(Platform)'=='Win32'">true</VcpkgEnableManifest>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <VcpkgUseStatic>true</VcpkgUseStatic>

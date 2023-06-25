@@ -23,6 +23,9 @@
 #include <string>
 #include <map>
 
+
+#if defined (_M_IX86) || defined(_M_X64) // libheif (included in OpenImageIO) is not jet supporting arm/arm64 windows
+
 #ifdef min
   #undef min
 #endif
@@ -33,6 +36,8 @@
 #include <OpenImageIO/imageio.h>
 
 using namespace OIIO;
+
+#endif
 
 #ifndef _WIN32
 typedef fipImage fipWinImage;
@@ -307,6 +312,7 @@ public:
 	{
 		bool img_loaded = !!image_.loadU(filename.c_str());
 
+        #if defined (_M_IX86) || defined(_M_X64) // libheif (included in OpenImageIO) is not jet supporting arm/arm64 windows
 		// Not supported by FreeImage or read error
 		// Try with Openimageio
 		if (img_loaded == false)
@@ -346,6 +352,8 @@ public:
 			image_ = FreeImage_ConvertFromRawBits(image_pixels, width, height, linesize, bits_per_pixel, FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK, FI_RGBA_BLUE_MASK, true);
 
 		}
+      #endif //#if defined (_M_IX86) || defined(_M_X64)
+
 		return img_loaded;
 	}
 	bool save(const std::wstring& filename)
