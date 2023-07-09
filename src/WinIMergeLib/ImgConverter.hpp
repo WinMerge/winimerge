@@ -7,6 +7,7 @@
 #include <Windows.Storage.Streams.h>
 #include <Windows.Data.Pdf.h>
 #include <windows.data.pdf.interop.h>
+#include <wincodec.h>
 #include <wrl.h>
 #include "Win78Libraries.h"
 #endif
@@ -382,6 +383,73 @@ private:
 	float m_imageHeight = 0.0f;
 };
 
+class WICRenderer: public ImageRenderer
+{
+public:
+	virtual bool isValid() const override
+	{
+		return m_pBitmapDecoder != nullptr;
+	}
+
+	virtual bool load(const wchar_t *filename) override
+	{
+		m_pBitmapDecoder.Reset();
+
+		HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_pFactory)); 
+		// Create a decoder from the file.
+		if (FAILED(hr))
+			return false;
+
+		hr = m_pFactory->CreateDecoderFromFilename(filename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &m_pBitmapDecoder);
+		if (FAILED(hr))
+			return false;
+
+		return true;
+	}
+
+	virtual void render(Image& img, int page, float zoom) override
+	{
+		Microsoft::WRL::ComPtr<IWICBitmapFrameDecode> pBitmapFrameDecode;
+		if (FAILED(m_pBitmapDecoder->GetFrame(page, &pBitmapFrameDecode)))
+			return;
+
+		Microsoft::WRL::ComPtr<IWICFormatConverter> pFormatConverter;
+		if (FAILED(m_pFactory->CreateFormatConverter(&pFormatConverter)))
+			return;
+
+		if (FAILED(pFormatConverter->Initialize(pBitmapFrameDecode.Get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0.0, WICBitmapPaletteTypeCustom)))
+			return;
+
+		unsigned imageWidth = 0, imageHeight = 0;
+		if (FAILED(pFormatConverter->GetSize(&imageWidth, &imageHeight)))
+			return;
+
+		std::vector<BYTE> buffer(imageWidth * imageHeight * 4);
+		WICRect rc = { 0, 0, static_cast<int>(imageWidth), static_cast<int>(imageHeight) };
+		if (FAILED(pFormatConverter->CopyPixels(&rc, imageWidth * 4, static_cast<unsigned>(buffer.size()), buffer.data())))
+			return;
+
+		fipImageEx* pImage = img.getFipImage();
+		pImage->setSize(FIT_BITMAP, imageWidth, imageHeight, 32);
+		for (unsigned y = 0; y < imageHeight; ++y)
+			memcpy(pImage->getScanLine(y), buffer.data() + (imageHeight - 1 - y) * imageWidth * 4, imageWidth * 4);
+	}
+
+	virtual unsigned getPageCount() const override
+	{
+		if (!m_pBitmapDecoder)
+			return 1;
+		UINT count = 0;
+		if (FAILED(m_pBitmapDecoder->GetFrameCount(&count)))
+			return 1;
+		return count;
+	}
+
+private:
+	Microsoft::WRL::ComPtr<IWICImagingFactory> m_pFactory;
+	Microsoft::WRL::ComPtr<IWICBitmapDecoder> m_pBitmapDecoder;
+};
+
 #endif
 
 class GdiPlusRenderer: public ImageRenderer
@@ -442,7 +510,8 @@ public:
 		PDF,
 		SVG,
 		EMF,
-		WMF
+		WMF,
+		WICSupported,
 	};
 
 	static ImageType getImageType(const wchar_t *filename)
@@ -457,8 +526,10 @@ public:
 			return ImageType::PDF;
 		else if (_wcsicmp(ext.c_str(), L".svg") == 0)
 			return ImageType::SVG;
-#endif
+		return ImageType::WICSupported;
+#else
 		return ImageType::NotSupported;
+#endif
 	}
 
 	static bool isSupportedImage(const wchar_t *filename)
@@ -481,6 +552,9 @@ public:
 			break;
 		case ImageType::SVG:
 			m_pRenderer.reset(new SvgRenderer());
+			break;
+		case ImageType::WICSupported:
+			m_pRenderer.reset(new WICRenderer());
 			break;
 #endif
 		case ImageType::EMF:
