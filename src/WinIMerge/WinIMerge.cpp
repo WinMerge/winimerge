@@ -48,7 +48,7 @@ wchar_t m_szWindowClass[256] = L"WinIMergeClass";
 IImgMergeWindow *m_pImgMergeWindow = NULL;
 IImgToolWindow *m_pImgToolWindow = NULL;
 
-#define IMAGES_FILE_FILTER_WILDCARDS L"*.jpg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.tga;*.psd;*.ico;*.cur;*.svg;*.emf;*.pdf"
+#define IMAGES_FILE_FILTER_WILDCARDS L"*.3fr;*.ari;*.arw;*.avci;*.avcs;*.avif;*.avifs;*.bay;*.bmp;*.cap;*.cr2;*.cr3;*.crw;*.cur;*.dcr;*.dcs;*.dds;*.dib;*.dng;*.drf;*.eip;*.erf;*.exif;*.fff;*.gif;*.heic;*.heics;*.heif;*.heifs;*.hif;*.ico;*.icon;*.iiq;*.jfif;*.jpe;*.jpeg;*.jpg;*.jxl;*.jxr;*.k25;*.kdc;*.mef;*.mos;*.mrw;*.nef;*.nrw;*.orf;*.ori;*.pef;*.png;*.ptx;*.pxn;*.raf;*.raw;*.rle;*.rw2;*.rwl;*.sr2;*.srf;*.srw;*.tif;*.tiff;*.wdp;*.webp;*.x3f;*.tga;*.psd;*.svg;*.emf;*.pdf"
 static wchar_t const ImagesFileFilter[] = L"Images (" IMAGES_FILE_FILTER_WILDCARDS L")\0" IMAGES_FILE_FILTER_WILDCARDS L"\0";
 
 struct CmdLineInfo
