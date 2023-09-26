@@ -293,6 +293,7 @@ public:
 		return image_.convertTo8Bits() && image_.convertTo32Bits();
 	}
 	bool load(const std::wstring& filename) { return !!image_.loadU(filename.c_str()); }
+	bool isSaveSupported() const { return FreeImage_FIFSupportsWriting(image_.getFIF()); }
 	bool save(const std::wstring& filename)
 	{
 #ifdef _WIN32

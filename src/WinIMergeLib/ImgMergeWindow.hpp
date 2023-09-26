@@ -1174,6 +1174,11 @@ public:
 		m_buffer.SetSavePoint(pane, pos);
 	}
 
+	bool IsSaveSupported(int pane) const override
+	{
+		return m_buffer.IsSaveSupported(pane);
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)

@@ -481,7 +481,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		case ID_FILE_SAVE:
-			m_pImgMergeWindow->SaveImages();
+			for (int pane = 0; pane < m_pImgMergeWindow->GetPaneCount(); ++pane)
+			{
+				if (m_pImgMergeWindow->IsSaveSupported(pane))
+				{
+					if (!m_pImgMergeWindow->SaveImage(pane))
+					{
+						SaveImageAs(hWnd, pane);
+					}
+				}
+				else
+					SaveImageAs(hWnd, pane);
+			}
 			break;
 		case ID_FILE_SAVE_LEFT_AS:
 			SaveImageAs(hWnd, 0);

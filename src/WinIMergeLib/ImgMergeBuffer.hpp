@@ -388,6 +388,11 @@ public:
 		m_undoRecords.set_savepoint(pane, pos);
 	}
 
+	bool IsSaveSupported(int pane) const
+	{
+		return !m_imgConverter[pane].isValid() && m_imgOrig[pane].isSaveSupported();
+	}
+
 	bool SaveImage(int pane)
 	{
 		if (pane < 0 || pane >= m_nImages)
