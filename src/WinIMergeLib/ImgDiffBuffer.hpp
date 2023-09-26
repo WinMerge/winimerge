@@ -1511,15 +1511,17 @@ protected:
 			else
 			{
 				m_imgOrigMultiPage[i].close();
-				if (ImgConverter::isSupportedImage(m_filename[i].c_str()))
+				if (!m_imgOrig[i].load(m_filename[i]))
 				{
-					if (m_imgConverter[i].load(m_filename[i].c_str()))
-						m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
-				}
-				if (!m_imgConverter[i].isValid())
-				{
-					if (!m_imgOrig[i].load(m_filename[i]))
+					if (ImgConverter::isSupportedImage(m_filename[i].c_str()))
+					{
+						if (m_imgConverter[i].load(m_filename[i].c_str()))
+							m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
+					}
+					if (!m_imgConverter[i].isValid())
+					{
 						bSucceeded = false;
+					}
 				}
 				m_imgOrig32[i] = m_imgOrig[i];
 				std::map<std::string, std::string> meta = m_imgOrig[i].getMetadata();
