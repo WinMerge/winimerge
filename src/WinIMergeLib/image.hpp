@@ -163,7 +163,7 @@ public:
 	{
 		FILE *fp = NULL;
 #ifdef _WIN32
-		_wfopen_s(&fp, lpszPathName, L"r+b");
+		_wfopen_s(&fp, lpszPathName, L"rb");
 		if (fp != NULL && !read_only)
 		{
 			WCHAR szTempPathName[MAX_PATH];
@@ -196,7 +196,7 @@ public:
 #else
 		char filename[260];
 		snprintf(filename, sizeof(filename), "%ls", lpszPathName);
-		fp = fopen(filename, "r+b");
+		fp = fopen(filename, "rb");
 #endif
 		if (fp != NULL)
 		{
