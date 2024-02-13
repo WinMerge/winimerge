@@ -73,11 +73,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Batch Files", "Batch Files"
 		BuildBin.vs2022.cmd = BuildBin.vs2022.cmd
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VBS Scripts", "VBS Scripts", "{0AB212AD-1F11-4BAB-BAD5-8BFC4435F453}"
-	ProjectSection(SolutionItems) = preProject
-		ExpandEnvironmenStrings.vbs = ExpandEnvironmenStrings.vbs
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -330,7 +325,6 @@ Global
 		{17A4874B-0606-4687-90B6-F91F8CB3B8AF} = {AD6E6E47-0363-409F-8B7A-48341147E632}
 		{33134F61-C1AD-4B6F-9CEA-503A9F140C52} = {AD6E6E47-0363-409F-8B7A-48341147E632}
 		{94F36908-A4E2-4533-939D-64FF6EADA5A1} = {AD6E6E47-0363-409F-8B7A-48341147E632}
-		{0AB212AD-1F11-4BAB-BAD5-8BFC4435F453} = {A9E83C9D-8AD6-4C87-888D-3F91B5656CD1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {896C26E3-CFC7-4129-9E40-1EA741A61072}
