@@ -502,6 +502,7 @@ public:
 		, m_overlayAlpha(0.3)
 		, m_wipeMode(WIPE_NONE)
 		, m_wipePosition(0)
+		, m_wipePosition_old(INT_MAX)
 		, m_diffBlockSize(8)
 		, m_selDiffColor(Image::Rgb(0xff, 0x40, 0x40))
 		, m_selDiffDeletedColor(Image::Rgb(0xf0, 0xc0, 0xc0))
@@ -777,7 +778,7 @@ public:
 		if (m_wipePosition == pos)
 			return;
 		m_wipePosition = pos;
-		RefreshImages();
+		WipeEffect();
 	}
 
 	void SetWipeModePosition(WIPE_MODE wipeMode, int pos)
@@ -1134,10 +1135,6 @@ public:
 				(this->*func)(1, 2);
 			}
 		}
-		if (m_wipeMode != WIPE_NONE)
-		{
-			WipeEffect();
-		}
 		if (m_showDifferences)
 		{
 			bool showDiff = true;
@@ -1157,6 +1154,7 @@ public:
 					MarkDiff(i, m_diff);
 			}
 		}
+		m_wipePosition_old = INT_MAX;
 	}
 
 	bool OpenImages(int nImages, const wchar_t * const filename[3])
@@ -1878,49 +1876,112 @@ protected:
 		const unsigned w = m_imgDiff[0].width();
 		const unsigned h = m_imgDiff[0].height();
 
+		if (m_wipePosition <= 0)
+			m_wipePosition = 0;
+
 		if (m_wipeMode == WIPE_VERTICAL)
 		{
+			if (m_wipePosition >= h)
+				m_wipePosition = h;
+			if (m_wipePosition_old == INT_MAX)
+				m_wipePosition_old = h;
 			auto tmp = new unsigned char[w * 4];
-			for (unsigned y = m_wipePosition; y < h; ++y)
+			if (m_wipePosition <= m_wipePosition_old)
 			{
-				for (int pane = 0; pane < m_nImages - 1; ++pane)
+				for (unsigned y = m_wipePosition; y < m_wipePosition_old; ++y)
 				{
-					unsigned char *scanline  = m_imgDiff[pane].scanLine(y);
-					unsigned char *scanline2 = m_imgDiff[pane + 1].scanLine(y);
-					memcpy(tmp, scanline, w * 4);
-					memcpy(scanline, scanline2, w * 4);
-					memcpy(scanline2, tmp, w * 4);
+					for (int pane = 0; pane < m_nImages - 1; ++pane)
+					{
+						unsigned char* scanline = m_imgDiff[pane].scanLine(y);
+						unsigned char* scanline2 = m_imgDiff[pane + 1].scanLine(y);
+						memcpy(tmp, scanline, w * 4);
+						memcpy(scanline, scanline2, w * 4);
+						memcpy(scanline2, tmp, w * 4);
+					}
 				}
 			}
+			else
+			{
+				for (unsigned y = m_wipePosition_old; y < m_wipePosition; ++y)
+				{
+					for (int pane = m_nImages - 1; pane > 0; --pane)
+					{
+						unsigned char* scanline = m_imgDiff[pane].scanLine(y);
+						unsigned char* scanline2 = m_imgDiff[pane - 1].scanLine(y);
+						memcpy(tmp, scanline, w * 4);
+						memcpy(scanline, scanline2, w * 4);
+						memcpy(scanline2, tmp, w * 4);
+					}
+				}
+			}
+
 			delete[] tmp;
 		}
 		else if (m_wipeMode = WIPE_HORIZONTAL)
 		{
+			if (m_wipePosition >= w)
+				m_wipePosition = w;
+			if (m_wipePosition_old == INT_MAX)
+				m_wipePosition_old = w;
 			for (unsigned y = 0; y < h; ++y)
 			{
 				for (int pane = 0; pane < m_nImages - 1; ++pane)
 				{
-					unsigned char *scanline = m_imgDiff[pane].scanLine(y);
-					unsigned char *scanline2 = m_imgDiff[pane + 1].scanLine(y);
-					for (unsigned x = m_wipePosition; x < w; ++x)
+					unsigned char* scanline;
+					unsigned char* scanline2;
+					if (m_wipePosition <= m_wipePosition_old)
 					{
-						unsigned char tmp[4];
-						tmp[0] = scanline[x * 4 + 0];
-						tmp[1] = scanline[x * 4 + 1];
-						tmp[2] = scanline[x * 4 + 2];
-						tmp[3] = scanline[x * 4 + 3];
-						scanline[x * 4 + 0] = scanline2[x * 4 + 0];
-						scanline[x * 4 + 1] = scanline2[x * 4 + 1];
-						scanline[x * 4 + 2] = scanline2[x * 4 + 2];
-						scanline[x * 4 + 3] = scanline2[x * 4 + 3];
-						scanline2[x * 4 + 0] = tmp[0];
-						scanline2[x * 4 + 1] = tmp[1];
-						scanline2[x * 4 + 2] = tmp[2];
-						scanline2[x * 4 + 3] = tmp[3];
+						scanline = m_imgDiff[pane].scanLine(y);
+						scanline2 = m_imgDiff[pane + 1].scanLine(y);
+					}
+					else
+					{
+						scanline = m_imgDiff[m_nImages - 2 - pane].scanLine(y);
+						scanline2 = m_imgDiff[m_nImages - 1 - pane].scanLine(y);
+					}
+
+					if (m_wipePosition <= m_wipePosition_old)
+					{
+						for (unsigned x = m_wipePosition; x < m_wipePosition_old; ++x)
+						{
+							unsigned char tmp[4];
+							tmp[0] = scanline[x * 4 + 0];
+							tmp[1] = scanline[x * 4 + 1];
+							tmp[2] = scanline[x * 4 + 2];
+							tmp[3] = scanline[x * 4 + 3];
+							scanline[x * 4 + 0] = scanline2[x * 4 + 0];
+							scanline[x * 4 + 1] = scanline2[x * 4 + 1];
+							scanline[x * 4 + 2] = scanline2[x * 4 + 2];
+							scanline[x * 4 + 3] = scanline2[x * 4 + 3];
+							scanline2[x * 4 + 0] = tmp[0];
+							scanline2[x * 4 + 1] = tmp[1];
+							scanline2[x * 4 + 2] = tmp[2];
+							scanline2[x * 4 + 3] = tmp[3];
+						}
+					}
+					else
+					{
+						for (unsigned x = m_wipePosition_old; x < m_wipePosition; ++x)
+						{
+							unsigned char tmp[4];
+							tmp[0] = scanline[x * 4 + 0];
+							tmp[1] = scanline[x * 4 + 1];
+							tmp[2] = scanline[x * 4 + 2];
+							tmp[3] = scanline[x * 4 + 3];
+							scanline[x * 4 + 0] = scanline2[x * 4 + 0];
+							scanline[x * 4 + 1] = scanline2[x * 4 + 1];
+							scanline[x * 4 + 2] = scanline2[x * 4 + 2];
+							scanline[x * 4 + 3] = scanline2[x * 4 + 3];
+							scanline2[x * 4 + 0] = tmp[0];
+							scanline2[x * 4 + 1] = tmp[1];
+							scanline2[x * 4 + 2] = tmp[2];
+							scanline2[x * 4 + 3] = tmp[3];
+						}
 					}
 				}
 			}
 		}
+		m_wipePosition_old = m_wipePosition;
 	}
 
 	void CopyPreprocessedImageToDiffImage(int dst)
@@ -2257,6 +2318,7 @@ protected:
 	double m_overlayAlpha;
 	WIPE_MODE m_wipeMode;
 	int m_wipePosition;
+	int m_wipePosition_old;
 	unsigned m_diffBlockSize;
 	Image::Color m_selDiffColor;
 	Image::Color m_selDiffDeletedColor;
