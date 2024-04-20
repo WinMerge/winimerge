@@ -520,6 +520,10 @@ public:
 	{
 		for (int i = 0; i < 3; ++i)
 			m_currentPage[i] = 0;
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			m_imgDiffIsTransparent[i] = false;
+		}
 	}
 
 	virtual ~CImgDiffBuffer()
@@ -766,6 +770,11 @@ public:
 			return;
 		m_wipeMode = wipeMode;
 		RefreshImages();
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			if (m_imgDiff[i].getFipImage()->isTransparent())
+				m_imgDiffIsTransparent[i] = true;
+		}
 	}
 
 	int GetWipePosition() const
@@ -778,8 +787,20 @@ public:
 		if (m_wipePosition == pos)
 			return;
 		m_wipePosition = pos;
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			if (m_imgDiffIsTransparent[i] == true)
+			{
+				// Dummy operation with less performance to retrigger redrawing
+				// setPixelColor leads to _bHasChanged = TRUE which will enable redrawing
+				RGBQUAD color;
+				m_imgDiff[i].getFipImage()->getPixelColor(0, 0, &color);
+				m_imgDiff[i].getFipImage()->setPixelColor(0, 0, &color);
+			}
+		}
 		WipeEffect();
 	}
+
 
 	void SetWipeModePosition(WIPE_MODE wipeMode, int pos)
 	{
@@ -788,6 +809,13 @@ public:
 		m_wipeMode = wipeMode;
 		m_wipePosition = pos;
 		RefreshImages();
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			if (m_imgDiff[i].getFipImage()->isTransparent())
+				m_imgDiffIsTransparent[i] = true;
+		}
+		if (m_wipeMode != WIPE_NONE)
+			WipeEffect();
 	}
 
 	bool GetShowDifferences() const
@@ -2337,4 +2365,5 @@ protected:
 	std::vector<LineDiffInfo> m_lineDiffInfos;
 	bool m_temporarilyTransformed;
 	DIFF_ALGORITHM m_diffAlgorithm;
+	bool m_imgDiffIsTransparent[3];
 };
