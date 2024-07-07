@@ -1476,8 +1476,8 @@ private:
 				}
 				const auto actualCycle = tse - m_timerPrev;
 				const auto idealCycle = 
-					std::chrono::milliseconds((wParam == 2) ? TIMER_INTERVAL_ANIM : TIMER_INTERVAL_BLINK);
-				m_timerNext = tse +((m_timerNext.count() == 0 || actualCycle < idealCycle) ? idealCycle : actualCycle);
+					std::chrono::milliseconds((m_buffer.GetOverlayMode() == OVERLAY_ALPHABLEND_ANIM) ? TIMER_INTERVAL_ANIM : TIMER_INTERVAL_BLINK);
+				m_timerNext = tse + ((m_timerNext.count() == 0 || actualCycle < idealCycle) ? idealCycle : actualCycle);
 			}
 			m_timerPrev = tse;
 			break;
