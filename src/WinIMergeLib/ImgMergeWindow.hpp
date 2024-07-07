@@ -20,6 +20,7 @@
 
 #include <Windows.h>
 #include <cstring>
+#include <chrono>
 #include "FreeImagePlus.h"
 #include "ImgWindow.hpp"
 #include "ImgMergeBuffer.hpp"
@@ -47,6 +48,10 @@ namespace
 
 class CImgMergeWindow : public IImgMergeWindow
 {
+	static constexpr int TIMER_INTERVAL = 25;
+	static constexpr int TIMER_INTERVAL_ANIM = 50;
+	static constexpr int TIMER_INTERVAL_BLINK = 400;
+
 	struct EventListenerInfo 
 	{
 		EventListenerInfo(EventListenerFunc func, void *userdata) : func(func), userdata(userdata) {}
@@ -69,6 +74,8 @@ public:
 		, m_draggingMode(DRAGGING_MODE::MOVE)
 		, m_draggingModeCurrent(DRAGGING_MODE::MOVE)
 		, m_gdiplusToken(0)
+		, m_timerPrev()
+		, m_timerNext()
 	{
 		for (int i = 0; i < 3; ++i)
 			m_ChildWndProc[i] = NULL;
@@ -392,10 +399,11 @@ public:
 	{
 		m_buffer.SetOverlayMode(static_cast<CImgMergeBuffer::OVERLAY_MODE>(overlayMode));
 		Invalidate();
-		if (overlayMode == OVERLAY_ALPHABLEND_ANIM)
-			SetTimer(m_hWnd, 2, 50, NULL);
+		if (overlayMode == OVERLAY_ALPHABLEND_ANIM || m_buffer.GetBlinkDifferences())
+			SetTimer(m_hWnd, 2, TIMER_INTERVAL, NULL);
 		else
 			KillTimer(m_hWnd, 2);
+		m_timerNext = {};
 	}
 
 	double GetOverlayAlpha() const override
@@ -429,10 +437,11 @@ public:
 	{
 		m_buffer.SetBlinkDifferences(blink);
 		Invalidate();
-		if (blink)
-			SetTimer(m_hWnd, 1, 400, NULL);
+		if (blink || m_buffer.GetOverlayMode() == OVERLAY_ALPHABLEND_ANIM)
+			SetTimer(m_hWnd, 2, TIMER_INTERVAL, NULL);
 		else
-			KillTimer(m_hWnd, 1);
+			KillTimer(m_hWnd, 2);
+		m_timerNext = {};
 	}
 
 	float GetVectorImageZoomRatio() const override
@@ -1454,12 +1463,25 @@ private:
 			SetCursor(::LoadCursor(nullptr, !m_bHorizontalSplit ? IDC_SIZEWE : IDC_SIZENS));
 			break;
 		case WM_TIMER:
-			m_buffer.RefreshImages();
-			if (m_nImages <= 1)
-				break;
-			for (int i = 0; i < m_nImages; ++i)
-				m_imgWindow[i].Invalidate(false);
+		{
+			auto now = std::chrono::system_clock::now();
+			auto tse = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+			if (m_timerNext.count() == 0 || tse >= m_timerNext)
+			{
+				m_buffer.RefreshImages();
+				if (m_nImages > 1)
+				{
+					for (int i = 0; i < m_nImages; ++i)
+						m_imgWindow[i].Invalidate(false);
+				}
+				const auto actualCycle = tse - m_timerPrev;
+				const auto idealCycle = 
+					std::chrono::milliseconds((wParam == 2) ? TIMER_INTERVAL_ANIM : TIMER_INTERVAL_BLINK);
+				m_timerNext = tse +((m_timerNext.count() == 0 || actualCycle < idealCycle) ? idealCycle : actualCycle);
+			}
+			m_timerPrev = tse;
 			break;
+		}
 		case WM_DESTROY:
 			OnDestroy();
 			break;
@@ -1953,4 +1975,6 @@ private:
 	CImgMergeBuffer m_buffer;
 	ULONG_PTR m_gdiplusToken;
 	std::unique_ptr<ocr::COcr> m_pOcr;
+	std::chrono::milliseconds m_timerPrev;
+	std::chrono::milliseconds m_timerNext;
 };
