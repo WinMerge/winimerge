@@ -98,6 +98,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "View &Differences",           ID_VIEW_VIEWDIFFERENCES
+        MENUITEM "&Blink Differences",          ID_VIEW_BLINKDIFFERENCES
         POPUP "Diff &Block Size"
         BEGIN
             MENUITEM "&1",                          ID_VIEW_DIFFBLOCKSIZE_1
@@ -122,14 +123,14 @@ BEGIN
             MENUITEM "&None",                       ID_VIEW_INSERTIONDELETIONDETECTION_NONE
             MENUITEM "&Vertical",                   ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL
             MENUITEM "&Horizontal",                 ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL
-			POPUP "Diff Algorithm"
-			BEGIN
-				MENUITEM "&Myers",                      ID_VIEW_DIFF_ALGORITHM_MYERS
-				MENUITEM "&Minimal",                    ID_VIEW_DIFF_ALGORITHM_MINIMAL
-				MENUITEM "&Patience",                   ID_VIEW_DIFF_ALGORITHM_PATIENCE
-				MENUITEM "&Histogram",                  ID_VIEW_DIFF_ALGORITHM_HISTOGRAM
-				MENUITEM "&None",                       ID_VIEW_DIFF_ALGORITHM_NONE
-			END
+            POPUP "Diff Algorithm"
+            BEGIN
+                MENUITEM "&Myers",                      ID_VIEW_DIFF_ALGORITHM_MYERS
+                MENUITEM "&Minimal",                    ID_VIEW_DIFF_ALGORITHM_MINIMAL
+                MENUITEM "&Patience",                   ID_VIEW_DIFF_ALGORITHM_PATIENCE
+                MENUITEM "&Histogram",                  ID_VIEW_DIFF_ALGORITHM_HISTOGRAM
+                MENUITEM "&None",                       ID_VIEW_DIFF_ALGORITHM_NONE
+            END
         END
         MENUITEM SEPARATOR
         MENUITEM "&Prev Page",                  ID_VIEW_PAGE_PREVPAGE
@@ -179,6 +180,35 @@ BEGIN
             MENUITEM "&100%",                       ID_VIEW_VECTORIMAGESCALING_100
             MENUITEM "50%",                         ID_VIEW_VECTORIMAGESCALING_50
             MENUITEM "25%",                         ID_VIEW_VECTORIMAGESCALING_25
+        END
+        POPUP "&Animation Settings"
+        BEGIN
+            POPUP "&Blink interval"
+            BEGIN
+                MENUITEM "200[ms]",                   ID_VIEW_BLINKINTERVAL_200
+                MENUITEM "400[ms]",                   ID_VIEW_BLINKINTERVAL_400
+                MENUITEM "600[ms]",                   ID_VIEW_BLINKINTERVAL_600
+                MENUITEM "800[ms]",                   ID_VIEW_BLINKINTERVAL_800
+                MENUITEM "1000[ms]",                  ID_VIEW_BLINKINTERVAL_1000
+                MENUITEM "1200[ms]",                  ID_VIEW_BLINKINTERVAL_1200
+                MENUITEM "1500[ms]",                  ID_VIEW_BLINKINTERVAL_1500
+                MENUITEM "2000[ms]",                  ID_VIEW_BLINKINTERVAL_2000
+                MENUITEM "3000[ms]",                  ID_VIEW_BLINKINTERVAL_3000
+                MENUITEM "4000[ms]",                  ID_VIEW_BLINKINTERVAL_4000
+            END
+            POPUP "&Overlay animation interval"
+            BEGIN
+                MENUITEM "200[ms]",                   ID_VIEW_OVERLAYANIMINTERVAL_200
+                MENUITEM "400[ms]",                   ID_VIEW_OVERLAYANIMINTERVAL_400
+                MENUITEM "600[ms]",                   ID_VIEW_OVERLAYANIMINTERVAL_600
+                MENUITEM "800[ms]",                   ID_VIEW_OVERLAYANIMINTERVAL_800
+                MENUITEM "1000[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_1000
+                MENUITEM "1200[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_1200
+                MENUITEM "1500[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_1500
+                MENUITEM "2000[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_2000
+                MENUITEM "3000[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_3000
+                MENUITEM "4000[ms]",                  ID_VIEW_OVERLAYANIMINTERVAL_4000
+            END
         END
         MENUITEM SEPARATOR
         MENUITEM "Extract &Text",               ID_VIEW_EXTRACTTEXT

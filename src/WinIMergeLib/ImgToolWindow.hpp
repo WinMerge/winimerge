@@ -61,6 +61,7 @@ public:
 		SetDlgItemText(m_hWnd, IDC_ZOOM_STATIC, buf);
 
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_HIGHLIGHT, BM_SETCHECK, m_pImgMergeWindow->GetShowDifferences() ? BST_CHECKED : BST_UNCHECKED, 0);
+		SendDlgItemMessage(m_hWnd, IDC_DIFF_BLINK, BM_SETCHECK, m_pImgMergeWindow->GetBlinkDifferences() ? BST_CHECKED : BST_UNCHECKED, 0);
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_BLOCKSIZE_SLIDER, TBM_SETPOS, TRUE, m_pImgMergeWindow->GetDiffBlockSize());
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_BLOCKALPHA_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(m_pImgMergeWindow->GetDiffColorAlpha() * 100));
 		SendDlgItemMessage(m_hWnd, IDC_DIFF_CDTHRESHOLD_SLIDER, TBM_SETPOS, TRUE, static_cast<LPARAM>(ColorDistanceToSliderValue(m_pImgMergeWindow->GetColorDistanceThreshold())));

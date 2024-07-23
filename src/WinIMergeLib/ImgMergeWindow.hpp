@@ -49,8 +49,6 @@ namespace
 class CImgMergeWindow : public IImgMergeWindow
 {
 	static constexpr int TIMER_INTERVAL = 25;
-	static constexpr int TIMER_INTERVAL_ANIM = 50;
-	static constexpr int TIMER_INTERVAL_BLINK = 400;
 
 	struct EventListenerInfo 
 	{
@@ -1188,6 +1186,26 @@ public:
 		return m_buffer.IsSaveSupported(pane);
 	}
 
+	int GetBlinkInterval() const override
+	{
+		return m_buffer.GetBlinkInterval();
+	}
+
+	void SetBlinkInterval(int interval) override
+	{
+		m_buffer.SetBlinkInterval(interval);
+	}
+
+	int GetOverlayAnimationInterval() const override
+	{
+		return m_buffer.GetOverlayAnimationInterval();
+	}
+
+	void SetOverlayAnimationInterval(int interval) override
+	{
+		m_buffer.SetOverlayAnimationInterval(interval);
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -1476,8 +1494,8 @@ private:
 				}
 				const auto actualCycle = tse - m_timerPrev;
 				const auto idealCycle = 
-					std::chrono::milliseconds((m_buffer.GetOverlayMode() == OVERLAY_ALPHABLEND_ANIM) ? TIMER_INTERVAL_ANIM : TIMER_INTERVAL_BLINK);
-				m_timerNext = tse + ((m_timerNext.count() == 0 || actualCycle < idealCycle) ? idealCycle : actualCycle);
+					std::chrono::milliseconds((wParam == 2) ? m_buffer.GetOverlayAnimationInterval() / 20 : m_buffer.GetBlinkInterval() / 4);
+				m_timerNext = tse +((m_timerNext.count() == 0 || actualCycle < idealCycle) ? idealCycle : actualCycle);
 			}
 			m_timerPrev = tse;
 			break;

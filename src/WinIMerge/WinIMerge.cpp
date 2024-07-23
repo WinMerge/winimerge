@@ -47,6 +47,7 @@ wchar_t m_szTitle[256] = L"WinIMerge";
 wchar_t m_szWindowClass[256] = L"WinIMergeClass";
 IImgMergeWindow *m_pImgMergeWindow = NULL;
 IImgToolWindow *m_pImgToolWindow = NULL;
+static const int INTERVALS[] = { 200, 400, 600, 800, 1000, 1200, 1500, 2000, 3000, 4000 };
 
 #define IMAGES_FILE_FILTER_WILDCARDS L"*.3fr;*.ari;*.arw;*.avci;*.avcs;*.avif;*.avifs;*.bay;*.bmp;*.cap;*.cr2;*.cr3;*.crw;*.cur;*.dcr;*.dcs;*.dds;*.dib;*.dng;*.drf;*.eip;*.erf;*.exif;*.fff;*.gif;*.heic;*.heics;*.heif;*.heifs;*.hif;*.ico;*.icon;*.iiq;*.jfif;*.jpe;*.jpeg;*.jpg;*.jxl;*.jxr;*.k25;*.kdc;*.mef;*.mos;*.mrw;*.nef;*.nrw;*.orf;*.ori;*.pef;*.png;*.ptx;*.pxn;*.raf;*.raw;*.rle;*.rw2;*.rwl;*.sr2;*.srf;*.srw;*.tif;*.tiff;*.wdp;*.webp;*.x3f;*.tga;*.psd;*.svg;*.emf;*.pdf"
 static wchar_t const ImagesFileFilter[] = L"Images (" IMAGES_FILE_FILTER_WILDCARDS L")\0" IMAGES_FILE_FILTER_WILDCARDS L"\0";
@@ -208,6 +209,7 @@ void UpdateMenuState(HWND hWnd)
 {
 	HMENU hMenu = GetMenu(hWnd);
 	CheckMenuItem(hMenu, ID_VIEW_VIEWDIFFERENCES,    m_pImgMergeWindow->GetShowDifferences() ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(hMenu, ID_VIEW_BLINKDIFFERENCES,    m_pImgMergeWindow->GetBlinkDifferences() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VIEW_SPLITHORIZONTALLY,  m_pImgMergeWindow->GetHorizontalSplit() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuRadioItem(hMenu, ID_VIEW_INSERTIONDELETIONDETECTION_NONE, ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL,
 		m_pImgMergeWindow->GetInsertionDeletionDetectionMode() + ID_VIEW_INSERTIONDELETIONDETECTION_NONE, MF_BYCOMMAND);
@@ -438,6 +440,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		MoveWindow(m_hwndStatusBar, rc.left, rc.bottom, rc.right, rc.bottom + rcStatusBar.bottom, TRUE);
 		break;
 	}
+	case WM_INITMENUPOPUP:
+		UpdateMenuState(hWnd);
+		break;
 	case WM_COMMAND:
 	{
 		int wmId    = LOWORD(wParam); 
@@ -557,32 +562,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_ZOOM_50:
 		case ID_VIEW_ZOOM_25:
 			m_pImgMergeWindow->SetZoom(pow(2.0, (wmId - ID_VIEW_ZOOM_100)));
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_ZOOMIN:
 			m_pImgMergeWindow->SetZoom(m_pImgMergeWindow->GetZoom() + 0.1);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_ZOOMOUT:
 			m_pImgMergeWindow->SetZoom(m_pImgMergeWindow->GetZoom() - 0.1);
 			break;
 		case ID_VIEW_OVERLAY_NONE:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_NONE);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_OVERLAY_ALPHABLEND:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_OVERLAY_ALPHABLEND_ANIM:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_ALPHABLEND_ANIM);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_OVERLAY_XOR:
 			m_pImgMergeWindow->SetOverlayMode(IImgMergeWindow::OVERLAY_XOR);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_VIEWDIFFERENCES:
 			m_pImgMergeWindow->SetShowDifferences(!m_pImgMergeWindow->GetShowDifferences());
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
+			break;
+		case ID_VIEW_BLINKDIFFERENCES:
+			m_pImgMergeWindow->SetBlinkDifferences(!m_pImgMergeWindow->GetBlinkDifferences());
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_DIFFBLOCKSIZE_1:
 		case ID_VIEW_DIFFBLOCKSIZE_2:
@@ -591,11 +602,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_DIFFBLOCKSIZE_16:
 		case ID_VIEW_DIFFBLOCKSIZE_32:
 			m_pImgMergeWindow->SetDiffBlockSize(1 << (wmId - ID_VIEW_DIFFBLOCKSIZE_1));
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_THRESHOLD_0:
 			m_pImgMergeWindow->SetColorDistanceThreshold(0);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_THRESHOLD_2:
 		case ID_VIEW_THRESHOLD_4:
@@ -604,13 +615,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_THRESHOLD_32:
 		case ID_VIEW_THRESHOLD_64:
 			m_pImgMergeWindow->SetColorDistanceThreshold((1 << (wmId - ID_VIEW_THRESHOLD_2)) * 2.0);
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_INSERTIONDELETIONDETECTION_NONE:
 		case ID_VIEW_INSERTIONDELETIONDETECTION_VERTICAL:
 		case ID_VIEW_INSERTIONDELETIONDETECTION_HORIZONTAL:
 			m_pImgMergeWindow->SetInsertionDeletionDetectionMode(static_cast<IImgMergeWindow::INSERTION_DELETION_DETECTION_MODE>(wmId - ID_VIEW_INSERTIONDELETIONDETECTION_NONE));
-			UpdateMenuState(hWnd);
+			m_pImgToolWindow->Sync();
 			break;
 		case ID_VIEW_DIFF_ALGORITHM_MYERS:
 		case ID_VIEW_DIFF_ALGORITHM_MINIMAL:
@@ -618,11 +629,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_DIFF_ALGORITHM_HISTOGRAM:
 		case ID_VIEW_DIFF_ALGORITHM_NONE:
 			m_pImgMergeWindow->SetDiffAlgorithm(static_cast<IImgMergeWindow::DIFF_ALGORITHM>(wmId - ID_VIEW_DIFF_ALGORITHM_MYERS));
-			UpdateMenuState(hWnd);
 			break;
 		case ID_VIEW_SPLITHORIZONTALLY:
 			m_pImgMergeWindow->SetHorizontalSplit(!m_pImgMergeWindow->GetHorizontalSplit());
-			UpdateMenuState(hWnd);
 			break;
 		case ID_VIEW_PAGE_NEXTPAGE:
 		{
@@ -643,7 +652,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_DRAGGINGMODE_HORIZONTAL_WIPE:
 		case ID_VIEW_DRAGGINGMODE_RECTANGLE_SELECT:
 			m_pImgMergeWindow->SetDraggingMode(static_cast<IImgMergeWindow::DRAGGING_MODE>(wmId - ID_VIEW_DRAGGINGMODE_NONE));
-			UpdateMenuState(hWnd);
 			break;
 		case ID_VIEW_USEBACKCOLOR:
 		{
@@ -669,7 +677,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				m_pImgMergeWindow->SetUseBackColor(useBackColor);
 			}
-			UpdateMenuState(hWnd);
 			break;
 		}
 		case ID_VIEW_VECTORIMAGESCALING_400:
@@ -679,6 +686,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_VECTORIMAGESCALING_25:
 			m_pImgMergeWindow->SetVectorImageZoomRatio(static_cast<float>(pow(2.0, (wmId - ID_VIEW_VECTORIMAGESCALING_100))));
 			break;
+		case ID_VIEW_BLINKINTERVAL_200:
+		case ID_VIEW_BLINKINTERVAL_400:
+		case ID_VIEW_BLINKINTERVAL_600:
+		case ID_VIEW_BLINKINTERVAL_800:
+		case ID_VIEW_BLINKINTERVAL_1000:
+		case ID_VIEW_BLINKINTERVAL_1200:
+		case ID_VIEW_BLINKINTERVAL_1500:
+		case ID_VIEW_BLINKINTERVAL_2000:
+		case ID_VIEW_BLINKINTERVAL_3000:
+		case ID_VIEW_BLINKINTERVAL_4000:
+		{
+			m_pImgMergeWindow->SetBlinkInterval(INTERVALS[wmId - ID_VIEW_BLINKINTERVAL_200]);
+			m_pImgToolWindow->Sync();
+			break;
+		}
+		case ID_VIEW_OVERLAYANIMINTERVAL_200:
+		case ID_VIEW_OVERLAYANIMINTERVAL_400:
+		case ID_VIEW_OVERLAYANIMINTERVAL_600:
+		case ID_VIEW_OVERLAYANIMINTERVAL_800:
+		case ID_VIEW_OVERLAYANIMINTERVAL_1000:
+		case ID_VIEW_OVERLAYANIMINTERVAL_1200:
+		case ID_VIEW_OVERLAYANIMINTERVAL_1500:
+		case ID_VIEW_OVERLAYANIMINTERVAL_2000:
+		case ID_VIEW_OVERLAYANIMINTERVAL_3000:
+		case ID_VIEW_OVERLAYANIMINTERVAL_4000:
+		{
+			m_pImgMergeWindow->SetOverlayAnimationInterval(INTERVALS[wmId - ID_VIEW_OVERLAYANIMINTERVAL_200]);
+			m_pImgToolWindow->Sync();
+			break;
+		}
 		case ID_VIEW_EXTRACTTEXT:
 		{
 			int pane = m_pImgMergeWindow->GetActivePane();

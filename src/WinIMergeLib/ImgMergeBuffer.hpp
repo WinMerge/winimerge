@@ -393,6 +393,27 @@ public:
 		return !m_imgConverter[pane].isValid() && m_imgOrig[pane].isSaveSupported();
 	}
 
+	int GetBlinkInterval() const
+	{
+		return m_blinkInterval;
+	}
+
+	void SetBlinkInterval(int interval)
+	{
+		m_blinkInterval = interval;
+	}
+
+	int GetOverlayAnimationInterval() const
+	{
+		return m_overlayAnimationInterval;
+	}
+
+	void SetOverlayAnimationInterval(int interval)
+	{
+		m_overlayAnimationInterval = interval;
+	}
+
+
 	bool SaveImage(int pane)
 	{
 		if (pane < 0 || pane >= m_nImages)
