@@ -74,6 +74,7 @@ public:
 		, m_gdiplusToken(0)
 		, m_timerPrev()
 		, m_timerNext()
+		, m_bDarkBackgroundEnabled(false)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_ChildWndProc[i] = NULL;
@@ -867,6 +868,7 @@ public:
 					m_imgWindow[i].SetScrollBar(m_bHorizontalSplit ? SB_VERT : SB_HORZ);
 				m_imgWindow[i].SetWindowRect(rects[i]);
 				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+				m_imgWindow[i].SetDarkBackgroundEnabled(m_bDarkBackgroundEnabled);
 			}
 
 			Event evt;
@@ -899,6 +901,7 @@ public:
 					m_imgWindow[i].SetScrollBar(m_bHorizontalSplit ? SB_VERT : SB_HORZ);
 				m_imgWindow[i].SetWindowRect(rects[i]);
 				m_imgWindow[i].SetImage(m_buffer.GetImage(i)->getFipImage());
+				m_imgWindow[i].SetDarkBackgroundEnabled(m_bDarkBackgroundEnabled);
 			}
 
 			Event evt;
@@ -1206,6 +1209,25 @@ public:
 		m_buffer.SetOverlayAnimationInterval(interval);
 	}
 
+	bool IsDarkBackgroundEnabled() const
+	{
+		return m_bDarkBackgroundEnabled;
+	}
+
+	void SetDarkBackgroundEnabled(bool enabled)
+	{
+		m_bDarkBackgroundEnabled = enabled;
+		if (m_hWnd)
+		{
+			for (int pane = 0; pane < m_nImages; ++pane)
+				m_imgWindow[pane].SetDarkBackgroundEnabled(m_bDarkBackgroundEnabled);
+			DeleteObject(s_hbrBackground	);
+			s_hbrBackground = CreateSolidBrush(m_bDarkBackgroundEnabled ? RGB(0, 0, 0) : GetSysColor(COLOR_3DFACE));
+			SetClassLongPtr(m_hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)s_hbrBackground);
+			InvalidateRect(m_hWnd, NULL, TRUE);
+		}
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
@@ -1218,7 +1240,7 @@ private:
 		wcex.cbWndExtra		= 0;
 		wcex.hInstance		= hInstance;
 		wcex.hCursor        = LoadCursor (NULL, IDC_ARROW);
-		wcex.hbrBackground  = (HBRUSH)(COLOR_3DFACE+1);
+		wcex.hbrBackground = s_hbrBackground;
 		wcex.lpszClassName	= L"WinImgMergeWindowClass";
 		return RegisterClassExW(&wcex);
 	}
@@ -1978,6 +2000,7 @@ private:
 	int m_nImages;
 	HWND m_hWnd;
 	HINSTANCE m_hInstance;
+	inline static HBRUSH s_hbrBackground = CreateSolidBrush(GetSysColor(COLOR_3DFACE));
 	CImgWindow m_imgWindow[3];
 	WNDPROC m_ChildWndProc[3];
 	std::vector<EventListenerInfo> m_listener;
@@ -1995,4 +2018,5 @@ private:
 	std::unique_ptr<ocr::COcr> m_pOcr;
 	std::chrono::milliseconds m_timerPrev;
 	std::chrono::milliseconds m_timerNext;
+	bool m_bDarkBackgroundEnabled;
 };
