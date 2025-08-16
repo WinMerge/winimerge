@@ -14,14 +14,15 @@ See http://freeimage.sourceforge.net for details.
 
 FreeImage is used under the the GNU GPL version.
 
-## How to build (Visual Studio 2019)
+## How to build (Visual Studio 2022)
 ~~~
 git clone https://github.com/winmerge/winimerge
 git clone https://github.com/winmerge/freeimage
 cd winimerge
-buildbin.vs2019.cmd
+buildbin.vs2022.cmd
 ~~~
 
 ## License
 
 GPL2
+
