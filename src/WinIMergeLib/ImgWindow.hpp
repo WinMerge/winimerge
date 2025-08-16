@@ -38,7 +38,6 @@ public:
 		, m_ptOverlappedImage{}
 		, m_ptOverlappedImageCursor{}
 		, m_wBar{SB_BOTH}
-		, m_bDarkBackgroundEnabled(false)
 	{
 		memset(&m_backColor, 0xff, sizeof(m_backColor));
 	}
@@ -448,12 +447,12 @@ public:
 
 	bool IsDarkBackgroundEnabled() const
 	{
-		return m_bDarkBackgroundEnabled;
+		return s_bDarkBackgroundEnabled;
 	}
 
 	void SetDarkBackgroundEnabled(bool enabled)
 	{
-		m_bDarkBackgroundEnabled = enabled;
+		s_bDarkBackgroundEnabled = enabled;
 		if (m_fip)
 			InvalidateRect(m_hWnd, NULL, TRUE);
 	}
@@ -490,7 +489,7 @@ private:
 			HBITMAP hbmMem = CreateCompatibleBitmap(hdc, rc.right - rc.left, rc.bottom - rc.top);
 			HDC hOld = static_cast<HDC>(SelectObject(hdcMem, hbmMem));
 			HBRUSH hOldBrush = static_cast<HBRUSH>(SelectObject(hdcMem, static_cast<HGDIOBJ>(CreateSolidBrush(
-				m_bDarkBackgroundEnabled ? RGB(40, 40, 60) : RGB(206, 215, 230)))));
+				s_bDarkBackgroundEnabled ? RGB(40, 40, 60) : RGB(206, 215, 230)))));
 
 			PatBlt(hdcMem, 0, 0, rc.right - rc.left, rc.bottom - rc.top, PATCOPY);
 
@@ -796,5 +795,5 @@ private:
 	POINT m_ptSelectionEnd;
 	HCURSOR m_hCursor;
 	int m_wBar;
-	bool m_bDarkBackgroundEnabled;
+	inline static bool s_bDarkBackgroundEnabled = false;
 };
