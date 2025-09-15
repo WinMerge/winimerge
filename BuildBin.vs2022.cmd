@@ -27,7 +27,7 @@ goto :eof
 :BuildBin
 
 del /s Build\%1\Release\WinIMerge\*.exe
-MSBuild WinIMerge.vs2022.sln /t:rebuild /p:Configuration=Release /p:Platform="%1" || pause
+MSBuild WinIMerge.sln /t:rebuild /p:Configuration=Release /p:Platform="%1" || pause
 
 if exist "%SIGNBAT_PATH%" (
   call "%SIGNBAT_PATH%" Build\%1\Release\WinIMerge\WinIMerge.exe
