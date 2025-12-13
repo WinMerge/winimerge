@@ -21,7 +21,7 @@ jobs:
       run: |
         git clone https://github.com/winmerge/freeimage
         cd winimerge
-        .\BuildBin.vcmd
+        .\BuildBin.cmd
         .\BuildArc.cmd
 
     - name: Upload zip

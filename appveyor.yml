@@ -16,4 +16,4 @@ build_script:
 
     BuildArc.cmd
 artifacts:
-- path: Dist/winimerge-*-exe.zip
+- path: Dist/winimerge-*.zip
