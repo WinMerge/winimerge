@@ -154,6 +154,13 @@ void UpdateWindowTitle(HWND hWnd)
 		SetWindowTextW(hWnd, title);
 }
 
+void ShowErrorMessageBox(HWND hWnd, const std::string& msg)
+{
+	std::error_code ec(m_pImgMergeWindow->GetLastErrorCode(), std::generic_category());
+	std::string msg2 = msg + ": " + ec.message();
+	MessageBoxA(hWnd, msg2.c_str(), NULL, MB_OK | MB_ICONERROR);
+}
+
 bool NewImages(HWND hWnd, int nImages)
 {
 	bool bSucceeded;
@@ -173,6 +180,8 @@ bool OpenImages(HWND hWnd, int nImages, const std::wstring filename[3])
 		bSucceeded = m_pImgMergeWindow->OpenImages(filename[0].c_str(), filename[1].c_str(), filename[2].c_str());
 	if (bSucceeded)
 		UpdateWindowTitle(hWnd);
+	else
+		ShowErrorMessageBox(hWnd, "Failed to open files");
 	InvalidateRect(hWnd, NULL, TRUE);
 	return bSucceeded;
 }
@@ -199,9 +208,7 @@ void SaveImageAs(HWND hWnd, int pane)
 	if (GetSaveFileNameW(&ofn) != 0)
 	{
 		if (!m_pImgMergeWindow->SaveImageAs(pane, ofn.lpstrFile))
-		{
-			MessageBoxW(hWnd, L"Failed to save file", nullptr, MB_OK | MB_ICONERROR);
-		}
+			ShowErrorMessageBox(hWnd, "Failed to save file");
 	}
 }
 
@@ -830,7 +837,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_HELP_ABOUT:
 			MessageBoxW(hWnd, 
 				L"WinIMerge\n\n"
-				L"(c) 2014-2021 sdottaka@users.sourceforge.net All rights reserved.\n\n"
+				L"(c) 2014-2025 sdottaka@users.sourceforge.net All rights reserved.\n\n"
 				L"This software uses the FreeImage open source image library. \n"
 				L"See http://freeimage.sourceforge.net for details.\n"
 				L"FreeImage is used under the GNU GPL version.\n", L"WinIMerge", MB_OK | MB_ICONINFORMATION);

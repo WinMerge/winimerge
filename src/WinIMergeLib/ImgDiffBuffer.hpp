@@ -518,6 +518,7 @@ public:
 		, m_diffAlgorithm(MYERS_DIFF)
 		, m_blinkInterval(BLINK_INTERVAL)
 		, m_overlayAnimationInterval(OVERLAY_ANIMATION_INTERVAL)
+		, m_lastErrorCode(0)
 	{
 		for (int i = 0; i < 3; ++i)
 			m_currentPage[i] = 0;
@@ -1190,7 +1191,14 @@ public:
 	{
 		if (pane < 0 || pane >= m_nImages)
 			return false;
-		return !!m_imgDiff[pane].save(filename);
+		int savedErrno = errno;
+		errno = 0;
+		bool result = !!m_imgDiff[pane].save(filename);
+		if (!result)
+			m_lastErrorCode = errno != 0 ? errno : ENOTSUP;
+		if (errno == 0)
+			errno = savedErrno;
+		return result;
 	}
 
 	int  GetImageWidth(int pane) const
@@ -1496,9 +1504,16 @@ public:
 		m_imgOrig32[pane].copySubImage(image, x, y, x2, y2);
 	}
 
+	int GetLastErrorCode() const
+	{
+		return m_lastErrorCode;
+	}
+
 protected:
 	bool LoadImages()
 	{
+		int savedErrno = errno;
+		errno = 0;
 		bool bSucceeded = true;
 		for (int i = 0; i < m_nImages; ++i)
 		{
@@ -1523,6 +1538,7 @@ protected:
 					if (!m_imgConverter[i].isValid())
 					{
 						bSucceeded = false;
+						m_lastErrorCode = (errno != 0) ? errno : ENOTSUP;
 					}
 				}
 				m_imgOrig32[i] = m_imgOrig[i];
@@ -1554,6 +1570,8 @@ protected:
 			}
 			m_imgOrig32[i].convertTo32Bits();
 		}
+		if (errno == 0)
+			errno = savedErrno;
 		return bSucceeded;
 	}
 
@@ -2279,4 +2297,5 @@ protected:
 	DIFF_ALGORITHM m_diffAlgorithm;
 	int m_blinkInterval;
 	int m_overlayAnimationInterval;
+	int m_lastErrorCode;
 };

@@ -144,7 +144,7 @@ BEGIN
             VALUE "FileDescription", "WInIMergeLib"
             VALUE "FileVersion", STRFILEVER
             VALUE "InternalName", "WinIMergeLib.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2014-2021 sdottaka@users.sourceforge.net"
+            VALUE "LegalCopyright", "Copyright (C) 2014-2025 sdottaka@users.sourceforge.net"
             VALUE "OriginalFilename", "WinIMergeLib.dll"
             VALUE "ProductName", "WinIMergeLib"
             VALUE "ProductVersion", STRPRODUCTVER

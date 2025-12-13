@@ -441,16 +441,28 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return false;
 		m_imgOrig[pane].pullImageKeepingBPP(m_imgOrig32[pane]);
+		int savedErrno = errno;
+		errno = 0;
 		if (m_imgOrigMultiPage[pane].isValid())
 		{
 			m_imgOrigMultiPage[pane].replacePage(m_currentPage[pane], m_imgOrig[pane]);
 			if (!m_imgOrigMultiPage[pane].save(filename))
+			{
+				m_lastErrorCode = errno != 0 ? errno : ENOTSUP;
+				if (errno == 0)
+					errno = savedErrno;
 				return false;
+			}
 		}
 		else
 		{
 			if (!m_imgOrig[pane].save(filename))
+			{
+				m_lastErrorCode = errno != 0 ? errno : ENOTSUP;
+				if (errno == 0)
+					errno = savedErrno;
 				return false;
+			}
 		}
 		m_undoRecords.save(pane);
 		m_filename[pane] = filename;

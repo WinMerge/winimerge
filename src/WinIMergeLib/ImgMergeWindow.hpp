@@ -1229,6 +1229,11 @@ public:
 		}
 	}
 
+	int GetLastErrorCode() const
+	{
+		return m_buffer.GetLastErrorCode();
+	}
+
 private:
 
 	ATOM MyRegisterClass(HINSTANCE hInstance)
