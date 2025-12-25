@@ -1535,7 +1535,7 @@ protected:
 						if (m_imgConverter[i].load(m_filename[i].c_str()))
 							m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
 					}
-					if (!m_imgConverter[i].isValid())
+					if (!m_imgConverter[i].isValid() && !m_filename[i].empty())
 					{
 						bSucceeded = false;
 						m_lastErrorCode = (errno != 0) ? errno : ENOTSUP;
