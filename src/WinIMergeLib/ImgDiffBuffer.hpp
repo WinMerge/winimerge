@@ -1963,7 +1963,7 @@ protected:
 			if (m_wipePosition_old == INT_MAX)
 				m_wipePosition_old = h;
 			const size_t lineBytes = w * 4;
-			auto tmp = new unsigned char[lineBytes];
+			std::vector<unsigned char> tmp(lineBytes);
 			if (m_wipePosition <= m_wipePosition_old)
 			{
 				for (unsigned y = m_wipePosition; y < m_wipePosition_old; ++y)
@@ -1972,9 +1972,9 @@ protected:
 					{
 						unsigned char* scanline = m_imgDiff[pane].scanLine(y);
 						unsigned char* scanline2 = m_imgDiff[pane + 1].scanLine(y);
-						memcpy(tmp, scanline, lineBytes);
+						memcpy(tmp.data(), scanline, lineBytes);
 						memcpy(scanline, scanline2, lineBytes);
-						memcpy(scanline2, tmp, lineBytes);
+						memcpy(scanline2, tmp.data(), lineBytes);
 					}
 				}
 			}
@@ -1986,14 +1986,12 @@ protected:
 					{
 						unsigned char* scanline = m_imgDiff[pane].scanLine(y);
 						unsigned char* scanline2 = m_imgDiff[pane - 1].scanLine(y);
-						memcpy(tmp, scanline, lineBytes);
+						memcpy(tmp.data(), scanline, lineBytes);
 						memcpy(scanline, scanline2, lineBytes);
-						memcpy(scanline2, tmp, lineBytes);
+						memcpy(scanline2, tmp.data(), lineBytes);
 					}
 				}
 			}
-
-			delete[] tmp;
 		}
 		else if (m_wipeMode == WIPE_HORIZONTAL)
 		{
