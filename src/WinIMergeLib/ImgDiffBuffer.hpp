@@ -1211,6 +1211,10 @@ public:
 			}
 		}
 		m_wipePosition_old = INT_MAX;
+		if (m_wipeMode != WIPE_NONE)
+		{
+			WipeEffect();
+		}
 	}
 
 	bool OpenImages(int nImages, const wchar_t * const filename[3])
