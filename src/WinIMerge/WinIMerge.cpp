@@ -332,7 +332,7 @@ void OnChildPaneEvent(const IImgMergeWindow::Event& evt)
 		case VK_RIGHT:
 		case VK_UP:
 		case VK_DOWN:
-			if (GetAsyncKeyState(VK_SHIFT))
+			if (GetAsyncKeyState(VK_SHIFT) < 0)
 			{
 				int nActivePane = m_pImgMergeWindow->GetActivePane();
 				int m = GetAsyncKeyState(VK_CONTROL) ? 8 : 1;
