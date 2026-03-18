@@ -523,7 +523,7 @@ public:
 	{
 		for (int i = 0; i < 3; ++i)
 			m_currentPage[i] = 0;
-		for (int i = 0; i < m_nImages; ++i)
+		for (int i = 0; i < 3; ++i)
 		{
 			m_imgDiffIsTransparent[i] = false;
 		}
@@ -2390,5 +2390,5 @@ protected:
 	int m_blinkInterval;
 	int m_overlayAnimationInterval;
 	int m_lastErrorCode;
-	bool m_imgDiffIsTransparent[3];
+	bool m_imgDiffIsTransparent[3]{};
 };
