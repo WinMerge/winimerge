@@ -786,13 +786,7 @@ public:
 			return;
 		m_wipeMode = wipeMode;
 		RefreshImages();
-		for (int i = 0; i < m_nImages; ++i)
-		{
-			if (m_imgDiff[i].getFipImage()->isTransparent())
-				m_imgDiffIsTransparent[i] = true;
-			else
-				m_imgDiffIsTransparent[i] = false;
-		}
+		UpdateDiffTransparencyCache();
 	}
 
 	int GetWipePosition() const
@@ -835,13 +829,7 @@ public:
 		m_wipeMode = wipeMode;
 		m_wipePosition = pos;
 		RefreshImages();
-		for (int i = 0; i < m_nImages; ++i)
-		{
-			if (m_imgDiff[i].getFipImage()->isTransparent())
-				m_imgDiffIsTransparent[i] = true;
-			else
-				m_imgDiffIsTransparent[i] = false;
-		}
+		UpdateDiffTransparencyCache();
 		if (m_wipeMode != WIPE_NONE)
 			WipeEffect();
 	}
@@ -1214,6 +1202,15 @@ public:
 		if (m_wipeMode != WIPE_NONE)
 		{
 			WipeEffect();
+		}
+		UpdateDiffTransparencyCache();
+	}
+
+	void UpdateDiffTransparencyCache()
+	{
+		for (int i = 0; i < m_nImages; ++i)
+		{
+			m_imgDiffIsTransparent[i] = m_imgDiff[i].getFipImage()->isTransparent() ? true : false;
 		}
 	}
 
