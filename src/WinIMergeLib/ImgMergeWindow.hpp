@@ -664,7 +664,7 @@ public:
 		int pane = GetActivePane();
 		if (pane < 0)
 			return false;
-		return !!IsClipboardFormatAvailable(CF_DIBV5);
+		return !!IsClipboardFormatAvailable(CF_DIB);
 	}
 
 	bool IsRedoable() const override
