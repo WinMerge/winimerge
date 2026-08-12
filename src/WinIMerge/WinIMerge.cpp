@@ -215,6 +215,7 @@ void SaveImageAs(HWND hWnd, int pane)
 void UpdateMenuState(HWND hWnd)
 {
 	HMENU hMenu = GetMenu(hWnd);
+	CheckMenuItem(hMenu, ID_FILE_PREFER_WIC_DECODER, m_pImgMergeWindow->GetPreferWICDecoder() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VIEW_VIEWDIFFERENCES,    m_pImgMergeWindow->GetShowDifferences() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VIEW_BLINKDIFFERENCES,    m_pImgMergeWindow->GetBlinkDifferences() ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VIEW_SPLITHORIZONTALLY,  m_pImgMergeWindow->GetHorizontalSplit() ? MF_CHECKED : MF_UNCHECKED);
@@ -539,6 +540,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
+		case ID_FILE_PREFER_WIC_DECODER:
+			m_pImgMergeWindow->SetPreferWICDecoder(!m_pImgMergeWindow->GetPreferWICDecoder());
+			break;
 		case ID_FILE_EXIT:
 			DestroyWindow(hWnd);
 			break;

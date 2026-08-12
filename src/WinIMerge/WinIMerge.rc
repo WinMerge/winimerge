@@ -80,6 +80,7 @@ BEGIN
             MENUITEM "Save &Middle As...",          ID_FILE_SAVE_MIDDLE_AS
             MENUITEM "Save &Right As...",           ID_FILE_SAVE_RIGHT_AS
         END
+        MENUITEM "&Prefer WIC Decoder",         ID_FILE_PREFER_WIC_DECODER
         MENUITEM "&Generate Report...",         ID_FILE_GENERATE_REPORT
         MENUITEM SEPARATOR
         MENUITEM "Re&load\tCtrl+F5",            ID_FILE_RELOAD
