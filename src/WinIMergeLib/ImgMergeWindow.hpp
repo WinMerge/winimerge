@@ -497,6 +497,16 @@ public:
 		Invalidate();
 	}
 
+	bool GetPreferWICDecoder() const override
+	{
+		return m_buffer.GetPreferWICDecoder();
+	}
+
+	void SetPreferWICDecoder(bool preferred) override
+	{
+		m_buffer.SetPreferWICDecoder(preferred);
+	}
+
 	int  GetDiffCount() const override
 	{
 		return m_buffer.GetDiffCount();
@@ -654,7 +664,7 @@ public:
 		int pane = GetActivePane();
 		if (pane < 0)
 			return false;
-		return !!IsClipboardFormatAvailable(CF_DIB);
+		return !!IsClipboardFormatAvailable(CF_DIBV5);
 	}
 
 	bool IsRedoable() const override
