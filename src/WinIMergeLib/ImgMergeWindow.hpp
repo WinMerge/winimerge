@@ -497,6 +497,16 @@ public:
 		Invalidate();
 	}
 
+	bool GetPreferWICDecoder() const override
+	{
+		return m_buffer.GetPreferWICDecoder();
+	}
+
+	void SetPreferWICDecoder(bool preferred) override
+	{
+		m_buffer.SetPreferWICDecoder(preferred);
+	}
+
 	int  GetDiffCount() const override
 	{
 		return m_buffer.GetDiffCount();

@@ -9,10 +9,11 @@
 #define ID_FILE_OPEN                    106
 #define ID_FILE_OPEN3                   107
 #define ID_FILE_GENERATE_REPORT         108
-#define ID_FILE_EXIT                    109
-#define IDI_WINIMERGE                   110
-#define IDC_WINIMERGE                   111
-#define IDC_DIFFMAP                     112
+#define ID_FILE_PREFER_WIC_DECODER      109
+#define ID_FILE_EXIT                    110
+#define IDI_WINIMERGE                   111
+#define IDC_WINIMERGE                   112
+#define IDC_DIFFMAP                     113
 #define IDR_MAINFRAME                   128
 #define IDR_POPUPMENU                   130
 #define IDS_DIFF_GROUP                  131

@@ -510,6 +510,7 @@ public:
 		, m_diffDeletedColor(Image::Rgb(0xc0, 0xc0, 0xc0))
 		, m_diffColorAlpha(0.7)
 		, m_colorDistanceThreshold(0.0)
+		, m_preferWICDecoder(false)
 		, m_currentDiffIndex(-1)
 		, m_diffCount(0)
 		, m_angle{}
@@ -944,6 +945,16 @@ public:
 			return;
 		m_diffAlgorithm = diffAlgorithm;
 		CompareImages();
+	}
+
+	bool GetPreferWICDecoder() const
+	{
+		return m_preferWICDecoder;
+	}
+
+	void SetPreferWICDecoder(bool preferWIC)
+	{
+		m_preferWICDecoder = preferWIC;
 	}
 
 	const DiffInfo *GetDiffInfo(int diffIndex) const
@@ -1580,9 +1591,16 @@ protected:
 			else
 			{
 				m_imgOrigMultiPage[i].close();
-				if (!m_imgOrig[i].load(m_filename[i]))
+				bool bLoaded = false;
+				const bool useWIC = m_preferWICDecoder && ImgConverter::isSupportedImage(m_filename[i].c_str());
+				if (useWIC && m_imgConverter[i].load(m_filename[i].c_str()))
 				{
-					if (ImgConverter::isSupportedImage(m_filename[i].c_str()))
+					m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
+					bLoaded = true;
+				}
+				if (!bLoaded && !m_imgOrig[i].load(m_filename[i]))
+				{
+					if (!useWIC && ImgConverter::isSupportedImage(m_filename[i].c_str()))
 					{
 						if (m_imgConverter[i].load(m_filename[i].c_str()))
 							m_imgConverter[i].render(m_imgOrig[i], 0, m_vectorImageZoomRatio);
@@ -2391,4 +2409,5 @@ protected:
 	int m_overlayAnimationInterval;
 	int m_lastErrorCode;
 	bool m_imgDiffIsTransparent[3]{};
+	bool m_preferWICDecoder;
 };
