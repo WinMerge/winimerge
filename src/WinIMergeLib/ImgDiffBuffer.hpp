@@ -1955,7 +1955,7 @@ protected:
 
 		if (m_wipeMode == WIPE_VERTICAL)
 		{
-			if (m_wipePosition >= h)
+			if (m_wipePosition >= static_cast<int>(h))
 				m_wipePosition = h;
 			if (m_wipePosition_old == INT_MAX)
 				m_wipePosition_old = h;
@@ -1963,7 +1963,7 @@ protected:
 			std::vector<unsigned char> tmp(lineBytes);
 			if (m_wipePosition <= m_wipePosition_old)
 			{
-				for (unsigned y = m_wipePosition; y < m_wipePosition_old; ++y)
+				for (int y = m_wipePosition; y < m_wipePosition_old; ++y)
 				{
 					for (int pane = 0; pane < m_nImages - 1; ++pane)
 					{
@@ -1977,7 +1977,7 @@ protected:
 			}
 			else
 			{
-				for (unsigned y = m_wipePosition_old; y < m_wipePosition; ++y)
+				for (int y = m_wipePosition_old; y < m_wipePosition; ++y)
 				{
 					for (int pane = m_nImages - 1; pane > 0; --pane)
 					{
@@ -1992,7 +1992,7 @@ protected:
 		}
 		else if (m_wipeMode == WIPE_HORIZONTAL)
 		{
-			if (m_wipePosition >= w)
+			if (m_wipePosition >= static_cast<int>(w))
 				m_wipePosition = w;
 			if (m_wipePosition_old == INT_MAX)
 				m_wipePosition_old = w;
@@ -2010,7 +2010,7 @@ protected:
 					{
 						scanline = m_imgDiff[pane].scanLine(y);
 						scanline2 = m_imgDiff[pane + 1].scanLine(y);
-						for (unsigned x = m_wipePosition; x < m_wipePosition_old; ++x)
+						for (int x = m_wipePosition; x < m_wipePosition_old; ++x)
 						{
 							memcpy(tmp, scanline + x * pixelBytes, pixelBytes);
 							memcpy(scanline + x * pixelBytes, scanline2 + x * pixelBytes, pixelBytes);
@@ -2021,7 +2021,7 @@ protected:
 					{
 						scanline = m_imgDiff[m_nImages - 2 - pane].scanLine(y);
 						scanline2 = m_imgDiff[m_nImages - 1 - pane].scanLine(y);
-						for (unsigned x = m_wipePosition_old; x < m_wipePosition; ++x)
+						for (int x = m_wipePosition_old; x < m_wipePosition; ++x)
 						{
 							memcpy(tmp, scanline + x * pixelBytes, pixelBytes);
 							memcpy(scanline + x * pixelBytes, scanline2 + x * pixelBytes, pixelBytes);
