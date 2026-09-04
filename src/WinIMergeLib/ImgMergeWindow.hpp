@@ -74,13 +74,10 @@ public:
 		, m_gdiplusToken(0)
 		, m_timerPrev()
 		, m_timerNext()
+		, m_splitterRatios{ -1.0, -1.0 }
+		, m_requestedSplitterRatios{ -1.0, -1.0 }
+		, m_ChildWndProc{ nullptr, nullptr, nullptr }
 	{
-		for (int i = 0; i < 3; ++i)
-			m_ChildWndProc[i] = NULL;
-
-		m_splitterRatios[0] = -1.0;
-		m_splitterRatios[1] = -1.0;
-
 		Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 		Gdiplus::GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
 	}
@@ -218,7 +215,7 @@ public:
 		if (!m_hWnd)
 			return;
 		m_bHorizontalSplit = horizontalSplit;
-		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
+		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit, m_splitterRatios);
 		for (int i = 0; i < m_nImages; ++i)
 		{
 			if (i < m_nImages - 1)
@@ -241,7 +238,10 @@ public:
 		for (int i = 0; i < count; ++i)
 		{
 			if (ratios[i] >= 0.0 && ratios[i] <= 1.0)
+			{
 				m_splitterRatios[i] = ratios[i];
+				m_requestedSplitterRatios[i] = ratios[i];
+			}
 		}
 		ApplySplitterRatio();
 	}
@@ -251,7 +251,10 @@ public:
 		if (m_nImages < 2)
 			return;
 		for (int i = 0; i < m_nImages - 1; ++i)
+		{
 			m_splitterRatios[i] = 1.0 / m_nImages;
+			m_requestedSplitterRatios[i] = -1.0;
+		}
 		ApplySplitterRatio();
 	}
 
@@ -891,8 +894,8 @@ public:
 		m_nImages = nImages;
 		for (int i = 0; i < nImages - 1; ++i)
 		{
-			if (m_splitterRatios[i] < 0.0)
-				m_splitterRatios[i] = 1.0 / nImages;
+			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
+			m_requestedSplitterRatios[i] = -1.0;
 		}
 		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
 		if (m_hWnd)
@@ -906,7 +909,7 @@ public:
 		m_buffer.CompareImages();
 		if (m_hWnd)
 		{
-			std::vector<RECT> rects = CalcChildImgWindowRectInternal(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
 			for (int i = 0; i < nImages; ++i)
 			{
 				if (i < nImages - 1)
@@ -929,8 +932,8 @@ public:
 		m_nImages = nImages;
 		for (int i = 0; i < nImages - 1; ++i)
 		{
-			if (m_splitterRatios[i] < 0.0)
-				m_splitterRatios[i] = 1.0 / nImages;
+			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
+			m_requestedSplitterRatios[i] = -1.0;
 		}
 		bool bSucceeded = m_buffer.OpenImages(nImages, filename);
 		if (m_hWnd)
@@ -944,7 +947,7 @@ public:
 		m_buffer.CompareImages();
 		if (m_hWnd)
 		{
-			std::vector<RECT> rects = CalcChildImgWindowRectInternal(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
 			for (int i = 0; i < nImages; ++i)
 			{
 				if (i < nImages - 1)
@@ -1302,7 +1305,7 @@ private:
 		return RegisterClassExW(&wcex);
 	}
 
-	std::vector<RECT> CalcChildImgWindowRectInternal(HWND hWnd, int nImages, bool bHorizontalSplit, const double* ratios = nullptr)
+	std::vector<RECT> CalcChildImgWindowRect(HWND hWnd, int nImages, bool bHorizontalSplit, const double* ratios = nullptr)
 	{
 		std::vector<RECT> rects;
 		RECT rcParent;
@@ -1320,49 +1323,24 @@ private:
 			int totalWidth = rcParent.right - rcParent.left - cx;
 			int accumulatedWidth = 0;
 
-			if (ratios == nullptr)
+			// Ratio-based division
+			for (int i = 0; i < nImages; ++i)
 			{
-				// Equal division
-				int width = totalWidth / nImages - 2;
-				for (int i = 0; i < nImages; ++i)
-				{
-					rects[i].top = rcParent.top;
-					rects[i].bottom = rcParent.bottom;
+				rects[i].top = rcParent.top;
+				rects[i].bottom = rcParent.bottom;
 
-					if (i < nImages - 1)
-					{
-						rects[i].left = accumulatedWidth;
-						rects[i].right = accumulatedWidth + width;
-						accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
-					}
-					else
-					{
-						rects[i].left = accumulatedWidth;
-						rects[i].right = rcParent.right;
-					}
+				if (i < nImages - 1)
+				{
+					int paneWidth = static_cast<int>(totalWidth * ratios[i]);
+					rects[i].left = accumulatedWidth;
+					rects[i].right = accumulatedWidth + paneWidth;
+					accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
 				}
-			}
-			else
-			{
-				// Ratio-based division
-				for (int i = 0; i < nImages; ++i)
+				else
 				{
-					rects[i].top = rcParent.top;
-					rects[i].bottom = rcParent.bottom;
-
-					if (i < nImages - 1)
-					{
-						int paneWidth = static_cast<int>(totalWidth * ratios[i]);
-						rects[i].left = accumulatedWidth;
-						rects[i].right = accumulatedWidth + paneWidth;
-						accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
-					}
-					else
-					{
-						// Last pane takes remaining width
-						rects[i].left = accumulatedWidth;
-						rects[i].right = rcParent.right;
-					}
+					// Last pane takes remaining width
+					rects[i].left = accumulatedWidth;
+					rects[i].right = rcParent.right;
 				}
 			}
 		}
@@ -1373,49 +1351,24 @@ private:
 			int totalHeight = rcParent.bottom - rcParent.top - cy;
 			int accumulatedHeight = 0;
 
-			if (ratios == nullptr)
+			// Ratio-based division
+			for (int i = 0; i < nImages; ++i)
 			{
-				// Equal division
-				int height = totalHeight / nImages - 2;
-				for (int i = 0; i < nImages; ++i)
-				{
-					rects[i].left = rcParent.left;
-					rects[i].right = rcParent.right;
+				rects[i].left = rcParent.left;
+				rects[i].right = rcParent.right;
 
-					if (i < nImages - 1)
-					{
-						rects[i].top = accumulatedHeight;
-						rects[i].bottom = accumulatedHeight + height;
-						accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
-					}
-					else
-					{
-						rects[i].top = accumulatedHeight;
-						rects[i].bottom = rcParent.bottom;
-					}
+				if (i < nImages - 1)
+				{
+					int paneHeight = static_cast<int>(totalHeight * ratios[i]);
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = accumulatedHeight + paneHeight;
+					accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
 				}
-			}
-			else
-			{
-				// Ratio-based division
-				for (int i = 0; i < nImages; ++i)
+				else
 				{
-					rects[i].left = rcParent.left;
-					rects[i].right = rcParent.right;
-
-					if (i < nImages - 1)
-					{
-						int paneHeight = static_cast<int>(totalHeight * ratios[i]);
-						rects[i].top = accumulatedHeight;
-						rects[i].bottom = accumulatedHeight + paneHeight;
-						accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
-					}
-					else
-					{
-						// Last pane takes remaining height
-						rects[i].top = accumulatedHeight;
-						rects[i].bottom = rcParent.bottom;
-					}
+					// Last pane takes remaining height
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = rcParent.bottom;
 				}
 			}
 		}
@@ -1423,17 +1376,12 @@ private:
 		return rects;
 	}
 
-	std::vector<RECT> CalcChildImgWindowRect(HWND hWnd, int nImages, bool bHorizontalSplit)
-	{
-		return CalcChildImgWindowRectInternal(hWnd, nImages, bHorizontalSplit, nullptr);
-	}
-
 	void ApplySplitterRatio()
 	{
 		if (!m_hWnd || m_nImages < 2)
 			return;
 
-		std::vector<RECT> rects = CalcChildImgWindowRectInternal(m_hWnd, m_nImages, m_bHorizontalSplit, m_splitterRatios);
+		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit, m_splitterRatios);
 		for (int i = 0; i < m_nImages; ++i)
 			m_imgWindow[i].SetWindowRect(rects[i]);
 	}
@@ -2224,6 +2172,7 @@ private:
 	std::unique_ptr<ocr::COcr> m_pOcr;
 	std::chrono::milliseconds m_timerPrev;
 	std::chrono::milliseconds m_timerNext;
+	double m_requestedSplitterRatios[2];
 	double m_splitterRatios[2];
 	inline static bool s_bDarkBackgroundEnabled = false;
 };
