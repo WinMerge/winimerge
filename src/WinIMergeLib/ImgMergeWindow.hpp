@@ -893,10 +893,7 @@ public:
 		CloseImages();
 		m_nImages = nImages;
 		for (int i = 0; i < nImages - 1; ++i)
-		{
 			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
-			m_requestedSplitterRatios[i] = -1.0;
-		}
 		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
 		if (m_hWnd)
 		{
@@ -931,10 +928,7 @@ public:
 		CloseImages();
 		m_nImages = nImages;
 		for (int i = 0; i < nImages - 1; ++i)
-		{
 			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
-			m_requestedSplitterRatios[i] = -1.0;
-		}
 		bool bSucceeded = m_buffer.OpenImages(nImages, filename);
 		if (m_hWnd)
 		{
