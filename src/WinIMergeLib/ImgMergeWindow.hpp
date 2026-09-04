@@ -236,7 +236,7 @@ public:
 
 	void SetSplitterRatios(const double* ratios, int count) override
 	{
-		if (count > std::size(m_splitterRatios) || !m_hWnd || !ratios || count < 1)
+		if (count > std::size(m_splitterRatios) || !ratios || count < 1)
 			return;
 		for (int i = 0; i < count; ++i)
 		{
@@ -248,7 +248,7 @@ public:
 
 	void ResetSplitterRatios() override
 	{
-		if (!m_hWnd || m_nImages < 2)
+		if (m_nImages < 2)
 			return;
 		for (int i = 0; i < m_nImages - 1; ++i)
 			m_splitterRatios[i] = 1.0 / m_nImages;
@@ -889,9 +889,9 @@ public:
 	{
 		CloseImages();
 		m_nImages = nImages;
-		if (m_splitterRatios[0] < 0.0)
+		for (int i = 0; i < nImages - 1; ++i)
 		{
-			for (int i = 0; i < nImages - 1; ++i)
+			if (m_splitterRatios[0] < 0.0)
 				m_splitterRatios[i] = 1.0 / nImages;
 		}
 		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
@@ -927,9 +927,9 @@ public:
 	{
 		CloseImages();
 		m_nImages = nImages;
-		if (m_splitterRatios[0] < 0.0)
+		for (int i = 0; i < nImages - 1; ++i)
 		{
-			for (int i = 0; i < nImages - 1; ++i)
+			if (m_splitterRatios[0] < 0.0)
 				m_splitterRatios[i] = 1.0 / nImages;
 		}
 		bool bSucceeded = m_buffer.OpenImages(nImages, filename);
@@ -1486,7 +1486,8 @@ private:
 
 				for (int i = 0; i < m_nImages - 1; ++i)
 				{
-					int paneWidth = m_imgWindow[i].GetWindowRect().right - m_imgWindow[i].GetWindowRect().left;
+					RECT paneRc = m_imgWindow[i].GetWindowRect();
+					int paneWidth = paneRc.right - paneRc.left;
 					m_splitterRatios[i] = static_cast<double>(paneWidth) / totalWidth;
 				}
 			}
@@ -1498,7 +1499,8 @@ private:
 
 				for (int i = 0; i < m_nImages - 1; ++i)
 				{
-					int paneHeight = m_imgWindow[i].GetWindowRect().bottom - m_imgWindow[i].GetWindowRect().top;
+					RECT paneRc = m_imgWindow[i].GetWindowRect();
+					int paneHeight = paneRc.bottom - paneRc.top;
 					m_splitterRatios[i] = static_cast<double>(paneHeight) / totalHeight;
 				}
 			}
