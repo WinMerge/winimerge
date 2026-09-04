@@ -1341,82 +1341,82 @@ private:
 				rc.bottom = rcParent.bottom;
 				rc.top = rc.bottom - height - cy;
 				childrects.push_back(rc);
-					}
-				}
-				return childrects;
 			}
+		}
+		return childrects;
+	}
 
-			void ApplySplitterRatio()
+	void ApplySplitterRatio()
+	{
+		if (!m_hWnd || m_nImages < 2)
+			return;
+
+		RECT rcParent;
+		GetClientRect(m_hWnd, &rcParent);
+
+		std::vector<RECT> rects;
+		rects.resize(m_nImages);
+
+		if (!m_bHorizontalSplit)
+		{
+			// Vertical split: distribute width based on ratios
+			int cx = GetSystemMetrics(SM_CXVSCROLL);
+			int totalWidth = rcParent.right - rcParent.left - cx;
+			int accumulatedWidth = 0;
+
+			for (int i = 0; i < m_nImages; ++i)
 			{
-				if (!m_hWnd || m_nImages < 2)
-					return;
+				rects[i].top = rcParent.top;
+				rects[i].bottom = rcParent.bottom;
 
-				RECT rcParent;
-				GetClientRect(m_hWnd, &rcParent);
-
-				std::vector<RECT> rects;
-				rects.resize(m_nImages);
-
-				if (!m_bHorizontalSplit)
+				if (i < m_nImages - 1)
 				{
-					// Vertical split: distribute width based on ratios
-					int cx = GetSystemMetrics(SM_CXVSCROLL);
-					int totalWidth = rcParent.right - rcParent.left - cx;
-					int accumulatedWidth = 0;
-
-					for (int i = 0; i < m_nImages; ++i)
-					{
-						rects[i].top = rcParent.top;
-						rects[i].bottom = rcParent.bottom;
-
-						if (i < m_nImages - 1)
-						{
-							int paneWidth = static_cast<int>(totalWidth * m_splitterRatios[i]);
-							rects[i].left = accumulatedWidth;
-							rects[i].right = accumulatedWidth + paneWidth;
-							accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
-						}
-						else
-						{
-							// Last pane takes remaining width
-							rects[i].left = accumulatedWidth;
-							rects[i].right = rcParent.right;
-						}
-					}
+					int paneWidth = static_cast<int>(totalWidth * m_splitterRatios[i]);
+					rects[i].left = accumulatedWidth;
+					rects[i].right = accumulatedWidth + paneWidth;
+					accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
 				}
 				else
 				{
-					// Horizontal split: distribute height based on ratios
-					int cy = GetSystemMetrics(SM_CXVSCROLL);
-					int totalHeight = rcParent.bottom - rcParent.top - cy;
-					int accumulatedHeight = 0;
-
-					for (int i = 0; i < m_nImages; ++i)
-					{
-						rects[i].left = rcParent.left;
-						rects[i].right = rcParent.right;
-
-						if (i < m_nImages - 1)
-						{
-							int paneHeight = static_cast<int>(totalHeight * m_splitterRatios[i]);
-							rects[i].top = accumulatedHeight;
-							rects[i].bottom = accumulatedHeight + paneHeight;
-							accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
-						}
-						else
-						{
-							// Last pane takes remaining height
-							rects[i].top = accumulatedHeight;
-							rects[i].bottom = rcParent.bottom;
-						}
-					}
+					// Last pane takes remaining width
+					rects[i].left = accumulatedWidth;
+					rects[i].right = rcParent.right;
 				}
-
-				for (int i = 0; i < m_nImages; ++i)
-					m_imgWindow[i].SetWindowRect(rects[i]);
 			}
+		}
+		else
+		{
+			// Horizontal split: distribute height based on ratios
+			int cy = GetSystemMetrics(SM_CXVSCROLL);
+			int totalHeight = rcParent.bottom - rcParent.top - cy;
+			int accumulatedHeight = 0;
 
-			void MoveSplitter(int x, int y)
+			for (int i = 0; i < m_nImages; ++i)
+			{
+				rects[i].left = rcParent.left;
+				rects[i].right = rcParent.right;
+
+				if (i < m_nImages - 1)
+				{
+					int paneHeight = static_cast<int>(totalHeight * m_splitterRatios[i]);
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = accumulatedHeight + paneHeight;
+					accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
+				}
+				else
+				{
+					// Last pane takes remaining height
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = rcParent.bottom;
+				}
+			}
+		}
+
+		for (int i = 0; i < m_nImages; ++i)
+			m_imgWindow[i].SetWindowRect(rects[i]);
+	}
+
+	void MoveSplitter(int x, int y)
 	{
 		RECT rcParent;
 		GetClientRect(m_hWnd, &rcParent);
@@ -1461,52 +1461,52 @@ private:
 				rc[i].bottom = rc[i].top + height;
 			}
 			rc[m_nImages - 1].bottom = rcParent.bottom;
-			}
-
-			for (int i = 0; i < m_nImages; ++i)
-				m_imgWindow[i].SetWindowRect(rc[i]);
-
-			// Update ratios based on new positions
-			UpdateSplitterRatios();
-			}
-
-		void UpdateSplitterRatios()
-		{
-			if (m_nImages < 2)
-				return;
-
-			RECT rcParent;
-			GetClientRect(m_hWnd, &rcParent);
-
-			if (!m_bHorizontalSplit)
-			{
-				// Vertical split: calculate width ratios
-				int cx = GetSystemMetrics(SM_CXVSCROLL);
-				int totalWidth = rcParent.right - rcParent.left - cx;
-
-				for (int i = 0; i < m_nImages - 1; ++i)
-				{
-					RECT paneRc = m_imgWindow[i].GetWindowRect();
-					int paneWidth = paneRc.right - paneRc.left;
-					m_splitterRatios[i] = static_cast<double>(paneWidth) / totalWidth;
-				}
-			}
-			else
-			{
-				// Horizontal split: calculate height ratios
-				int cy = GetSystemMetrics(SM_CXVSCROLL);
-				int totalHeight = rcParent.bottom - rcParent.top - cy;
-
-				for (int i = 0; i < m_nImages - 1; ++i)
-				{
-					RECT paneRc = m_imgWindow[i].GetWindowRect();
-					int paneHeight = paneRc.bottom - paneRc.top;
-					m_splitterRatios[i] = static_cast<double>(paneHeight) / totalHeight;
-				}
-			}
 		}
 
-		void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
+		for (int i = 0; i < m_nImages; ++i)
+			m_imgWindow[i].SetWindowRect(rc[i]);
+
+		// Update ratios based on new positions
+		UpdateSplitterRatios();
+	}
+
+	void UpdateSplitterRatios()
+	{
+		if (m_nImages < 2)
+			return;
+
+		RECT rcParent;
+		GetClientRect(m_hWnd, &rcParent);
+
+		if (!m_bHorizontalSplit)
+		{
+			// Vertical split: calculate width ratios
+			int cx = GetSystemMetrics(SM_CXVSCROLL);
+			int totalWidth = rcParent.right - rcParent.left - cx;
+
+			for (int i = 0; i < m_nImages - 1; ++i)
+			{
+				RECT paneRc = m_imgWindow[i].GetWindowRect();
+				int paneWidth = paneRc.right - paneRc.left;
+				m_splitterRatios[i] = static_cast<double>(paneWidth) / totalWidth;
+			}
+		}
+		else
+		{
+			// Horizontal split: calculate height ratios
+			int cy = GetSystemMetrics(SM_CXVSCROLL);
+			int totalHeight = rcParent.bottom - rcParent.top - cy;
+
+			for (int i = 0; i < m_nImages - 1; ++i)
+			{
+				RECT paneRc = m_imgWindow[i].GetWindowRect();
+				int paneHeight = paneRc.bottom - paneRc.top;
+				m_splitterRatios[i] = static_cast<double>(paneHeight) / totalHeight;
+			}
+		}
+	}
+
+	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 	{
 		static const WORD _dotPatternBmp[8] = 
 		{ 
