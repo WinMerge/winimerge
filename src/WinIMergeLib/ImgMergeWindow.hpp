@@ -64,7 +64,6 @@ public:
 		, m_hInstance(NULL)
 		, m_nDraggingSplitter(-1)
 		, m_bHorizontalSplit(false)
-		, m_splitterPosition(0)
 		, m_oldSplitPosX(-4)
 		, m_oldSplitPosY(-4)
 		, m_bDragging(false)
@@ -75,10 +74,10 @@ public:
 		, m_gdiplusToken(0)
 		, m_timerPrev()
 		, m_timerNext()
+		, m_splitterRatios{ -1.0, -1.0 }
+		, m_requestedSplitterRatios{ -1.0, -1.0 }
+		, m_ChildWndProc{ nullptr, nullptr, nullptr }
 	{
-		for (int i = 0; i < 3; ++i)
-			m_ChildWndProc[i] = NULL;
-
 		Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 		Gdiplus::GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
 	}
@@ -215,11 +214,8 @@ public:
 	{
 		if (!m_hWnd)
 			return;
-		// A stored width cannot be reused as a height.
-		if (m_bHorizontalSplit != horizontalSplit)
-			m_splitterPosition = 0;
 		m_bHorizontalSplit = horizontalSplit;
-		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
+		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit, m_splitterRatios);
 		for (int i = 0; i < m_nImages; ++i)
 		{
 			if (i < m_nImages - 1)
@@ -228,22 +224,38 @@ public:
 		}
 	}
 
-	int GetSplitterPosition() const override
+	double GetSplitterRatio(int pane) const override
 	{
-		return m_splitterPosition;
+		if (pane < 0 || pane >= std::size(m_splitterRatios))
+			return -1.0;
+		return m_splitterRatios[pane];
 	}
 
-	void SetSplitterPosition(int position) override
+	void SetSplitterRatios(const double* ratios, int count) override
 	{
-		// Stored before the window check: unlike SetHorizontalSplit(), a value
-		// set before the panes exist must survive until they are created.
-		m_splitterPosition = position;
-		if (m_hWnd && m_nImages == 2)
+		if (count > std::size(m_splitterRatios) || !ratios || count < 1)
+			return;
+		for (int i = 0; i < count; ++i)
 		{
-			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
-			for (int i = 0; i < m_nImages; ++i)
-				m_imgWindow[i].SetWindowRect(rects[i]);
+			if (ratios[i] >= 0.0 && ratios[i] <= 1.0)
+			{
+				m_splitterRatios[i] = ratios[i];
+				m_requestedSplitterRatios[i] = ratios[i];
+			}
 		}
+		ApplySplitterRatio();
+	}
+
+	void ResetSplitterRatios() override
+	{
+		if (m_nImages < 2)
+			return;
+		for (int i = 0; i < m_nImages - 1; ++i)
+		{
+			m_splitterRatios[i] = 1.0 / m_nImages;
+			m_requestedSplitterRatios[i] = -1.0;
+		}
+		ApplySplitterRatio();
 	}
 
 	COLORREF GetDiffColor() const override
@@ -880,6 +892,8 @@ public:
 	{
 		CloseImages();
 		m_nImages = nImages;
+		for (int i = 0; i < nImages - 1; ++i)
+			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
 		bool bSucceeded = m_buffer.NewImages(nImages, nPages, width, height);
 		if (m_hWnd)
 		{
@@ -892,7 +906,7 @@ public:
 		m_buffer.CompareImages();
 		if (m_hWnd)
 		{
-			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
 			for (int i = 0; i < nImages; ++i)
 			{
 				if (i < nImages - 1)
@@ -913,6 +927,8 @@ public:
 	{
 		CloseImages();
 		m_nImages = nImages;
+		for (int i = 0; i < nImages - 1; ++i)
+			m_splitterRatios[i] = (m_requestedSplitterRatios[i] < 0.0) ? 1.0 / nImages : m_requestedSplitterRatios[i];
 		bool bSucceeded = m_buffer.OpenImages(nImages, filename);
 		if (m_hWnd)
 		{
@@ -925,7 +941,7 @@ public:
 		m_buffer.CompareImages();
 		if (m_hWnd)
 		{
-			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit);
+			std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, nImages, m_bHorizontalSplit, m_splitterRatios);
 			for (int i = 0; i < nImages; ++i)
 			{
 				if (i < nImages - 1)
@@ -1283,95 +1299,85 @@ private:
 		return RegisterClassExW(&wcex);
 	}
 
-	// First pane size to lay out, or 0 for the equal split. A positive
-	// m_splitterPosition sizes the first pane from the near edge, a negative one
-	// sizes the second pane from the far edge; whichever pane is smaller is the
-	// anchored one, so a narrow pane stays narrow and the wide pane absorbs the
-	// window change. Bounds match the ones MoveSplitter() enforces, so a
-	// restored layout matches the dragged one. The clamp is returned, never
-	// stored back: the window is laid out once before it has its final size, and
-	// clamping in place would let that transient rect shrink the value for good.
-	int CalcSplitterPosition(int nImages, LONG splitSize) const
+	std::vector<RECT> CalcChildImgWindowRect(HWND hWnd, int nImages, bool bHorizontalSplit, const double* ratios = nullptr)
 	{
-		const int minSize = 32;
-		const int total = static_cast<int>(splitSize);
-		const int maxPos = total - minSize;
-		if (nImages != 2 || m_splitterPosition == 0 || maxPos < minSize)
-			return 0;
-		const int pos = (m_splitterPosition > 0)
-			? m_splitterPosition
-			: total - 2 * 2 + m_splitterPosition;
-		return (std::min)((std::max)(pos, minSize), maxPos);
-	}
-
-	std::vector<RECT> CalcChildImgWindowRect(HWND hWnd, int nImages, bool bHorizontalSplit)
-	{
-		std::vector<RECT> childrects;
+		std::vector<RECT> rects;
 		RECT rcParent;
 		GetClientRect(hWnd, &rcParent);
-		RECT rc = rcParent;
-		if (nImages > 0)
+
+		if (nImages < 1)
+			return rects;
+
+		rects.resize(nImages);
+
+		if (!bHorizontalSplit)
 		{
-			if (!bHorizontalSplit)
+			// Vertical split
+			int cx = GetSystemMetrics(SM_CXVSCROLL);
+			int totalWidth = rcParent.right - rcParent.left - cx;
+			int accumulatedWidth = 0;
+
+			// Ratio-based division
+			for (int i = 0; i < nImages; ++i)
 			{
-				const int splitPos = CalcSplitterPosition(nImages, rcParent.right);
-				if (splitPos > 0)
+				rects[i].top = rcParent.top;
+				rects[i].bottom = rcParent.bottom;
+
+				if (i < nImages - 1)
 				{
-					rc.left = 0;
-					rc.right = splitPos;
-					childrects.push_back(rc);
-					rc.left = rc.right + 2 * 2;
-					rc.right = rcParent.right;
-					childrects.push_back(rc);
+					int paneWidth = static_cast<int>(totalWidth * ratios[i]);
+					rects[i].left = accumulatedWidth;
+					rects[i].right = accumulatedWidth + paneWidth;
+					accumulatedWidth = rects[i].right + 4; // 4 pixels for splitter
 				}
 				else
 				{
-					int cx = GetSystemMetrics(SM_CXVSCROLL);
-					int width = (rcParent.left + rcParent.right - cx) / nImages - 2;
-					rc.left = 0;
-					rc.right = rc.left + width;
-					for (int i = 0; i < nImages - 1; ++i)
-					{
-						childrects.push_back(rc);
-						rc.left = rc.right + 2 * 2;
-						rc.right = rc.left + width;
-					}
-					rc.right = rcParent.right;
-					rc.left = rc.right - width - cx;
-					childrects.push_back(rc);
-				}
-			}
-			else
-			{
-				const int splitPos = CalcSplitterPosition(nImages, rcParent.bottom);
-				if (splitPos > 0)
-				{
-					rc.top = 0;
-					rc.bottom = splitPos;
-					childrects.push_back(rc);
-					rc.top = rc.bottom + 2 * 2;
-					rc.bottom = rcParent.bottom;
-					childrects.push_back(rc);
-				}
-				else
-				{
-					int cy = GetSystemMetrics(SM_CXVSCROLL);
-					int height = (rcParent.top + rcParent.bottom - cy) / nImages - 2;
-					rc.top = 0;
-					rc.bottom = rc.top + height;
-					for (int i = 0; i < nImages - 1; ++i)
-					{
-						childrects.push_back(rc);
-						rc.top = rc.bottom + 2 * 2;
-						rc.bottom = rc.top + height;
-					}
-					rc.bottom = rcParent.bottom;
-					rc.top = rc.bottom - height - cy;
-					childrects.push_back(rc);
+					// Last pane takes remaining width
+					rects[i].left = accumulatedWidth;
+					rects[i].right = rcParent.right;
 				}
 			}
 		}
-		return childrects;
+		else
+		{
+			// Horizontal split
+			int cy = GetSystemMetrics(SM_CXVSCROLL);
+			int totalHeight = rcParent.bottom - rcParent.top - cy;
+			int accumulatedHeight = 0;
+
+			// Ratio-based division
+			for (int i = 0; i < nImages; ++i)
+			{
+				rects[i].left = rcParent.left;
+				rects[i].right = rcParent.right;
+
+				if (i < nImages - 1)
+				{
+					int paneHeight = static_cast<int>(totalHeight * ratios[i]);
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = accumulatedHeight + paneHeight;
+					accumulatedHeight = rects[i].bottom + 4; // 4 pixels for splitter
+				}
+				else
+				{
+					// Last pane takes remaining height
+					rects[i].top = accumulatedHeight;
+					rects[i].bottom = rcParent.bottom;
+				}
+			}
+		}
+
+		return rects;
+	}
+
+	void ApplySplitterRatio()
+	{
+		if (!m_hWnd || m_nImages < 2)
+			return;
+
+		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit, m_splitterRatios);
+		for (int i = 0; i < m_nImages; ++i)
+			m_imgWindow[i].SetWindowRect(rects[i]);
 	}
 
 	void MoveSplitter(int x, int y)
@@ -1421,23 +1427,47 @@ private:
 			rc[m_nImages - 1].bottom = rcParent.bottom;
 		}
 
-		// Recorded after the clamping above, so the stored value is always a
-		// position the layout can reproduce. OnLButtonUp() clears
-		// m_nDraggingSplitter only once this returns. The smaller pane is the one
-		// pinned to its edge, negated when that is the second pane.
-		if (m_nImages == 2 && m_nDraggingSplitter == 0)
-		{
-			const int first = m_bHorizontalSplit
-				? rc[0].bottom - rc[0].top
-				: rc[0].right - rc[0].left;
-			const int second = m_bHorizontalSplit
-				? rc[1].bottom - rc[1].top
-				: rc[1].right - rc[1].left;
-			m_splitterPosition = (second < first) ? -second : first;
-		}
-
 		for (int i = 0; i < m_nImages; ++i)
 			m_imgWindow[i].SetWindowRect(rc[i]);
+
+		// Update ratios based on new positions
+		UpdateSplitterRatios();
+	}
+
+	void UpdateSplitterRatios()
+	{
+		if (m_nImages < 2)
+			return;
+
+		RECT rcParent;
+		GetClientRect(m_hWnd, &rcParent);
+
+		if (!m_bHorizontalSplit)
+		{
+			// Vertical split: calculate width ratios
+			int cx = GetSystemMetrics(SM_CXVSCROLL);
+			int totalWidth = rcParent.right - rcParent.left - cx;
+
+			for (int i = 0; i < m_nImages - 1; ++i)
+			{
+				RECT paneRc = m_imgWindow[i].GetWindowRect();
+				int paneWidth = paneRc.right - paneRc.left;
+				m_splitterRatios[i] = static_cast<double>(paneWidth) / totalWidth;
+			}
+		}
+		else
+		{
+			// Horizontal split: calculate height ratios
+			int cy = GetSystemMetrics(SM_CXVSCROLL);
+			int totalHeight = rcParent.bottom - rcParent.top - cy;
+
+			for (int i = 0; i < m_nImages - 1; ++i)
+			{
+				RECT paneRc = m_imgWindow[i].GetWindowRect();
+				int paneHeight = paneRc.bottom - paneRc.top;
+				m_splitterRatios[i] = static_cast<double>(paneHeight) / totalHeight;
+			}
+		}
 	}
 
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
@@ -1489,9 +1519,7 @@ private:
 
 	void OnSize(UINT nType, int cx, int cy)
 	{
-		std::vector<RECT> rects = CalcChildImgWindowRect(m_hWnd, m_nImages, m_bHorizontalSplit);
-		for (int i = 0; i < m_nImages; ++i)
-			m_imgWindow[i].SetWindowRect(rects[i]);
+		ApplySplitterRatio();
 	}
 	
 	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
@@ -2126,9 +2154,6 @@ private:
 	std::vector<EventListenerInfo> m_listener;
 	int m_nDraggingSplitter;
 	bool m_bHorizontalSplit;
-	// Size along the split axis of whichever pane is smaller, in pixels:
-	// positive for the first pane, negative for the second. 0 = equal split.
-	int m_splitterPosition;
 	int m_oldSplitPosX;
 	int m_oldSplitPosY;
 	bool m_bDragging;
@@ -2141,5 +2166,7 @@ private:
 	std::unique_ptr<ocr::COcr> m_pOcr;
 	std::chrono::milliseconds m_timerPrev;
 	std::chrono::milliseconds m_timerNext;
+	double m_requestedSplitterRatios[2];
+	double m_splitterRatios[2];
 	inline static bool s_bDarkBackgroundEnabled = false;
 };
