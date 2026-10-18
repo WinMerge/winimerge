@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <memory>
 #include "ImgDiffBuffer.hpp"
 
 struct UndoRecord
@@ -143,9 +144,7 @@ public:
 			m_bRO[i] = false;
 	}
 
-	virtual ~CImgMergeBuffer()
-	{
-	}
+	virtual ~CImgMergeBuffer() = default;
 
 	bool NewImages(int nImages, int nPages, int width, int height)
 	{
@@ -179,6 +178,30 @@ public:
 
 	bool Resize(int pane, int width, int height)
 	{
+		return Resize(pane, width, height, true);
+	}
+
+	bool ResizeForPaste(int pane, int width, int height)
+	{
+		if (pane < 0 || pane >= m_nImages)
+			return false;
+		if (!m_pasteResizeOld[pane])
+			m_pasteResizeOld[pane] = std::make_unique<Image>(m_imgOrig32[pane]);
+		return Resize(pane, width, height, false);
+	}
+
+	void CancelPasteResize(int pane)
+	{
+		if (pane < 0 || pane >= m_nImages || !m_pasteResizeOld[pane])
+			return;
+		m_imgOrig32[pane] = *m_pasteResizeOld[pane];
+		m_pasteResizeOld[pane].reset();
+		CompareImages();
+	}
+
+private:
+	bool Resize(int pane, int width, int height, bool recordUndo)
+	{
 		if (width == m_imgOrig32[pane].width() && height == m_imgOrig32[pane].height())
 			return false;
 
@@ -192,12 +215,20 @@ public:
 
 		Image *newbitmap = new Image(m_imgOrig32[pane]);
 
-		m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+		if (recordUndo)
+			m_undoRecords.push_back(pane, oldbitmap, newbitmap);
+		else
+		{
+			delete oldbitmap;
+			delete newbitmap;
+		}
 
 		CompareImages();
 
 		return true;
 	}
+
+public:
 
 	bool GetReadOnly(int pane) const
 	{
@@ -471,8 +502,9 @@ public:
 
 	virtual bool CloseImages() override
 	{
+		m_undoRecords.clear();
 		for (int i = 0; i < m_nImages; ++i)
-			m_undoRecords.clear();
+			m_pasteResizeOld[i].reset();
 		return CImgDiffBuffer::CloseImages();
 	}
 
@@ -481,7 +513,9 @@ public:
 		if (pane < 0 || pane >= m_nImages)
 			return;
 
-		Image *oldbitmap = new Image(m_imgOrig32[pane]);
+		Image *oldbitmap = m_pasteResizeOld[pane].release();
+		if (!oldbitmap)
+			oldbitmap = new Image(m_imgOrig32[pane]);
 		{
 			TemporaryTransformation tmp(*this);
 			PasteImageInternal(pane, x, y, image);
@@ -690,6 +724,7 @@ protected:
 
 private:
 	bool m_bRO[3];
+	std::unique_ptr<Image> m_pasteResizeOld[3];
 	UndoRecords m_undoRecords;
 };
 

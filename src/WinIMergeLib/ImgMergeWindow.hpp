@@ -796,7 +796,7 @@ public:
 		image.convertTo32Bits();
 		int maxwidth  = (std::max)(m_buffer.GetImageWidth(pane), static_cast<int>(image.getWidth()));
 		int maxheight = (std::max)(m_buffer.GetImageHeight(pane), static_cast<int>(image.getHeight()));
-		m_buffer.Resize(pane, maxwidth, maxheight);
+		m_buffer.ResizeForPaste(pane, maxwidth, maxheight);
 		imgWindow.SetOverlappedImage(image);
 		imgWindow.Invalidate();
 		return true;
@@ -832,6 +832,7 @@ public:
 			return false;
 		for (int pane = 0; pane < m_nImages; ++pane)
 		{
+			m_buffer.CancelPasteResize(pane);
 			m_imgWindow[pane].DeleteRectangleSelection();
 			m_imgWindow[pane].DeleteOverlappedImage();
 		}
