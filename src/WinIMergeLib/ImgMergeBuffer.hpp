@@ -143,9 +143,7 @@ public:
 			m_bRO[i] = false;
 	}
 
-	virtual ~CImgMergeBuffer()
-	{
-	}
+	virtual ~CImgMergeBuffer() = default;
 
 	bool NewImages(int nImages, int nPages, int width, int height)
 	{
@@ -320,6 +318,12 @@ public:
 	{
 		if (pane < 0 || pane >= m_nImages || m_bRO[pane])
 			return false;
+		left = (std::max)(left, 0);
+		top = (std::max)(top, 0);
+		right = (std::min)(right, static_cast<int>(m_imgOrig32[pane].width()));
+		bottom = (std::min)(bottom, static_cast<int>(m_imgOrig32[pane].height()));
+		if (right <= left || bottom <= top)
+			return false;
 
 		Image *oldbitmap = new Image(m_imgOrig32[pane]);
 
@@ -471,8 +475,7 @@ public:
 
 	virtual bool CloseImages() override
 	{
-		for (int i = 0; i < m_nImages; ++i)
-			m_undoRecords.clear();
+		m_undoRecords.clear();
 		return CImgDiffBuffer::CloseImages();
 	}
 
@@ -484,6 +487,14 @@ public:
 		Image *oldbitmap = new Image(m_imgOrig32[pane]);
 		{
 			TemporaryTransformation tmp(*this);
+			int width = (std::max)(static_cast<int>(m_imgOrig32[pane].width()), x + static_cast<int>(image.width()));
+			int height = (std::max)(static_cast<int>(m_imgOrig32[pane].height()), y + static_cast<int>(image.height()));
+			if (width != static_cast<int>(m_imgOrig32[pane].width()) || height != static_cast<int>(m_imgOrig32[pane].height()))
+			{
+				Image tmpImage = m_imgOrig32[pane];
+				m_imgOrig32[pane].setSize(width, height);
+				PasteImageInternal(pane, 0, 0, tmpImage);
+			}
 			PasteImageInternal(pane, x, y, image);
 		}
 		Image *newbitmap = new Image(m_imgOrig32[pane]);
