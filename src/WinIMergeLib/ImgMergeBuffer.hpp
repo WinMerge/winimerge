@@ -632,7 +632,25 @@ protected:
 							if (ConvertToRealPos(srcPane, x + j, y + i, rsx, rsy))
 							{
 								int rdx, rdy;
-								if (ConvertToRealPos(dstPane, x + j, y + i, rdx, rdy))
+								bool inside = ConvertToRealPos(dstPane, x + j, y + i, rdx, rdy, false);
+								bool extendsImage =
+									x + j >= m_offset[dstPane].x + m_imgPreprocessed[dstPane].width() ||
+									y + i >= m_offset[dstPane].y + m_imgPreprocessed[dstPane].height();
+								bool ghostLine = false;
+								if (!inside && extendsImage && m_insertionDeletionDetectionMode != INSERTION_DELETION_DETECTION_NONE)
+								{
+									const int pos = m_insertionDeletionDetectionMode == INSERTION_DELETION_DETECTION_VERTICAL
+										? static_cast<int>(y + i) - static_cast<int>(m_offset[dstPane].y)
+										: static_cast<int>(x + j) - static_cast<int>(m_offset[dstPane].x);
+									ghostLine = std::any_of(m_lineDiffInfos.cbegin(), m_lineDiffInfos.cend(),
+										[dstPane, pos](const LineDiffInfo& lineDiff)
+										{
+											return lineDiff.dend[dstPane] < pos && pos <= lineDiff.dendmax;
+										});
+								}
+								if ((inside || extendsImage) && !ghostLine && rdx >= 0 && rdy >= 0 &&
+									rdx < static_cast<int>(m_imgOrig32[dstPane].width()) &&
+									rdy < static_cast<int>(m_imgOrig32[dstPane].height()))
 								{
 									const unsigned char* scanline_src = m_imgOrig32[srcPane].scanLine(rsy);
 									unsigned char* scanline_dst = m_imgOrig32[dstPane].scanLine(rdy);
