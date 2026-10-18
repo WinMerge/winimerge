@@ -656,6 +656,7 @@ public:
 	{
 		CommitOverlappedImages();
 		m_buffer.CopyDiff(diffIndex, srcPane, dstPane);
+		UpdateScrollBars();
 		Invalidate();
 	}
 
@@ -663,6 +664,7 @@ public:
 	{
 		CommitOverlappedImages();
 		m_buffer.CopyDiffAll(srcPane, dstPane);
+		UpdateScrollBars();
 		Invalidate();
 	}
 
@@ -670,6 +672,7 @@ public:
 	{
 		CommitOverlappedImages();
 		int result = m_buffer.CopyDiff3Way(dstPane);
+		UpdateScrollBars();
 		Invalidate();
 		return result;
 	}
