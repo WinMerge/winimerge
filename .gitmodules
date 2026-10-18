@@ -1,0 +1,3 @@
+[submodule "FreeImage"]
+	path = FreeImage
+	url = https://github.com/WinMerge/freeimage.git

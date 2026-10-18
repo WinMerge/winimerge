@@ -12,8 +12,7 @@ FreeImage is used under the the GNU GPL version.
 
 ## How to build
 ~~~
-git clone https://github.com/winmerge/winimerge
-git clone https://github.com/winmerge/freeimage
+git clone --recurse-submodules https://github.com/winmerge/winimerge
 cd winimerge
 buildbin.cmd
 ~~~

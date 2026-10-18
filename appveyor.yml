@@ -4,9 +4,7 @@ clone_folder: c:\projects\winimerge\winimerge
 shallow_clone: true
 install:
 - cmd: >-
-    cd c:\projects\winimerge\
-
-    git clone https://github.com/winmerge/freeimage
+    git submodule update --init --recursive
 
 build_script:
 - cmd: >-
