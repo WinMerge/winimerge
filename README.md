@@ -10,7 +10,7 @@ See http://freeimage.sourceforge.net for details.
 
 FreeImage is used under the the GNU GPL version.
 
-## How to build (Visual Studio 2022)
+## How to build
 ~~~
 git clone https://github.com/winmerge/winimerge
 git clone https://github.com/winmerge/freeimage
