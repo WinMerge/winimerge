@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 		WinIMerge_DestroyWindow(pImgMergeWindow);
 	}
 #else
-	FreeImage_Initialise();
+	FreeImage_Initialise(true);
 
 	if (!buffer.OpenImages(2, filenames))
 	{
